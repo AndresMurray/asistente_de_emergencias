@@ -1,0 +1,32 @@
+[
+    {
+        "id": 1,
+        "query": "¿Qué datos se deben registrar al tomar conocimiento de un siniestro vial?",
+        "expected_scope": "in_scope",
+        "keywords": ["registro", "ubicación", "lesionados", "conocimiento"]
+    },
+    {
+        "id": 2,
+        "query": "¿Cuánto tiempo tiene el equipo de emergencia para llegar al lugar del accidente?",
+        "expected_scope": "in_scope",
+        "keywords": ["arribo", "10 minutos", "escena"]
+    },
+    {
+        "id": 3,
+        "query": "¿Cómo actuar en la intervención médica ante heridos graves?",
+        "expected_scope": "in_scope",
+        "keywords": ["intervención", "médico", "estabilización"]
+    },
+    {
+        "id": 4,
+        "query": "¿Cuál es el protocolo de recolección de muestras para el perito judicial?",
+        "expected_scope": "out_of_scope",
+        "keywords": ["No poseo ese procedimiento", "911"]
+    },
+    {
+        "id": 5,
+        "query": "¿Cuál es la capital de Francia y qué museos hay que visitar?",
+        "expected_scope": "out_of_scope",
+        "keywords": ["No poseo ese procedimiento", "911"]
+    }
+]
