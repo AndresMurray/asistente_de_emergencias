@@ -48,8 +48,18 @@ Modelos probados para el RAG de emergencias viales. Todos corren vía Ollama.
 - **Parámetros:** 3B
 - **Descarga:** `ollama pull ministral-3:3b`
 - **Hardware mínimo:** 6GB RAM (CPU), funciona en GPU con 3GB VRAM
-- **Español:** Por evaluar
+- **Español:** Correcto, bien formateado
 - **Notas:** Mistral AI, familia Ministral diseñada para edge devices. El más pesado del grupo
+
+---
+
+### llama3:8b
+- **Tamaño:** 4.7 GB
+- **Parámetros:** 8B
+- **Descarga:** `ollama pull llama3:8b`
+- **Hardware mínimo:** 8GB RAM (CPU), requiere 5GB+ VRAM para correr completo en GPU
+- **Español:** Bueno
+- **Notas:** Modelo default original del proyecto. No entra en 4GB VRAM — corre en modo mixto GPU+CPU. Descartado para este hardware.
 
 ---
 
@@ -76,35 +86,50 @@ Cuando el benchmark pasa al siguiente modelo, Ollama desaloja el anterior de VRA
 
 ---
 
-### Resultados — CON CONTEXTO (métrica válida)
+### Promedio de 3 corridas — CON CONTEXTO (métrica válida)
 
-| Modelo | TTFT warm | Tiempo total | tok/s | Sigue protocolo | Español | Observaciones |
-|--------|-----------|--------------|-------|-----------------|---------|---------------|
-| llama3.2:3b | 470ms | **2.9s** | **36.4** | ✅ | ✅ | Omitió mencionar FASE 3 explícitamente |
-| qwen2.5:3b | **408ms** | 11.1s | 22.7 | ✅ | ✅ | Respuesta más detallada y precisa |
-| ministral-3:3b | 778ms | 16.1s | 10.8 | ✅ | ✅ | Limpia y bien formateada |
-| phi3.5 | 895ms | 17.4s | 13.3 | ✅ | ⚠️ | Errores de generación en español |
+| Modelo | TTFT promedio | Total promedio | tok/s promedio | Protocolo completo | Español |
+|--------|---------------|----------------|----------------|--------------------|---------|
+| **llama3.2:3b** | 370ms | **2.4s** | **44.3** | ⚠️ mezcla fases | ✅ |
+| **qwen2.5:3b** | 372ms | 8.7s | 39.9 | ✅ siempre correcto | ✅ |
+| ministral-3:3b | 664ms | 11.2s | 16.5 | ✅ | ✅ |
+| phi3.5 | 711ms | 15.4s | 18.7 | ✅ | ⚠️ errores |
+| llama3:8b | 712ms | 22.7s | 10.0 | ✅ | ✅ |
 
-### Resultados — SIN CONTEXTO (solo referencia, no comparable)
+### Resultados — SIN CONTEXTO (solo referencia, no comparable entre modelos)
 
-| Modelo | TTFT cold | tok/s |
-|--------|-----------|-------|
-| llama3.2:3b | 5128ms | 27.9 |
-| phi3.5 | 4059ms | 13.3 |
-| qwen2.5:3b | 17119ms | 13.6 |
-| ministral-3:3b | 9786ms | 10.1 |
+| Modelo | TTFT cold (rango) | tok/s |
+|--------|-------------------|-------|
+| llama3.2:3b | 5128–7499ms | 27–34 |
+| phi3.5 | 4059–4732ms | 13–22 |
+| qwen2.5:3b | 4827–17119ms | 13–35 |
+| ministral-3:3b | 8887–9959ms | 12–15 |
+| llama3:8b | 11854ms | 7.6 |
 
-> Los TTFT cold varían según el orden de ejecución y el estado de VRAM al momento de carga. No usar para comparar modelos.
+> TTFT cold incluye tiempo de carga del modelo en VRAM. Varía según estado del sistema. No usar para comparar modelos.
 
 ---
 
-### Análisis
+### Análisis final
 
-- **llama3.2:3b**: El más rápido por amplio margen (2.9s total, 36.4 tok/s). En la prueba con contexto omitió enunciar la FASE 3 explícitamente — señal de que el prompt del RAG necesita instrucción explícita para listar todas las fases (responsabilidad del módulo de prompt engineering).
-- **qwen2.5:3b**: TTFT casi idéntico (408ms vs 470ms, diferencia imperceptible para el usuario), pero respuesta total 4x más lenta (11.1s). Mejor calidad y precisión en el seguimiento del protocolo.
-- **ministral-3:3b**: Correcto y limpio, pero el más lento del grupo en tok/s (10.8). No justifica su tamaño (3GB).
-- **phi3.5**: Descartado — errores de generación en español ("segurthy", "involucidos") inaceptables para un sistema de emergencias.
+- **llama3.2:3b**: Más rápido en tiempo total (2.4s promedio). En todas las corridas mezcló pasos bajo el título de FASE 1 en vez de listar las tres fases separadas. No es un defecto del modelo — el prompt de prueba no exige estructura por fases. Se corrige con prompt engineering explícito.
+- **qwen2.5:3b**: TTFT prácticamente igual al líder (372ms vs 370ms — imperceptible). Tiempo total 3.6x más lento. En las tres corridas listó las tres fases correctamente y con detalle. Mejor calidad de protocolo del grupo.
+- **ministral-3:3b**: Sólido y consistente. Respuestas limpias y bien formateadas. Tercer lugar claro.
+- **phi3.5**: Descartado — errores de generación en español en todas las corridas ("involucidos", "segurthy", "atenzymedio") inaceptables para un sistema de emergencias.
+- **llama3:8b**: Descartado — no entra en 4GB VRAM, corre en modo mixto GPU+CPU. 22.7s de respuesta total, inutilizable en tiempo real. Era el modelo default del proyecto pero no es viable para este hardware.
 
-### Modelo seleccionado: `llama3.2:3b`
+---
 
-Velocidad dominante para tiempo real. La omisión de FASE 3 se resuelve con prompt engineering, no cambiando el modelo.
+### Ranking final
+
+| # | Modelo | Motivo |
+|---|--------|--------|
+| 1 | **llama3.2:3b** | Más rápido. El error de protocolo se resuelve con prompt engineering. |
+| 2 | **qwen2.5:3b** | Mejor calidad de protocolo. Viable si el prompt engineering no alcanza para corregir llama. |
+| 3 | ministral-3:3b | Correcto pero más lento. Reserva. |
+| — | phi3.5 | Descartado. Errores de español consistentes. |
+| — | llama3:8b | Descartado. No compatible con el hardware disponible. |
+
+### Modelo seleccionado para producción: `llama3.2:3b`
+
+Tiempo de respuesta dominante (2.4s promedio). TTFT idéntico a qwen2.5:3b. La diferencia de calidad de protocolo se delega al módulo de prompt engineering — no es responsabilidad del modelo LLM sino de cómo se construye el prompt.

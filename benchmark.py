@@ -17,7 +17,7 @@ import requests
 from dataclasses import dataclass, field
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODELS = ["llama3.2:3b", "phi3.5", "qwen2.5:3b", "ministral-3:3b"]
+MODELS = ["llama3.2:3b", "phi3.5", "qwen2.5:3b", "ministral-3:3b", "llama3:8b"]
 
 PROMPT_SIN_CONTEXTO = (
     "Hay un accidente vial con heridos. ¿Cuáles son los primeros pasos?"
