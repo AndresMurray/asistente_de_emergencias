@@ -21,7 +21,7 @@ class Pipeline:
             description="URL del servicio local de Ollama o vLLM"
         )
         MODEL_NAME: str = Field(
-            default="llama3:8b",
+            default="llama3.2:3b",
             description="Nombre del modelo LLM local a utilizar"
         )
 
