@@ -92,7 +92,7 @@ asistente-emergencias-rag/
 
 ---
 
-### 👤 Integrante 4: Prompt Engineering y Reglas de Seguridad
+### 👤 Alex: Prompt Engineering y Reglas de Seguridad
 * **Rama:** `feature/prompt-generation`
 * **Lo que está hecho (Mock):**
   - [`templates.py`](file:///c:/Users/ASUS/Desktop/LS/Construccion%20sistemas%20RAG/Asistente_de_emergencias/src/generation/templates.py): Tiene definidos los prompts iniciales y un analizador simple de términos de exclusión (judiciales/incompatibles) para derivar al 911.
