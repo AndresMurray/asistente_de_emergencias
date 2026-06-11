@@ -1,7 +1,6 @@
 # Python virtual environments
 venv/
 .venv/
-env/
 
 # Python cache
 **/__pycache__/
@@ -11,6 +10,20 @@ env/
 
 # Environment variables
 .env
+
+# Docker env files con credenciales (no commitear passwords reales)
+# docker-env/ se incluye en el repo con valores por defecto para la PoC
+# Si se usan credenciales reales, descomentar la siguiente línea:
+# docker-env/
+
+# Docker appdata (volúmenes persistentes locales)
+appdata/ollama/
+appdata/owui/
+appdata/postgress/
+appdata/postgress_vector/
+appdata/pipelines/
+appdata/rawdata/
+!appdata/**/.gitkeep
 
 # Local data (PDFs and processed JSONs)
 data/raw/
