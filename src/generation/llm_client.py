@@ -7,7 +7,7 @@ import requests
 class OllamaClient:
     """Cliente para interactuar con la API local de Ollama o vLLM."""
 
-    def __init__(self, base_url: str = "http://localhost:11434", model_name: str = "llama3.2:3b") -> None:
+    def __init__(self, base_url: str = "http://localhost:11434", model_name: str = "gemma2:2b") -> None:
         self.base_url = base_url
         self.model_name = model_name
         self.generate_url = f"{self.base_url}/api/generate"

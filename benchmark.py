@@ -17,7 +17,7 @@ import requests
 from dataclasses import dataclass, field
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODELS = ["llama3.2:3b", "phi3.5", "qwen2.5:3b", "ministral-3:3b", "llama3:8b"]
+MODELS = ["llama3.2:3b", "phi3.5", "qwen2.5:3b", "ministral-3:3b", "llama3:8b", "gemma2:2b", "gemma3:4b", "qwen2.5:1.5b", "phi4-mini"]
 
 PROMPT_SIN_CONTEXTO = (
     "Hay un accidente vial con heridos. ¿Cuáles son los primeros pasos?"
@@ -93,17 +93,25 @@ def ejecutar_stream(modelo: str, prompt: str) -> ResultadoBenchmark:
             tokens.append(token)
 
             if data.get("done"):
+                # eval_count y eval_duration son los valores reales de Ollama
+                eval_count = data.get("eval_count", 0)
+                eval_duration_ns = data.get("eval_duration", 0)
+                if eval_count and eval_duration_ns:
+                    resultado.tokens_generados = eval_count
+                    resultado.tokens_por_segundo = eval_count / (eval_duration_ns / 1e9)
                 break
 
         t_fin = time.perf_counter()
         resultado.respuesta = "".join(tokens)
-        resultado.tokens_generados = len(tokens)
         resultado.tiempo_total_s = t_fin - t_inicio
-        resultado.tokens_por_segundo = (
-            resultado.tokens_generados / resultado.tiempo_total_s
-            if resultado.tiempo_total_s > 0
-            else 0
-        )
+        # fallback si Ollama no devolvió eval_count (no debería pasar)
+        if resultado.tokens_generados == 0:
+            resultado.tokens_generados = len(tokens)
+            resultado.tokens_por_segundo = (
+                resultado.tokens_generados / resultado.tiempo_total_s
+                if resultado.tiempo_total_s > 0
+                else 0
+            )
 
     except requests.exceptions.ConnectionError:
         resultado.error = "Ollama no está corriendo en http://localhost:11434"
