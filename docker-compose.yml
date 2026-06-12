@@ -91,6 +91,7 @@ services:
           - rawdata:/app/pipelines/rawdata
           - ./src/main.py:/app/pipelines/main.py
           - ./src:/app/pipelines/src
+          - ./requirements.txt:/app/pipelines/requirements.txt
         depends_on:
           vdb:
             condition: service_healthy

@@ -13,15 +13,24 @@ class Pipeline:
     class Valves(BaseModel):
         """Configuraciones ajustables desde el panel de control de Open WebUI."""
         DATABASE_URL: str = Field(
-            default="postgresql://postgres:postgres@localhost:5432/emergencias_db",
+            default_factory=lambda: os.getenv(
+                "DATABASE_URL",
+                "postgresql://postgres:postgres@localhost:5432/emergencias_db"
+            ),
             description="URI de conexión de PostgreSQL/pgvector"
         )
         OLLAMA_URL: str = Field(
-            default="http://localhost:11434",
+            default_factory=lambda: os.getenv(
+                "OLLAMA_URL",
+                "http://localhost:11434"
+            ),
             description="URL del servicio local de Ollama o vLLM"
         )
         MODEL_NAME: str = Field(
-            default="gemma2:2b",
+            default_factory=lambda: os.getenv(
+                "MODEL_NAME",
+                "gemma2:2b"
+            ),
             description="Nombre del modelo LLM local a utilizar"
         )
 

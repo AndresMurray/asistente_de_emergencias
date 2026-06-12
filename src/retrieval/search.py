@@ -20,7 +20,9 @@ class VectorSearcher:
         # Servicio de embeddings de Ollama. Modelo multilingüe liviano (768 dimensiones).
         self.ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
         self.embed_model = os.getenv("EMBED_MODEL", "paraphrase-multilingual")
-        self.embed_url = f"{self.ollama_url}/api/embeddings"
+        # /api/embed es el endpoint actual de Ollama (reemplaza al legacy /api/embeddings
+        # que devuelve 500 con ciertos tokens del modelo paraphrase-multilingual)
+        self.embed_url = f"{self.ollama_url}/api/embed"
 
     def get_embeddings(self, text: str) -> List[float]:
         """
@@ -35,14 +37,15 @@ class VectorSearcher:
         """
         response = requests.post(
             self.embed_url,
-            json={"model": self.embed_model, "prompt": text},
+            json={"model": self.embed_model, "input": text},  # /api/embed usa "input"
             timeout=30,
         )
         response.raise_for_status()
-        embedding = response.json().get("embedding")
-        if not embedding:
+        # /api/embed devuelve {"embeddings": [[...]]} (lista de listas)
+        embeddings = response.json().get("embeddings")
+        if not embeddings or not embeddings[0]:
             raise ValueError(f"Ollama no devolvió embedding para el texto: '{text[:50]}...'")
-        return embedding
+        return embeddings[0]
 
     def search_similarity(self, query: str, limit: int = 3) -> List[DocumentChunk]:
         """
