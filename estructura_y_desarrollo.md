@@ -64,19 +64,23 @@ asistente-emergencias-rag/
 
 ---
 
-### 👤 Salvador: Base de Datos Vectorial
+### 👤 Salvador: Base de Datos Vectorial ✅ IMPLEMENTADO
 * **Rama:** `feature/vector-retrieval`
-* **Lo que está hecho (Mock):**
-  - [`vector_store.py`](file:///c:/Users/ASUS/Desktop/LS/Construccion%20sistemas%20RAG/Asistente_de_emergencias/src/retrieval/vector_store.py): Intenta conectarse a PostgreSQL. Si falla, activa un almacenamiento en memoria virtual (`_mock_db`) para no romper la ejecución.
-  - [`search.py`](file:///c:/Users/ASUS/Desktop/LS/Construccion%20sistemas%20RAG/Asistente_de_emergencias/src/retrieval/search.py): Simula la creación de embeddings (vectores de 384 dimensiones) usando operaciones matemáticas basadas en caracteres y realiza búsquedas heurísticas en memoria.
-* **Lo que DEBES hacer en tu rama:**
-  1. Configurar una base de datos local en PostgreSQL e instalar la extensión `pgvector`.
-  2. Implementar la conexión de base de datos en `VectorStoreManager.connect` usando `psycopg2`.
-  3. Crear la tabla real `protocol_chunks` con soporte para vectores de embeddings.
-  4. Programar `insert_chunks` para leer el JSON de Andrés e insertar los vectores correspondientes.
-  5. Implementar en `VectorSearcher.get_embeddings` la generación real de embeddings en español (usando un modelo local de Hugging Face o la API de embeddings de Ollama).
-  6. Modificar `search_similarity` para realizar consultas de similitud de coseno (`<=>`) o L2 (`<->`) reales en PostgreSQL.
-  7. Implementar el comando SQL para crear el índice HNSW en la columna de embeddings.
+* **Doc detallado:** [`docs/modulo_retrieval_salvador.md`](docs/modulo_retrieval_salvador.md)
+* **Estado actual (real, sin mock):**
+  - [`vector_store.py`](src/retrieval/vector_store.py): Conexión real a PostgreSQL 17 con `psycopg2` + `pgvector` 0.8.2. Crea la extensión, el esquema `protocol_chunks` con `VECTOR(768)` e inserta los chunks en lote (`execute_values` + upsert). `insert_from_json()` lee el JSON de Andrés y genera+inserta los embeddings. Mantiene fallback a memoria si faltan drivers.
+  - [`search.py`](src/retrieval/search.py): Embeddings reales vía API de Ollama con el modelo multilingüe liviano `paraphrase-multilingual` (768 dim). `search_similarity()` consulta por distancia de coseno (`<=>`) real y `create_hnsw_index()` crea el índice HNSW (`vector_cosine_ops`).
+* **Tareas completadas:**
+  1. ✅ PostgreSQL local + extensión `pgvector`.
+  2. ✅ Conexión real en `VectorStoreManager.connect` con `psycopg2`.
+  3. ✅ Tabla `protocol_chunks` con columna de embeddings.
+  4. ✅ Ingesta del JSON de Andrés (`insert_from_json` + `insert_chunks`).
+  5. ✅ `get_embeddings` real en español vía Ollama (`paraphrase-multilingual`).
+  6. ✅ `search_similarity` con similitud de coseno real en PostgreSQL.
+  7. ✅ Índice HNSW en la columna de embeddings.
+* **Nota de integración:** las firmas públicas (`insert_chunks(chunks)`,
+  `search_similarity(query, limit)`) se mantienen intactas; los embeddings se generan
+  internamente. Detalles y guía de testing en el doc del módulo.
 
 ---
 
@@ -92,7 +96,7 @@ asistente-emergencias-rag/
 
 ---
 
-### 👤 Integrante 4: Prompt Engineering y Reglas de Seguridad
+### 👤 Alex: Prompt Engineering y Reglas de Seguridad
 * **Rama:** `feature/prompt-generation`
 * **Lo que está hecho (Mock):**
   - [`templates.py`](file:///c:/Users/ASUS/Desktop/LS/Construccion%20sistemas%20RAG/Asistente_de_emergencias/src/generation/templates.py): Tiene definidos los prompts iniciales y un analizador simple de términos de exclusión (judiciales/incompatibles) para derivar al 911.
