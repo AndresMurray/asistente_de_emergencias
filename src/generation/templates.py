@@ -24,7 +24,7 @@ class PromptBuilder:
         ]
 
         # Situaciones legales
-        self.legal.keywords = [
+        self.legal_keywords = [
             "judicial", "peritaje", "perito", "demanda", "abogado", "tribunal", "juez", 
             "sentencia", "documentación", "agencia de seguros", "legal"
         ]
