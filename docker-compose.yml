@@ -1,0 +1,137 @@
+services:
+    ollama:
+        image: ollama/ollama
+        restart: unless-stopped
+        env_file:
+           - docker-env/ollama.env
+        ports:
+           - "${OLLAMA_PORT:-11434}:11434"
+        volumes:
+            - ollama_data:/root/.ollama
+              #        deploy:
+              #            resources:
+              #                reservations:
+              #                    devices:
+              #                        - driver: nvidia
+              #                          count: 1
+              #                          #device_ids: ["1"]
+              #                          capabilities: [gpu]
+
+    db:
+        image: postgres:15-alpine
+        restart: unless-stopped
+        env_file:
+            - docker-env/db.env
+        environment:
+            - PGDATA=/var/lib/postgresql/data/pgdata
+        ports:
+            - "${DB_PORT:-5434}:5432"
+        volumes:
+            - pg_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres -d emergencias_db"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    vdb:
+        image: ankane/pgvector
+        restart: unless-stopped
+        env_file:
+            - docker-env/vdb.env
+        environment:
+            - PGDATA=/var/lib/postgresql/data/pgdata
+        ports:
+            - "${VDB_PORT:-5433}:5432"
+        volumes:
+            - pgv_data:/var/lib/postgresql/data
+            - ./docker-env/init-extensions.sql:/docker-entrypoint-initdb.d/init-extensions.sql:ro
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres -d emergencias_vdb"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    open-webui:
+        image: 'ghcr.io/open-webui/open-webui:latest'
+        restart: unless-stopped
+        env_file:
+            - docker-env/openwebui.env
+        volumes:
+            - owui_data:/app/backend/data
+        ports:
+            - "${OWEBUI_PORT:-8180}:8080"
+        depends_on:
+            ollama:
+                condition: service_started
+            pipelines:
+                condition: service_started
+              #        deploy:
+              #            resources:
+              #                reservations:
+              #                    devices:
+              #                        - driver: nvidia
+              #                          count: 1
+              #                          #device_ids: ["1"]
+              #                          capabilities: [gpu]
+
+    pipelines:
+        image: ghcr.io/open-webui/pipelines:main
+        restart: unless-stopped
+        environment:
+            - PYTHONPATH=/app/pipelines
+        env_file:
+          - docker-env/pipelines.env
+        ports:
+          - "${PIPELINES_PORT:-9099}:9099"
+        extra_hosts:
+          - host.docker.internal:host-gateway
+        volumes:
+          - pipelines:/app/pipelines
+          - rawdata:/app/pipelines/rawdata
+          - ./src/main.py:/app/pipelines/main.py
+          - ./src:/app/pipelines/src
+        depends_on:
+          vdb:
+            condition: service_healthy
+          ollama:
+            condition: service_started
+
+
+volumes:
+    ollama_data:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: ./appdata/ollama/
+    owui_data:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: ./appdata/owui/
+    pg_data:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: ./appdata/postgress/
+    pgv_data:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: ./appdata/postgress_vector/
+    pipelines:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: ./appdata/pipelines/
+    rawdata:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: ./appdata/rawdata/

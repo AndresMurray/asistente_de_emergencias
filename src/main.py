@@ -1,5 +1,5 @@
 import os
-from typing import List, Generator, Union
+from typing import List, Generator, Union, Optional
 from pydantic import BaseModel, Field
 
 from src.retrieval.vector_store import VectorStoreManager
@@ -57,7 +57,8 @@ class Pipeline:
         self, 
         user_message: str, 
         model_id: str, 
-        messages: List[dict]
+        messages: List[dict],
+        body: Optional[dict] = None
     ) -> Union[str, Generator[str, None, None]]:
         """
         Método de ejecución de tubería obligatorio en Open WebUI.
@@ -67,6 +68,7 @@ class Pipeline:
             user_message (str): Mensaje actual del usuario.
             model_id (str): Identificador del modelo solicitado.
             messages (List[dict]): Historial completo del chat.
+            body (dict): El payload completo de la solicitud de Open WebUI.
             
         Returns:
             Union[str, Generator[str, None, None]]: Respuesta final.
@@ -109,7 +111,7 @@ if __name__ == "__main__":
         
         print("\n=== PRUEBA 1: CONSULTA DENTRO DE ALCANCE ===")
         user_q = "¿Qué datos se deben registrar al tomar conocimiento de un siniestro vial?"
-        response = pipe_instance.pipe(user_q, "mock-model", [])
+        response = pipe_instance.pipe(user_q, "mock-model", [], {})
         
         if isinstance(response, str):
             print(response)
@@ -120,7 +122,7 @@ if __name__ == "__main__":
 
         print("\n=== PRUEBA 2: CONSULTA FUERA DE ALCANCE ===")
         out_q = "¿Cuál es el mejor equipo de fútbol de Argentina?"
-        response_out = pipe_instance.pipe(out_q, "mock-model", [])
+        response_out = pipe_instance.pipe(out_q, "mock-model", [], {})
         print(response_out)
         
         await pipe_instance.on_shutdown()
