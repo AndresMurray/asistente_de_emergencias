@@ -11,18 +11,36 @@ import sys
 import json
 import re
 import requests
+import argparse
 
 # ── Configuración ────────────────────────────────────────────────────────────
 os.environ["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5433/emergencias_vdb"
 os.environ["OLLAMA_URL"]   = "http://localhost:11434"
 os.environ["EMBED_MODEL"]  = "paraphrase-multilingual:latest"
 
-JSON_PATH  = sys.argv[1] if len(sys.argv) > 1 else "data/processed/protocolos_chunks.json"
+parser = argparse.ArgumentParser(description="Script de ingesta de chunks en pgvector.")
+parser.add_argument(
+    "json_path",
+    nargs="?",
+    default="data/processed/protocolos_chunks.json",
+    help="Ruta al archivo JSON de chunks (por defecto: data/processed/protocolos_chunks.json)"
+)
+parser.add_argument(
+    "--reset",
+    action="store_true",
+    help="Vacía la tabla de chunks antes de realizar la ingesta."
+)
+args = parser.parse_args()
+
+JSON_PATH  = args.json_path
+RESET_DB   = args.reset
 BATCH_SIZE = 20  # chunks por commit a pgvector
 
 print(f"[Ingesta] BD  -> {os.environ['DATABASE_URL']}")
 print(f"[Ingesta] EMB -> {os.environ['EMBED_MODEL']}")
 print(f"[Ingesta] JSON -> {JSON_PATH}")
+if RESET_DB:
+    print("[Ingesta] RESET activado: se vaciará la base de datos antes de ingestar.")
 
 # ── Imports del proyecto (después de setear env vars) ─────────────────────
 from src.retrieval.vector_store import VectorStoreManager
@@ -84,6 +102,9 @@ print(f"[Ingesta] {len(chunks)} chunks cargados. Conectando a BD...")
 m = VectorStoreManager()
 m.connect()
 m.initialize_schema()
+
+if RESET_DB:
+    m.clear_table()
 
 
 # ── Inserción en batches con manejo de errores ───────────────────────────────

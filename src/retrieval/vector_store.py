@@ -85,6 +85,23 @@ class VectorStoreManager:
             self.conn.rollback()
             self.use_mock = True
 
+    def clear_table(self) -> None:
+        """Elimina todos los registros de la tabla protocol_chunks."""
+        if self.use_mock:
+            self._mock_db.clear()
+            print("[VectorStore - Mock] Base de datos simulada vaciada.")
+            return
+
+        try:
+            self.cursor.execute("TRUNCATE TABLE protocol_chunks;")
+            self.conn.commit()
+            print("[VectorStore] Tabla protocol_chunks truncada exitosamente.")
+        except Exception as e:
+            if self.conn:
+                self.conn.rollback()
+            print(f"[VectorStore - Error] Error al vaciar la tabla: {e}")
+            raise
+
     def _get_searcher(self):
         """
         Devuelve (creándolo de forma diferida) el ``VectorSearcher`` asociado, usado para

@@ -255,6 +255,7 @@ class ProtocolChunker:
 
 
 if __name__ == "__main__":
+    import sys
     import glob
     from src.ingestion.extractors import ProtocolExtractor
 
@@ -267,10 +268,23 @@ if __name__ == "__main__":
     CLEAN_TEXT_DIR = "data/processed/clean"
     os.makedirs(CLEAN_TEXT_DIR, exist_ok=True)
 
-    pdf_files = glob.glob("data/raw/*.pdf")
+    # Permitir especificar un archivo PDF o directorio por parámetro de línea de comandos
+    target_path = sys.argv[1] if len(sys.argv) > 1 else "data/raw"
+
+    if os.path.isfile(target_path):
+        if target_path.lower().endswith(".pdf"):
+            pdf_files = [target_path]
+        else:
+            print(f"[Main] El archivo especificado '{target_path}' no es un PDF.")
+            sys.exit(1)
+    elif os.path.isdir(target_path):
+        pdf_files = glob.glob(os.path.join(target_path, "*.pdf"))
+    else:
+        # Intentar tratar target_path como un patrón glob
+        pdf_files = glob.glob(target_path)
 
     if not pdf_files:
-        print("[Main] No se encontraron PDFs en data/raw/. Usando mock.")
+        print(f"[Main] No se encontraron archivos PDF en '{target_path}'. Usando mock.")
         raw = extractor.extract_text("data/raw/protocolo_siniestros.pdf")
         clean = extractor.clean_text(raw)
 

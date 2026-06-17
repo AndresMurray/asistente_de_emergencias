@@ -78,6 +78,20 @@ class ProtocolExtractor:
         """
         cleaned = raw_text
 
+        # ── 0. Filtrar por secciones específicas (Temas 3, 4, 5 y 6) ──────────
+        # Si el documento contiene TEMA 1, TEMA 2 y TEMA 3, nos quedamos solo con TEMA 3 hasta BIBLIOGRAFÍA
+        if "TEMA 3" in cleaned and "TEMA 1" in cleaned and "TEMA 2" in cleaned:
+            tema3_matches = list(re.finditer(r'^\s*TEMA\s+3\s*$', cleaned, flags=re.MULTILINE))
+            if tema3_matches:
+                start_idx = tema3_matches[0].start()
+                bib_match = re.search(r'^\s*BIBLIOGRAF[IÍ]A\s*$', cleaned, flags=re.MULTILINE | re.IGNORECASE)
+                if bib_match:
+                    end_idx = bib_match.start()
+                    cleaned = cleaned[start_idx:end_idx]
+                else:
+                    cleaned = cleaned[start_idx:]
+                print(f"[Extractor] Preprocesamiento: Conservados Temas 3 a 6 ({len(cleaned)} caracteres).")
+
         # ── 1. Eliminar secciones judiciales / periciales completas ──────────────
         # Se eliminan desde el encabezado de la sección hasta el final del bloque
         # (hasta doble salto de línea o inicio de otra sección reconocida).
