@@ -38,7 +38,7 @@ class OllamaClient:
                 self.generate_url,
                 json=payload,
                 stream=True,
-                timeout=(5, 120),  # 5s connect, 120s read
+                timeout=(5, 300),  # 5s connect, 300s read
             )
 
             if response.status_code == 200:
