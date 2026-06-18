@@ -1,5 +1,7 @@
 # Asistente de Respuesta Temprana a Emergencias Viales - PoC RAG
 
+https://drive.google.com/drive/u/1/folders/1gd0nOFq6WJUgUpMEAZjwt4JArX_Nic_G
+
 Este proyecto es una Prueba de Concepto (PoC) para un **Asistente de Respuesta Temprana a Emergencias Viales** auto-alojado localmente y optimizado para baja latencia (tiempo real).
 
 ## 🚀 Tecnologías Principales
