@@ -138,7 +138,7 @@ docker compose ps
 
 | Servicio | Puerto | Descripción |
 |---|---|---|
-| `ollama` | 11434 | LLM local (llama3:8b) |
+| `ollama` | 11434 | LLM local (gemma2:2b) |
 | `db` | 5434 | PostgreSQL estándar |
 | `vdb` | 5433 | PostgreSQL + pgvector (base vectorial) |
 | `pipelines` | 9099 | El pipeline RAG (main.py) |
@@ -157,8 +157,8 @@ docker ps --filter "name=ollama" --format "{{.Names}}"
 # Modelo de embeddings (~562 MB) — para búsqueda vectorial
 docker exec -it asistente_de_emergencias-ollama-1 ollama pull paraphrase-multilingual
 
-# Modelo LLM (~4.7 GB) — para generar respuestas
-docker exec -it asistente_de_emergencias-ollama-1 ollama pull llama3:8b
+# Modelo LLM (~1.6 GB) — para generar respuestas
+docker exec -it asistente_de_emergencias-ollama-1 ollama pull gemma2:2b
 ```
 
 ### PASO 5 — Ingestar los chunks en pgvector
@@ -233,4 +233,4 @@ docker compose down -v
 | `vdb` no arranca healthy | Carpetas `appdata/` no existen | Paso 2 |
 | Error 500 en embeddings | Usando endpoint `/api/embeddings` (legacy) | Ya corregido en `search.py` — usar `git pull` |
 | Modelo no aparece en Open WebUI | Pipeline no cargó | `docker compose restart pipelines` y refrescar |
-| Descargas muy lentas | `llama3:8b` = 4.7 GB | Esperar, es normal la primera vez |
+| Descargas muy lentas | `gemma2:2b` = 1.6 GB | Esperar, es normal la primera vez |
