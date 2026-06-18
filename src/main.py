@@ -92,11 +92,11 @@ class Pipeline:
                 model_name=self.valves.MODEL_NAME
             )
 
-        # 1. Regla Dura / Guardrail: Validar si la consulta está fuera del alcance de emergencias
-        if self.prompt_builder.is_out_of_scope(user_message):
-            out_of_scope_msg = "No poseo ese procedimiento, por favor comunícate con el 911"
-            print(f"[Pipeline - Guardrail] Consulta fuera de alcance detectada: '{user_message}'")
-            return out_of_scope_msg
+        # 1. Regla Dura / Guardrail: Validar si la consulta está fuera del alcance de emergencias (POR AHORA NO IMPLEMENTADO)
+        # if self.prompt_builder.is_out_of_scope(user_message):
+        #    out_of_scope_msg = "No poseo ese procedimiento, por favor comunícate con el 911"
+        #    print(f"[Pipeline - Guardrail] Consulta fuera de alcance detectada: '{user_message}'")
+        #    return out_of_scope_msg
 
         # 2. Recuperación (Retrieval)
         # Recupera los fragmentos semánticamente más similares usando pgvector
