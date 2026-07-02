@@ -1,0 +1,77 @@
+[
+  {
+    "query": "Acabo de presenciar un accidente de tráfico",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["proteger", "avisar", "socorrer", "112"]
+  },
+  {
+    "query": "Hay una persona inconsciente que no respira",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["frente-mentón", "112", "compresiones", "insuflaciones"]
+  },
+  {
+    "query": "Una persona está sangrando mucho por el brazo ¿Que Hago?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["presión directa", "elevar", "presión arterial", "torniquete"]
+  },
+  {
+    "query": "¿Tengo que sacar al herido del Auto?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["no", "peligro inmediato", "bloque rígido"]
+  },
+  {
+    "query": "El herido está consciente pero muy pálido, con piel fría y sudando. ¿Qué le pasa y qué hago?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["shock", "112", "antishock", "calor"]
+  },
+  {
+    "query": "Un chico en moto acaba de chocar, debería sacarle el casco?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["no", "cervicales"]
+  },
+  {
+    "query": "En que posición debo poner a un herido?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["posición lateral", "seguridad"]
+  },
+  {
+    "query": "Me clavé un vidrio y la herida es grande, me saco el vidrio?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["no retirar", "inmovilizar"]
+  },
+  {
+    "query": "Hay una persona con quemaduras, qué hago?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["agua fría", "no pomadas", "no pinchar"]
+  },
+  {
+    "query": "Mi hermano perdió un dedo, qué hago?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["gasas", "bolsa hermética", "hielo", "no contacto directo"]
+  },
+  {
+    "query": "¡Mi papá se cortó la cabeza con el techo del auto y le chorrea muchísima sangre, parece gravísimo y me da miedo que se desangre! ¿Qué hago?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["apósito", "vendaje"]
+  },
+  {
+    "query": "¡El conductor está muy asustado y dolorido! Me pide que le dé una pastilla que tiene en la guantera para calmarse, ¿se la puedo dar?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["no", "abstenerse"]
+  },
+  {
+    "query": "Mi amigo se golpeó la cabeza, está desmayado y le sale sangre por la nariz y las orejas. ¿Le meto un algodón para que no sangre?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["nunca taponar", "lateral"]
+  },
+  {
+    "query": "¡Choqué y estoy llamando a la ambulancia! ¿Qué información les tengo que dar para que vengan rápido?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["localización", "vehículos", "heridos"]
+  },
+  {
+    "query": "El auto volcó, a un amigo le quedó el brazo doblado y no lo puede mover, creo que se lo quebró. ¿Qué le hago?",
+    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
+    "critical_facts": ["inmovilizar", "cabestrillo"]
+  }
+]

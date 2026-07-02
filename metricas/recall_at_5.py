@@ -26,24 +26,22 @@ async def main():
     print("--- EVALUACIÓN DE RECALL@5 CON EL RAG REAL ---")
     print("Inicializando conexión a Base de Datos y Ollama...")
     
+    # Forzar la URL correcta de la base de datos (puerto 5433, base emergencias_vdb) 
+    # tal como está configurado en tu docker-compose para la DB vectorial.
+    os.environ["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5433/emergencias_vdb"
+    
     # Inicializar el pipeline real
     pipe_instance = Pipeline()
     await pipe_instance.on_startup()
     
-    # Este es el dataset que usarás. Debes definir qué ID o metadata de origen 
-    # esperas que el RAG recupere (por ejemplo, el nombre del archivo en 'source' 
-    # o una fase específica en la metadata).
-    evaluation_dataset = [
-        {
-            "query": "¿Qué datos se deben registrar al tomar conocimiento de un siniestro vial?",
-            # Ajusta esto para que coincida con los 'source' o metadatos de tus chunks
-            "expected_relevant_docs": ["protocolo_default.pdf"] 
-        },
-        {
-            "query": "¿Qué hago al arribar al lugar de un accidente?",
-            "expected_relevant_docs": ["protocolo_default.pdf"]
-        }
-    ]
+    # Cargar dataset unificado desde JSON
+    dataset_path = os.path.join(os.path.dirname(__file__), "dataset_evaluacion.json")
+    try:
+        with open(dataset_path, "r", encoding="utf-8") as f:
+            evaluation_dataset = json.load(f)
+    except FileNotFoundError:
+        print(f"Error: No se encontró el archivo de dataset en {dataset_path}")
+        return
     
     total_recall = 0.0
     num_queries = len(evaluation_dataset)
@@ -82,8 +80,15 @@ async def main():
     # Limpieza
     await pipe_instance.on_shutdown()
     
-    output_file = "resultados_recall_at_5_real.json"
-    with open(output_file, 'w', encoding='utf-8') as f:
+    # Guardar resultados
+    output_dir = os.path.join(os.path.dirname(__file__), "resultados")
+    os.makedirs(output_dir, exist_ok=True)
+    
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_file = os.path.join(output_dir, f"resultados_recall_at_5_{timestamp}.json")
+    
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump({
             "fase": "Evaluación RAG Real",
             "promedio_global_recall_at_5": avg_recall_at_5,

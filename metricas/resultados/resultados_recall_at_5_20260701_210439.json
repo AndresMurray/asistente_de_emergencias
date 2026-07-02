@@ -1,0 +1,231 @@
+{
+    "fase": "Evaluación RAG Real",
+    "promedio_global_recall_at_5": 1.0,
+    "resultados_detallados": [
+        {
+            "query_id": 1,
+            "query": "Acabo de presenciar un accidente de tráfico",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 2,
+            "query": "Hay una persona inconsciente que no respira",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 3,
+            "query": "Una persona está sangrando mucho por el brazo ¿Que Hago?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 4,
+            "query": "¿Tengo que sacar al herido del Auto?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 5,
+            "query": "El herido está consciente pero muy pálido, con piel fría y sudando. ¿Qué le pasa y qué hago?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 6,
+            "query": "Un chico en moto acaba de chocar, debería sacarle el casco?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 7,
+            "query": "En que posición debo poner a un herido?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 8,
+            "query": "Me clavé un vidrio y la herida es grande, me saco el vidrio?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 9,
+            "query": "Hay una persona con quemaduras, qué hago?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 10,
+            "query": "Mi hermano perdió un dedo, qué hago?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 11,
+            "query": "¡Mi papá se cortó la cabeza con el techo del auto y le chorrea muchísima sangre, parece gravísimo y me da miedo que se desangre! ¿Qué hago?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 12,
+            "query": "¡El conductor está muy asustado y dolorido! Me pide que le dé una pastilla que tiene en la guantera para calmarse, ¿se la puedo dar?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 13,
+            "query": "Mi amigo se golpeó la cabeza, está desmayado y le sale sangre por la nariz y las orejas. ¿Le meto un algodón para que no sangre?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 14,
+            "query": "¡Choqué y estoy llamando a la ambulancia! ¿Qué información les tengo que dar para que vengan rápido?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        },
+        {
+            "query_id": 15,
+            "query": "El auto volcó, a un amigo le quedó el brazo doblado y no lo puede mover, creo que se lo quebró. ¿Qué le hago?",
+            "retrieved_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf",
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "expected_ids": [
+                "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+            ],
+            "recall_at_5": 1.0
+        }
+    ]
+}

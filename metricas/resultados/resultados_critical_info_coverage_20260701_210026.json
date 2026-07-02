@@ -1,0 +1,169 @@
+{
+    "fase": "Evaluación RAG Real",
+    "promedio_global_critical_info_coverage": 0.18888888888888886,
+    "resultados_detallados": [
+        {
+            "query_id": 1,
+            "query": "Acabo de presenciar un accidente de tráfico",
+            "critical_facts": [
+                "proteger",
+                "avisar",
+                "socorrer",
+                "112"
+            ],
+            "generated_answer": "- Identifica la ubicación del accidente.\n- Evalúa la seguridad del área.\n- Comprueba si hay movimiento en el vehículo o personas heridas.\n- Si el herido está inconsciente, verifica que no tenga obstáculos para respirar y respira normalmente. \n- Llama al servicio de emergencia (112) inmediatamente. \n",
+            "critical_info_coverage": 0.25
+        },
+        {
+            "query_id": 2,
+            "query": "Hay una persona inconsciente que no respira",
+            "critical_facts": [
+                "frente-mentón",
+                "112",
+                "compresiones",
+                "insuflaciones"
+            ],
+            "generated_answer": "- **Verificar la presencia de respiración:**  \n    - Si respira, mantener la vía aérea abierta con maniobra frente-mentón. \n- **Avisar al 112:**  \n    - Iniciar atención y realizar las acciones necesarias para la seguridad del herido. \n- **Mantener la vía aérea abierta:**  \n    - Realizar maniobra frente-mentón mientras el herido permanezca inconsciente. \n- **Observar la circulación:**  \n    - Verificar si hay movimiento torácico, respiración o signos vitales. \n- **Realizar las acciones necesarias para la seguridad del herido:**  \n    - Mantener la calma y actuar de acuerdo con los protocolos establecidos. \n\n\n",
+            "critical_info_coverage": 0.5
+        },
+        {
+            "query_id": 3,
+            "query": "Una persona está sangrando mucho por el brazo ¿Que Hago?",
+            "critical_facts": [
+                "presión directa",
+                "elevar",
+                "presión arterial",
+                "torniquete"
+            ],
+            "generated_answer": "- Comienza la valoración del individuo.\n- Identifica la hemorragia y realiza la compresión directa sobre el punto sangrante interponiendo algún paño, trapo o similar, que esté limpio, sin levantar para nada, la tela que hace contacto con la herida, para evitar que vuelva a sangrar. \n- Evalúa la situación y busca ayuda si es necesario. \n",
+            "critical_info_coverage": 0.25
+        },
+        {
+            "query_id": 4,
+            "query": "¿Tengo que sacar al herido del Auto?",
+            "critical_facts": [
+                "no",
+                "peligro inmediato",
+                "bloque rígido"
+            ],
+            "generated_answer": "- Identifica si el herido está en una posición segura.\n- Si el herido está en una posición peligrosa, busca ayuda para su extracción. \n- Si el herido está en una posición segura, espera a que un profesional pueda extraerlo del vehículo. \n- No intentes extraer al herido del vehículo sin la ayuda de profesionales. \n",
+            "critical_info_coverage": 0.3333333333333333
+        },
+        {
+            "query_id": 5,
+            "query": "El herido está consciente pero muy pálido, con piel fría y sudando. ¿Qué le pasa y qué hago?",
+            "critical_facts": [
+                "shock",
+                "112",
+                "antishock",
+                "calor"
+            ],
+            "generated_answer": "- **Verificar la consciencia:**  ¿El herido está consciente? \n- **Posición de defensa:** Si el herido no está consciente, colocarlo en posición de defensa.\n- **Mantener la temperatura corporal:** Tapar ligeramente al herido y evitar sobrecalentar.\n- **Aflojar ropas:** Aflojar las ropas que puedan oprimir al herido. \n- **Observación constante:**  Observar al herido y registrar cualquier cambio. \n\n\n",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 6,
+            "query": "Un chico en moto acaba de chocar, debería sacarle el casco?",
+            "critical_facts": [
+                "no",
+                "cervicales"
+            ],
+            "generated_answer": "- Identificar la gravedad del accidente.\n- Verificar la respiración y la consciencia del motociclista.\n- Si el motociclista no respira o está inconsciente, realizar RCP. \n- Si el motociclista respira, verificar si tiene lesiones en la cabeza y aplicar medidas de seguridad si es necesario. \n- No quitar el casco sin conocer las técnicas específicas para hacerlo sin riesgo para el accidentado. \n- Llamar al servicio de emergencia. \n",
+            "critical_info_coverage": 0.5
+        },
+        {
+            "query_id": 7,
+            "query": "En que posición debo poner a un herido?",
+            "critical_facts": [
+                "posición lateral",
+                "seguridad"
+            ],
+            "generated_answer": "-  **Verifica la consciencia del herido.** \n- **Si el herido es consciente, manténlo en una posición cómoda y estable.**\n- **Si el herido no puede moverse o se muestra con señales de traumatismo por encima de los hombros y consciencia alterada simultáneamente, inmovilizalo.** \n",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 8,
+            "query": "Me clavé un vidrio y la herida es grande, me saco el vidrio?",
+            "critical_facts": [
+                "no retirar",
+                "inmovilizar"
+            ],
+            "generated_answer": "- No retire ni intentes retirar los objetos clavados en la herida. \n- Tapar la herida con un apósito fijado por un vendaje. \n- Cortar la hemorragia, si existe. \n-  No se debe mover al lesionado. \n",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 9,
+            "query": "Hay una persona con quemaduras, qué hago?",
+            "critical_facts": [
+                "agua fría",
+                "no pomadas",
+                "no pinchar"
+            ],
+            "generated_answer": "- Extinguir el fuego que quede en las ropas del herido. \n- Envolver al herido para tapar la mayor superficie posible de su cuerpo.\n- Vigilar al herido y buscar signos de shock o dificultades respiratorias. \n- Si se presenta shock, colocar al herido en posición horizontal o \"antishock\". \n- Realizar las medidas de reanimación pertinentes. \n",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 10,
+            "query": "Mi hermano perdió un dedo, qué hago?",
+            "critical_facts": [
+                "gasas",
+                "bolsa hermética",
+                "hielo",
+                "no contacto directo"
+            ],
+            "generated_answer": "-  **Encontrar un apósito y aplicar presión sobre la herida.** \n- **Elevar la extremidad del herido.**\n- **Llamar al servicio de emergencia (911) o al número de emergencias local.** \n- **Mantener la calma y seguir las instrucciones de los operadores de emergencia.** \n",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 11,
+            "query": "¡Mi papá se cortó la cabeza con el techo del auto y le chorrea muchísima sangre, parece gravísimo y me da miedo que se desangre! ¿Qué hago?",
+            "critical_facts": [
+                "apósito",
+                "vendaje"
+            ],
+            "generated_answer": "- Solicita ayuda para que la víctima sea atendida por personal médico lo antes posible.\n- Observa cuidadosamente el estado del herido y, entre tanto llega la ayuda solicitada, actuar: \n    - Tapar a la víctima con un paño limpio y absorbente sin sobrecalentarla.\n    - Observar la frecuencia de contracción del pulso y si es rápido o débil.\n    - Si la víctima presenta convulsiones, inmoviliza su cuerpo para evitar lesiones adicionales. \n    - No improvises ningún procedimiento médico.  \n",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 12,
+            "query": "¡El conductor está muy asustado y dolorido! Me pide que le dé una pastilla que tiene en la guantera para calmarse, ¿se la puedo dar?",
+            "critical_facts": [
+                "no",
+                "abstenerse"
+            ],
+            "generated_answer": "No poseo ese procedimiento en mis protocolos de emergencia viales registrados. Por favor, realiza la consulta pertinente o procede según el protocolo general. \n",
+            "critical_info_coverage": 0.5
+        },
+        {
+            "query_id": 13,
+            "query": "Mi amigo se golpeó la cabeza, está desmayado y le sale sangre por la nariz y las orejas. ¿Le meto un algodón para que no sangre?",
+            "critical_facts": [
+                "nunca taponar",
+                "lateral"
+            ],
+            "generated_answer": "- No se debe retirar ningún cuerpo extraño del ojo. \n- Mantener la calma y asegurar la seguridad de la víctima.\n- Verificar la respiración y la circulación.\n- Si el herido está inconsciente, colocarlo en posición de defensa.\n- Tapar ligeramente la herida con un paño limpio.\n- No manipular la cabeza o cuello sin autorización médica. \n- Trasladarlo a un centro médico lo antes posible. \n",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 14,
+            "query": "¡Choqué y estoy llamando a la ambulancia! ¿Qué información les tengo que dar para que vengan rápido?",
+            "critical_facts": [
+                "localización",
+                "vehículos",
+                "heridos"
+            ],
+            "generated_answer": "- Llamar al 112.\n- Indicar ubicación exacta del accidente.\n- Informar si hay víctimas con lesiones graves. \n- No realizar maniobras de rescate sin protocolo. \n- Mantener la calma y esperar a la llegada de los servicios de emergencia. \n",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 15,
+            "query": "El auto volcó, a un amigo le quedó el brazo doblado y no lo puede mover, creo que se lo quebró. ¿Qué le hago?",
+            "critical_facts": [
+                "inmovilizar",
+                "cabestrillo"
+            ],
+            "generated_answer": "- Sujetar la muñeca contraria del herido con las manos.\n- Agarrar de este modo al accidentado, evitando que su cuello se mueva.\n- Inmovilizar la región del cuello del herido. \n- No trasladar al herido en vehículo particular. \n",
+            "critical_info_coverage": 0.5
+        }
+    ]
+}
