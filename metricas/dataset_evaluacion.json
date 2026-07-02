@@ -1,77 +1,402 @@
 [
   {
     "query": "Acabo de presenciar un accidente de tráfico",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["proteger", "avisar", "socorrer", "112"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "proteger",
+      "avisar",
+      "socorrer",
+      "112"
+    ],
+    "mrr_relevant_keywords": [
+      "preseñalización",
+      "chaleco",
+      "triángulos",
+      "P.A.S"
+    ]
   },
   {
     "query": "Hay una persona inconsciente que no respira",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["frente-mentón", "112", "compresiones", "insuflaciones"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "frente-mentón",
+      "112",
+      "compresiones",
+      "insuflaciones"
+    ],
+    "mrr_relevant_keywords": [
+      "frente-mentón",
+      "insuflaciones",
+      "compresiones"
+    ]
   },
   {
     "query": "Una persona está sangrando mucho por el brazo ¿Que Hago?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["presión directa", "elevar", "presión arterial", "torniquete"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "presión directa",
+      "elevar",
+      "presión arterial",
+      "torniquete"
+    ],
+    "mrr_relevant_keywords": [
+      "arteria humeral",
+      "torniquete",
+      "presión directa"
+    ]
   },
   {
     "query": "¿Tengo que sacar al herido del Auto?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["no", "peligro inmediato", "bloque rígido"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "no",
+      "peligro inmediato",
+      "bloque rígido"
+    ],
+    "mrr_relevant_keywords": [
+      "columna vertebral cervical",
+      "bloque rígido"
+    ]
   },
   {
     "query": "El herido está consciente pero muy pálido, con piel fría y sudando. ¿Qué le pasa y qué hago?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["shock", "112", "antishock", "calor"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "shock",
+      "112",
+      "antishock",
+      "calor"
+    ],
+    "mrr_relevant_keywords": [
+      "antishock",
+      "posición de defensa"
+    ]
   },
   {
     "query": "Un chico en moto acaba de chocar, debería sacarle el casco?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["no", "cervicales"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "no",
+      "cervicales"
+    ],
+    "mrr_relevant_keywords": [
+      "casco",
+      "cervicales",
+      "especializada"
+    ]
   },
   {
     "query": "En que posición debo poner a un herido?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["posición lateral", "seguridad"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "posición lateral",
+      "seguridad"
+    ],
+    "mrr_relevant_keywords": [
+      "posición lateral de seguridad"
+    ]
   },
   {
     "query": "Me clavé un vidrio y la herida es grande, me saco el vidrio?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["no retirar", "inmovilizar"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "no retirar",
+      "inmovilizar"
+    ],
+    "mrr_relevant_keywords": [
+      "clavados",
+      "incrustado",
+      "inmovilizar"
+    ]
   },
   {
     "query": "Hay una persona con quemaduras, qué hago?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["agua fría", "no pomadas", "no pinchar"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "agua fría",
+      "no pomadas",
+      "no pinchar"
+    ],
+    "mrr_relevant_keywords": [
+      "ampollas",
+      "pomadas",
+      "agua fría"
+    ]
   },
   {
     "query": "Mi hermano perdió un dedo, qué hago?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["gasas", "bolsa hermética", "hielo", "no contacto directo"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "gasas",
+      "bolsa hermética",
+      "hielo",
+      "no contacto directo"
+    ],
+    "mrr_relevant_keywords": [
+      "amputada",
+      "hermético",
+      "hielo",
+      "gasas estériles"
+    ]
   },
   {
     "query": "¡Mi papá se cortó la cabeza con el techo del auto y le chorrea muchísima sangre, parece gravísimo y me da miedo que se desangre! ¿Qué hago?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["apósito", "vendaje"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "apósito",
+      "vendaje"
+    ],
+    "mrr_relevant_keywords": [
+      "cuero cabelludo",
+      "apósito",
+      "vendaje"
+    ]
   },
   {
     "query": "¡El conductor está muy asustado y dolorido! Me pide que le dé una pastilla que tiene en la guantera para calmarse, ¿se la puedo dar?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["no", "abstenerse"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "no",
+      "abstenerse"
+    ],
+    "mrr_relevant_keywords": [
+      "abstenerse",
+      "medicación",
+      "indicación médica"
+    ]
   },
   {
     "query": "Mi amigo se golpeó la cabeza, está desmayado y le sale sangre por la nariz y las orejas. ¿Le meto un algodón para que no sangre?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["nunca taponar", "lateral"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "nunca taponar",
+      "lateral"
+    ],
+    "mrr_relevant_keywords": [
+      "taponar",
+      "oído",
+      "decúbito lateral"
+    ]
   },
   {
     "query": "¡Choqué y estoy llamando a la ambulancia! ¿Qué información les tengo que dar para que vengan rápido?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["localización", "vehículos", "heridos"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "localización",
+      "vehículos",
+      "heridos"
+    ],
+    "mrr_relevant_keywords": [
+      "localización",
+      "implicados",
+      "vehículos"
+    ]
   },
   {
     "query": "El auto volcó, a un amigo le quedó el brazo doblado y no lo puede mover, creo que se lo quebró. ¿Qué le hago?",
-    "expected_relevant_docs": ["COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"],
-    "critical_facts": ["inmovilizar", "cabestrillo"]
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "inmovilizar",
+      "cabestrillo"
+    ],
+    "mrr_relevant_keywords": [
+      "cabestrillo",
+      "fractura",
+      "extremidad superior"
+    ]
+  },
+  {
+    "query": "Hubo un choque y hay una persona herida pero no desmayada, que hago?",
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "vigilar",
+      "no pierde el conocimiento",
+      "hemorragias"
+    ],
+    "mrr_relevant_keywords": [
+      "valoración primaria",
+      "vigilar"
+    ]
+  },
+  {
+    "query": "Acaban de chocar enfrente mío y la persona esta en la calle tirada, la muevo a la vereda?",
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "no mover",
+      "columna cervical",
+      "inmovilizar cuello"
+    ],
+    "mrr_relevant_keywords": [
+      "vértebro-medular",
+      "columna vertebral cervical"
+    ]
+  },
+  {
+    "query": "Chocó un auto y la persona accidentada respira raro",
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "pedir ayuda",
+      "posición de defensa",
+      "no dar de beber",
+      "shock"
+    ],
+    "mrr_relevant_keywords": [
+      "traumatismo",
+      "posición de defensa",
+      "tórax"
+    ]
+  },
+  {
+    "query": "Choqué y me duele algo en el ojo",
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "trasladar",
+      "no manipular",
+      "no retirar cuerpo extraño"
+    ],
+    "mrr_relevant_keywords": [
+      "ocular",
+      "globo ocular",
+      "cuerpo extraño"
+    ]
+  },
+  {
+    "query": "Necesito sacar a una persona accidentada de su auto",
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "esperar ayuda especializada",
+      "axila",
+      "mandíbula",
+      "cuello"
+    ],
+    "mrr_relevant_keywords": [
+      "axila",
+      "mandíbula",
+      "especializada"
+    ]
+  },
+  {
+    "query": "¿Qué debería llevar en el botiquín del auto?",
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "guantes",
+      "gasas",
+      "vendas",
+      "desinfectante"
+    ],
+    "mrr_relevant_keywords": [
+      "botiquín",
+      "guantes",
+      "gasas",
+      "vendas"
+    ]
+  },
+  {
+    "query": "Vi un accidente pero no sé nada de primeros auxilios, ¿puedo seguir de largo?",
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "no",
+      "omisión del deber de socorro",
+      "pedir auxilio"
+    ],
+    "mrr_relevant_keywords": [
+      "omisión del deber de socorro",
+      "código penal",
+      "desamparada"
+    ]
+  },
+  {
+    "query": "Chocó un camión que transporta mercancías peligrosas y el conductor no puede actuar, ¿qué hago?",
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "no actuar sobre la mercancía",
+      "112",
+      "paneles naranja",
+      "alertar"
+    ],
+    "mrr_relevant_keywords": [
+      "mercancías peligrosas",
+      "paneles",
+      "naranja"
+    ]
+  },
+  {
+    "query": "El herido es un niño y no respira, ¿la RCP es igual que en adultos?",
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "5 ventilaciones de rescate",
+      "un tercio",
+      "2 dedos"
+    ],
+    "mrr_relevant_keywords": [
+      "ventilaciones de rescate",
+      "un tercio",
+      "2 dedos"
+    ]
+  },
+  {
+    "query": "La ambulancia no llega, ¿puedo llevar al herido al hospital en mi auto?",
+    "expected_relevant_docs": [
+      "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
+    ],
+    "critical_facts": [
+      "excepcional",
+      "30 minutos",
+      "torniquete",
+      "shock"
+    ],
+    "mrr_relevant_keywords": [
+      "excepcional",
+      "30 minutos",
+      "torniquete"
+    ]
   }
 ]
