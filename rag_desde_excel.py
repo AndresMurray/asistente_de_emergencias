@@ -7,7 +7,6 @@ Uso:
 """
 
 import sys
-import math
 import time
 import json
 import argparse
@@ -20,32 +19,9 @@ except ImportError as e:
     print(f"ERROR: falta dependencia — {e}. Instalá con: pip install openpyxl requests")
     sys.exit(1)
 
+from metricas.sts import sts
+
 OPENWEBUI_URL = "http://localhost:8180"
-OLLAMA_URL = "http://localhost:11434"
-EMBED_MODEL = "paraphrase-multilingual"
-
-
-# ── STS ──────────────────────────────────────────────────────────────────────
-
-def get_embedding(text: str) -> list[float]:
-    response = requests.post(
-        f"{OLLAMA_URL}/api/embed",
-        json={"model": EMBED_MODEL, "input": text},
-        timeout=30,
-    )
-    response.raise_for_status()
-    return response.json()["embeddings"][0]
-
-
-def cosine_similarity(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b))
-    norm_a = math.sqrt(sum(x ** 2 for x in a))
-    norm_b = math.sqrt(sum(x ** 2 for x in b))
-    return dot / (norm_a * norm_b)
-
-
-def sts(texto_a: str, texto_b: str) -> float:
-    return cosine_similarity(get_embedding(texto_a), get_embedding(texto_b))
 
 
 # ── Excel ─────────────────────────────────────────────────────────────────────
