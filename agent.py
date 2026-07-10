@@ -1,14 +1,16 @@
 import os
 import asyncio
 import logging
+# pyrefly: ignore [missing-import]
 import aiohttp
 
 import psycopg2
-from pgvector.psycopg2 import register_vector
-from dotenv import load_dotenv
+from pgvector.psycopg2 import register_vector  # type: ignore
+# pyrefly: ignore [missing-import]
+from dotenv import load_dotenv 
 
-from livekit import agents
-from livekit.agents import (
+from livekit import agents  # type: ignore
+from livekit.agents import (  # type: ignore
     AgentServer,
     AgentSession,
     Agent,
@@ -16,17 +18,17 @@ from livekit.agents import (
     function_tool,
     room_io,
 )
-from livekit.plugins.deepgram import STT as DeepgramSTT, TTS as DeepgramTTS
-from livekit.plugins.openai import LLM as OpenAILLM
+from livekit.plugins.deepgram import STT as DeepgramSTT, TTS as DeepgramTTS  # type: ignore
+from livekit.plugins.openai import LLM as OpenAILLM  # type: ignore
+from livekit.plugins.cartesia import TTS as CartesiaTTS  # type: ignore
 
 load_dotenv(".env.local")
 
 logger = logging.getLogger("emergency-agent")
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5433/emergencias_vdb",
-)
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL no está configurada en .env.local")
 TOP_K = int(os.getenv("TOP_K", "3"))
 
 _conn = None
@@ -105,7 +107,7 @@ async def search_similarity(query: str, limit: int = TOP_K) -> str:
 
 
 @function_tool
-async def buscar_protocolo(context: RunContext, query: str):
+async def buscar_protocolo(_context: RunContext, query: str):
     """Busca en la base de datos vectorial los fragmentos de protocolo
     semanticamente mas relevantes para la consulta del operador de emergencia vial.
     Ejemplo de query: 'que hacer ante un choque con heridos'"""
@@ -117,32 +119,37 @@ async def buscar_protocolo(context: RunContext, query: str):
 
 
 SYSTEM_INSTRUCTIONS = (
-    "Eres el Asistente de Respuesta Temprana a Emergencias Viales, "
+    "Sos el Asistente de Respuesta Temprana a Emergencias Viales, "
     "un sistema experto que provee informacion operativa rapida y clara "
     "a operadores de emergencia en el lugar del hecho.\n\n"
+    "TONO DE VOZ:\n"
+    "Hablá siempre en español rioplatense (Argentina/Uruguay). "
+    "Usá 'vos' en lugar de 'tú' y conjugá los verbos acordemente "
+    "(por ejemplo: 'sos' en vez de 'eres', 'hacés' en vez de 'haces', "
+    "'tenés' en vez de 'tienes'). Mantené un tono profesional pero directo.\n\n"
     "OBJETIVO:\n"
     "Brindar informacion operativa inmediata utilizando exclusivamente "
     "los protocolos que recuperes via la herramienta 'buscar_protocolo'.\n\n"
     "REGLAS OBLIGATORIAS:\n"
-    "1. Responde UNICAMENTE usando la informacion presente en el contexto "
+    "1. Respondé UNICAMENTE usando la informacion presente en el contexto "
     "recuperado con 'buscar_protocolo'.\n"
     "2. No uses conocimientos generales, inferencias ni informacion externa.\n"
-    "3. Si la respuesta no esta en el contexto o es insuficiente, responde: "
-    "'No poseo ese procedimiento en mis protocolos de emergencia viales registrados. "
-    "Por favor, realiza la consulta pertinente o procede segun el protocolo general.'\n"
+    "3. Si la respuesta no esta en el contexto o es insuficiente, respondé: "
+    "'No tengo ese procedimiento en mis protocolos de emergencia viales registrados. "
+    "Por favor, hacé la consulta pertinente o procedé segun el protocolo general.'\n"
     "4. Bajo ninguna circunstancia inventes procedimientos medicos, de rescate "
     "o seguridad.\n"
     "5. Nunca diagnostiques enfermedades, lesiones ni estados clinicos.\n"
     "6. Nunca recomiendes medicamentos, dosis ni maniobras medicas avanzadas "
     "que no esten explicitas en el contexto.\n"
-    "7. Se extremadamente directo y accionable. Usa frases cortas.\n"
-    "8. Prioriza siempre la preservacion de la vida humana y la seguridad "
+    "7. Sé extremadamente directo y accionable. Usá frases cortas.\n"
+    "8. Priorizá siempre la preservacion de la vida humana y la seguridad "
     "de los intervinientes.\n"
     "9. NO menciones tramites administrativos, pericias judiciales ni "
     "cuestiones burocraticas.\n"
-    "10. Si existen multiples procedimientos, responde solo con el que mejor "
+    "10. Si existen multiples procedimientos, respondé solo con el que mejor "
     "coincida con la consulta.\n"
-    "11. Responde como si estuvieras hablando por radio con un operador "
+    "11. Respondé como si estuvieras hablando por radio con un operador "
     "en el lugar del siniestro. Sin Markdown, sin viñetas tipograficas, "
     "sin formato especial. Solo voz clara y directa."
 )
@@ -169,10 +176,11 @@ async def entrypoint(ctx: agents.JobContext):
         llm=OpenAILLM(
             model="llama-3.3-70b-versatile",
             base_url="https://api.groq.com/openai/v1",
-            api_key=os.getenv("GROQ_API_KEY"),
+            api_key=os.environ.get("GROQ_API_KEY", ""),
         ),
-        tts=DeepgramTTS(
-            model="aura-2-agustina-es",
+        tts=CartesiaTTS(
+            voice="595f1cfa-bd48-432c-a519-abe83e210398",
+            language="es",
         ),
     )
 
