@@ -1,9 +1,21 @@
 import os
+import asyncio
 from typing import List
-import requests
+from functools import lru_cache
+
+from sentence_transformers import SentenceTransformer
 
 from src.ingestion.chunking import DocumentChunk
 from src.retrieval.vector_store import VectorStoreManager
+
+
+@lru_cache(maxsize=1)
+def _get_embed_model():
+    return SentenceTransformer("paraphrase-multilingual-mpnet-base-v2")
+
+
+def _encode(text: str) -> List[float]:
+    return _get_embed_model().encode(text).tolist()
 
 
 class VectorSearcher:
@@ -17,17 +29,11 @@ class VectorSearcher:
             db_manager (VectorStoreManager): Gestor de conexión e inserción.
         """
         self.db_manager = db_manager
-        # Servicio de embeddings de Ollama. Modelo multilingüe liviano (768 dimensiones).
-        self.ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
-        self.embed_model = os.getenv("EMBED_MODEL", "paraphrase-multilingual")
-        # /api/embed es el endpoint actual de Ollama (reemplaza al legacy /api/embeddings
-        # que devuelve 500 con ciertos tokens del modelo paraphrase-multilingual)
-        self.embed_url = f"{self.ollama_url}/api/embed"
 
     def get_embeddings(self, text: str) -> List[float]:
         """
-        Genera el vector de embeddings del texto provisto usando el modelo multilingüe
-        local 'paraphrase-multilingual' a través de la API de embeddings de Ollama.
+        Genera el vector de embeddings del texto provisto usando el modelo local
+        'paraphrase-multilingual-MiniLM-L12-v2' vía sentence-transformers.
 
         Args:
             text (str): Texto a vectorizar.
@@ -35,17 +41,7 @@ class VectorSearcher:
         Returns:
             List[float]: Vector de embeddings (768 dimensiones).
         """
-        response = requests.post(
-            self.embed_url,
-            json={"model": self.embed_model, "input": text},  # /api/embed usa "input"
-            timeout=30,
-        )
-        response.raise_for_status()
-        # /api/embed devuelve {"embeddings": [[...]]} (lista de listas)
-        embeddings = response.json().get("embeddings")
-        if not embeddings or not embeddings[0]:
-            raise ValueError(f"Ollama no devolvió embedding para el texto: '{text[:50]}...'")
-        return embeddings[0]
+        return _encode(text)
 
     def search_similarity(self, query: str, limit: int = 3) -> List[DocumentChunk]:
         """

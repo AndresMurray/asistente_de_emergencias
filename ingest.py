@@ -1,24 +1,17 @@
-"""
-Script de ingesta de chunks en pgvector.
-
-Uso: python ingest.py [ruta_al_json]
-Por defecto usa: data/processed/protocolos_chunks.json
-
-Puede correrse múltiples veces de forma segura — usa upsert (ON CONFLICT DO UPDATE).
-"""
 import os
 import sys
 import json
 import re
-import requests
 import argparse
+import requests
+import psycopg2
+from pgvector.psycopg2 import register_vector
+from dotenv import load_dotenv
 
-# ── Configuración ────────────────────────────────────────────────────────────
-os.environ["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5433/emergencias_vdb"
-os.environ["OLLAMA_URL"]   = "http://localhost:11434"
-os.environ["EMBED_MODEL"]  = "paraphrase-multilingual:latest"
+# Cargar variables de entorno
+load_dotenv(".env.local")
 
-parser = argparse.ArgumentParser(description="Script de ingesta de chunks en pgvector.")
+parser = argparse.ArgumentParser(description="Script de ingesta de chunks en pgvector (Cohere API).")
 parser.add_argument(
     "json_path",
     nargs="?",
@@ -34,109 +27,85 @@ args = parser.parse_args()
 
 JSON_PATH  = args.json_path
 RESET_DB   = args.reset
-BATCH_SIZE = 20  # chunks por commit a pgvector
 
-print(f"[Ingesta] BD  -> {os.environ['DATABASE_URL']}")
-print(f"[Ingesta] EMB -> {os.environ['EMBED_MODEL']}")
+DB_URL = os.getenv("DATABASE_URL")
+COHERE_KEY = os.getenv("COHERE_API_KEY")
+
+print(f"[Ingesta] BD  -> Supabase (chunks table)")
+print(f"[Ingesta] EMB -> Cohere embed-multilingual-v3.0 (1024 dims)")
 print(f"[Ingesta] JSON -> {JSON_PATH}")
-if RESET_DB:
-    print("[Ingesta] RESET activado: se vaciará la base de datos antes de ingestar.")
 
-# ── Imports del proyecto (después de setear env vars) ─────────────────────
-from src.retrieval.vector_store import VectorStoreManager
-from src.ingestion.chunking import DocumentChunk
+if not COHERE_KEY:
+    print("ERROR: COHERE_API_KEY no encontrada en .env.local")
+    sys.exit(1)
 
+if not DB_URL:
+    print("ERROR: DATABASE_URL no encontrada en .env.local")
+    sys.exit(1)
 
-# ── Limpieza de texto ────────────────────────────────────────────────────────
 def limpiar_texto(texto: str) -> str:
-    """
-    Limpieza mínima y segura: solo elimina caracteres de control y el
-    caracter de reemplazo Unicode. NO re-encodea — eso corrompe UTF-8 válido.
-    """
     texto = texto.replace('\ufffd', ' ')
     texto = re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f-\x9f]', '', texto)
     texto = re.sub(r'  +', ' ', texto)
     return texto.strip()
 
-
-# ── Cliente de embeddings (usa /api/embed, el endpoint actual de Ollama) ─────
-OLLAMA_URL  = os.environ["OLLAMA_URL"]
-EMBED_MODEL = os.environ["EMBED_MODEL"]
-EMBED_URL   = f"{OLLAMA_URL}/api/embed"   # endpoint actual (reemplaza /api/embeddings)
-
 def get_embedding(texto: str) -> list:
-    """
-    Llama al endpoint /api/embed de Ollama (introducido en Ollama 0.1.26).
-    Más robusto que /api/embeddings para ciertos tokens del modelo.
-    """
-    resp = requests.post(
-        EMBED_URL,
-        json={"model": EMBED_MODEL, "input": texto},
-        timeout=30,
+    response = requests.post(
+        "https://api.cohere.ai/v1/embed",
+        headers={
+            "Authorization": f"Bearer {COHERE_KEY}",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        },
+        json={
+            "texts": [texto],
+            "model": "embed-multilingual-v3.0",
+            "input_type": "search_document",
+            "embedding_types": ["float"]
+        }
     )
-    resp.raise_for_status()
-    data = resp.json()
-    # /api/embed devuelve {"embeddings": [[...]]} (lista de listas)
-    embeddings = data.get("embeddings")
-    if not embeddings or not embeddings[0]:
-        raise ValueError(f"Ollama no devolvio embedding para: '{texto[:50]}...'")
-    return embeddings[0]
+    if response.status_code != 200:
+        raise Exception(f"Error API Cohere: {response.text}")
+    return response.json()["embeddings"]["float"][0]
 
-
-# ── Carga del JSON ───────────────────────────────────────────────────────────
 with open(JSON_PATH, "r", encoding="utf-8", errors="replace") as f:
     data = json.load(f)
 
-chunks = [
-    DocumentChunk(
-        id=item.get("id"),
-        text=limpiar_texto(item["text"]),
-        metadata=item.get("metadata", {}),
-    )
-    for item in data
-]
-print(f"[Ingesta] {len(chunks)} chunks cargados. Conectando a BD...")
+# Extraemos solo el texto del json
+chunks_to_ingest = [limpiar_texto(item["text"]) for item in data if "text" in item]
 
+print(f"[Ingesta] {len(chunks_to_ingest)} chunks cargados. Conectando a BD...")
 
-# ── Conexión y esquema ────────────────────────────────────────────────────────
-m = VectorStoreManager()
-m.connect()
-m.initialize_schema()
+conn = psycopg2.connect(DB_URL)
+register_vector(conn)
 
-if RESET_DB:
-    m.clear_table()
+with conn.cursor() as cur:
+    if RESET_DB:
+        print("[Ingesta] Vaciando la tabla 'chunks'...")
+        cur.execute("TRUNCATE TABLE chunks RESTART IDENTITY;")
+        conn.commit()
 
-
-# ── Inserción en batches con manejo de errores ───────────────────────────────
 ok, skipped = 0, 0
-batch, batch_embeddings = [], []
 
-for i, chunk in enumerate(chunks):
+for i, text in enumerate(chunks_to_ingest):
     try:
-        emb = get_embedding(chunk.text)
-        batch.append(chunk)
-        batch_embeddings.append(emb)
-
-        if len(batch) >= BATCH_SIZE:
-            m._persist(batch, batch_embeddings)
-            ok += len(batch)
-            print(f"  -> {ok}/{len(chunks)} insertados...", flush=True)
-            batch, batch_embeddings = [], []
-
+        emb = get_embedding(text)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO chunks (text, embedding)
+                VALUES (%s, %s)
+                """,
+                (text, emb)
+            )
+        conn.commit()
+        ok += 1
+        print(f"  -> {ok}/{len(chunks_to_ingest)} insertados...", flush=True)
     except Exception as e:
+        conn.rollback()
         skipped += 1
         print(f"  [SKIP] Chunk {i} saltado: {str(e)[:100]}")
 
-# Último batch residual
-if batch:
-    m._persist(batch, batch_embeddings)
-    ok += len(batch)
+conn.close()
 
-m.close()
-
-print(f"\n[Ingesta] FINALIZADA: {ok} insertados, {skipped} saltados de {len(chunks)} totales.")
-if skipped > 0:
-    print(f"[Ingesta] {skipped} chunks no pudieron generar embeddings y fueron omitidos.")
-print()
-print("Para verificar:")
-print('  docker exec asistente_de_emergencias-vdb-1 psql -U postgres -d emergencias_vdb -c "SELECT COUNT(*) FROM protocol_chunks;"')
+print(f"\n[Ingesta] FINALIZADA: {ok} insertados, {skipped} saltados.")
