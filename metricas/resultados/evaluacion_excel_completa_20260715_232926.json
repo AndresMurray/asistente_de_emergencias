@@ -1,0 +1,876 @@
+{
+    "metricas": [
+        "sts",
+        "critical_info_coverage",
+        "answer_relevancy",
+        "mrr",
+        "recall_at_5"
+    ],
+    "promedios_globales": {
+        "sts": 0.6219848982925381,
+        "critical_info_coverage": 0.19444444444444445,
+        "answer_relevancy": 0.4440733519496523,
+        "mrr": null,
+        "recall_at_5": 0.12314244427848915
+    },
+    "total_preguntas": 15,
+    "resultados_detallados": [
+        {
+            "id": 1,
+            "fila_excel": 2,
+            "query": "Acabo de presenciar un accidente de tráfico",
+            "expected_answer": "Seguí el esquema P.A.S.: Proteger, Avisar y Socorrer. 1. PROTEGER: Detenete en lugar seguro fuera de la calzada, apagá el motor, encendé las luces de emergencia y colocá los triángulos de preseñalización a 50 metros del vehículo (visibles desde 100m). Poné el chaleco reflectante ANTES de bajar del auto. Identificá peligros:  incendio, combustible derramado, mercancías peligrosas. 2. AVISAR: Llamá al 112 inmediatamente. 3. SOCORRER: Auxiliá a los heridos sin moverlos, salvo que sea estrictamente necesario.",
+            "generated_answer": "- **Verificar la seguridad del área:** Asegúrate que no haya peligro para ti o para otros. \n- **Llamar al servicio de emergencia:**  911 o el número de emergencias local.\n- **Realizar una evaluación básica:** Comprueba si la persona está consciente, respira y tiene signos vitales.\n- **Si la persona está inconsciente:** Comprueba que no tenga obstáculos para respirar y realiza las maniobras de RCP (Resucitación Cardiopulmonar) si es necesario. \n- **Mantener la calma y esperar a la llegada de los servicios de emergencia.**",
+            "tiempo_segundos": 27.58,
+            "sts": 0.6043286237759488,
+            "critical_info_coverage": 0.0,
+            "critical_facts": [
+                "proteger",
+                "avisar",
+                "socorrer",
+                "112"
+            ],
+            "answer_relevancy": 0.31933651873019536,
+            "preguntas_inversas": [
+                "¿Qué pasos se deben tomar antes de intervenir en una persona inconsciente?",
+                "¿Cuál es el número de emergencia que debe llamarse en caso de una emergencia?",
+                "¿Qué acciones se deben realizar si una persona está inconsciente y no respira?"
+            ],
+            "similitudes_inversas": [
+                0.3659,
+                0.3543,
+                0.2378
+            ],
+            "mrr_at_10": 0.0,
+            "recall_at_5": 0.0,
+            "gold_keywords": [
+                "preseñalización",
+                "chaleco",
+                "triángulos",
+                "P.A.S"
+            ],
+            "gold_chunk_ids": [
+                "902d48b2-f6e0-4f5d-9897-9b27d41dfbd7",
+                "bbd9e281-8ff8-4f73-abf8-a68626390294",
+                "d2885a68-0a6a-4086-b1df-0ea321c6c3e9",
+                "e8d098b1-1c48-43c3-b9cc-f4e0452ad050"
+            ],
+            "retrieved_chunk_ids": [
+                "808e7f6c-8fdf-42bd-b89e-03b44b5463c4",
+                "ea56100d-1178-4997-8121-8074d83e65e3",
+                "bd57eb68-bde8-426f-bfa5-06da334aea38",
+                "a7bda46e-0544-4340-a59f-904c8c847288",
+                "43460f70-62b0-486e-b55f-3ce649328e30",
+                "ed0edad0-05c3-40ec-891a-0d2b5b6728e5",
+                "6e724b94-c444-41b5-8628-ac882651a520",
+                "09eff10f-ac64-429d-8d5c-67c41336e5b7",
+                "e67fab13-b01f-49b4-b9dd-4adcc4410a93",
+                "8a020a8f-a3cc-46fc-8b9a-8f639fd7d49e"
+            ]
+        },
+        {
+            "id": 2,
+            "fila_excel": 3,
+            "query": "Hay una persona inconsciente que no respira",
+            "expected_answer": "Es una situación de paro cardiorrespiratorio. Actuá así:\n  1. Llamá al 112 o enviá a alguien a llamar inmediatamente.\n  2. Abrí la vía aérea con la maniobra frente-mentón: una mano en la frente empujando hacia atrás, la otra bajo el mentón elevándolo.\n  3. Comprobá respiración mirando, escuchando y sintiendo durante máximo 10 segundos.\n  4. Si no respira, comenzá compresiones torácicas:\n      - Talón de la mano en el centro del pecho.\n      - Brazos verticales, comprimí 4-5 cm a ritmo de 100 por minuto.\n      - Alterná 30 compresiones + 2 insuflaciones boca a boca.\n5. No pares hasta que llegue ayuda cualificada, la víctima respire, o te agotes.\n Si no podés hacer insuflaciones, realizá solo compresiones continuas a 100 por minuto.",
+            "generated_answer": "- **Verificar la respiración:**  \n    - Si respira, mantener la vía aérea abierta con maniobra frente-mentón. \n- **Avisar al 112:**  \n    - Iniciar atención y realizar la llamada de emergencia. \n- **Mantener la calma:**  \n    - Realizar las acciones necesarias para asegurar la seguridad del herido.",
+            "tiempo_segundos": 13.58,
+            "sts": 0.7368700414332573,
+            "critical_info_coverage": 0.5,
+            "critical_facts": [
+                "frente-mentón",
+                "112",
+                "compresiones",
+                "insuflaciones"
+            ],
+            "answer_relevancy": 0.47683221869888115,
+            "preguntas_inversas": [
+                "¿Cómo se debe proceder si una persona no respira?",
+                "¿Qué pasos debemos seguir al avisar al servicio de emergencias?",
+                "¿Cuál es la importancia de mantener la calma en un caso de emergencia?"
+            ],
+            "similitudes_inversas": [
+                0.8341,
+                0.271,
+                0.3254
+            ],
+            "mrr_at_10": 1.0,
+            "recall_at_5": 0.09090909090909091,
+            "gold_keywords": [
+                "frente-mentón",
+                "insuflaciones",
+                "compresiones"
+            ],
+            "gold_chunk_ids": [
+                "0e524f7d-94e3-4c9e-9070-4ab288b1ccd7",
+                "2c978499-86f6-4312-95e7-70590bf393ca",
+                "2f4c6bd6-90b9-4541-89ba-8b9a8a97e83b",
+                "31ea3f25-089f-4fe2-9229-ffdfdc9d6869",
+                "3e41d0e3-2aa0-449f-b51a-398f9686b1a2",
+                "3eb9d895-7d29-487f-81e4-c64f4bb65766",
+                "3fb13c1c-1814-4097-a289-33f4f45077e8",
+                "44de8eca-54dd-4a4e-8c8e-31a9c4153c24",
+                "5ed17bc4-03da-4f06-8911-f3e776d5fc8b",
+                "68c0e8d6-d133-419f-b9d9-b45f5904fe04",
+                "7bf2f0c1-e98c-4739-998c-ec28b993b7e8",
+                "7e57faba-45f5-4516-bf5e-1353e935516b",
+                "96ed16db-4b36-44fe-9cf9-fd9cb349bd39",
+                "a090b5ad-f27b-4f09-a52c-dbc1c2042e04",
+                "a0e20070-546a-4d03-9f18-5a6715ba246f",
+                "acde702c-bda0-4ead-840e-a5715d8e9e6e",
+                "c9f0088a-8273-4c2a-9249-6a3fa53b8530",
+                "cf5fe876-2c8f-47ef-b283-d35a310be3a7",
+                "e0171a5e-c058-495b-9829-2bf5b5a3dd73",
+                "e4077ba0-db78-42f9-8ed0-0552aaa477fb",
+                "e49a05fd-c54b-4bb0-8e92-053de9f01ca7",
+                "fe14377b-4dd1-45f1-9b1b-e1ce8c95f98c"
+            ],
+            "retrieved_chunk_ids": [
+                "31ea3f25-089f-4fe2-9229-ffdfdc9d6869",
+                "64bb699e-b9cc-43cd-83a6-3d7894b14dd5",
+                "56cac66d-2f18-4001-b321-cb28d0f75c39",
+                "2c978499-86f6-4312-95e7-70590bf393ca",
+                "3c4c4888-f9da-43a4-b950-9a14aadd09da",
+                "b5c6bb40-e8d0-40df-b2d2-f8f634e56e04",
+                "93c464d9-992d-4e62-bd52-fe66199a4148",
+                "2c8884ab-178d-4c8c-bc9a-c7ceabdad001",
+                "4232ad0f-3347-4de5-979e-7db7b78afbb2",
+                "acde702c-bda0-4ead-840e-a5715d8e9e6e"
+            ]
+        },
+        {
+            "id": 3,
+            "fila_excel": 4,
+            "query": "Una persona está sangrando mucho por el brazo ¿Que Hago?",
+            "expected_answer": "Seguí estos pasos en orden:\n 1. Presión directa: Aplicá presión firme sobre la herida con una gasa o paño limpio. NO levantes ni cambies la tela aunque se manche. Usá guantes si tenés.\n 2. Elevá el miembro: Manteniendo la presión, levantá el brazo por encima del nivel del corazón para dificultar la salida de sangre.\n3. Presión arterial: Si con lo anterior no alcanza, presioná la arteria humeral (cara interna del brazo, bajo el bíceps) contra el hueso, sin soltar la presión en la herida.\n4. Torniquete: SOLO como último recurso y únicamente si hay amputación. Una vez colocado, NO lo retirés ni aflojés hasta que el herido llegue al hospital. Anotá la hora en que lo pusiste.\n Si la sangre sale por oídos, nariz o boca, NO intentes cohibirla — puede tener origen intracraneal y taponar es peligroso.",
+            "generated_answer": "- Comienza con la evaluación de la situación. \n- Identifica si hay hemorragia externa o interna.\n- En caso de hemorragia externa, aplica compresión directa sobre el punto sangrante interponiendo un paño limpio sin levantar.\n- Evalúa la gravedad de la hemorragia y realiza las acciones necesarias según el protocolo.",
+            "tiempo_segundos": 13.37,
+            "sts": 0.5467712674096994,
+            "critical_info_coverage": 0.25,
+            "critical_facts": [
+                "presión directa",
+                "elevar",
+                "presión arterial",
+                "torniquete"
+            ],
+            "answer_relevancy": 0.4702285549763718,
+            "preguntas_inversas": [
+                "¿Cómo se debe evaluar la situación en primer lugar?",
+                "¿Qué acciones tomar en caso de hemorragia externa?",
+                "¿Cuál es el protocolo a seguir para manejar una hemorragia?"
+            ],
+            "similitudes_inversas": [
+                0.1902,
+                0.6376,
+                0.583
+            ],
+            "mrr_at_10": 1.0,
+            "recall_at_5": 0.06666666666666667,
+            "gold_keywords": [
+                "arteria humeral",
+                "torniquete",
+                "presión directa"
+            ],
+            "gold_chunk_ids": [
+                "02f2065f-2200-4642-9834-169b3a0ebd89",
+                "04a69895-ecb0-4cff-b35e-e5a21532d0a5",
+                "132b9c30-fbba-4ad5-b38c-68cf8d8c5f0c",
+                "21fff595-ae26-4c0e-8472-90f79fded86f",
+                "2cf6f5fd-15c9-4347-ab47-d25fd1118ad8",
+                "34a6c343-9c9c-4b7a-94fd-f00fe576fa3f",
+                "5aa5035c-af83-41a7-8fd6-6ddfa3fb3fd1",
+                "72cd0d13-865a-4707-9e8d-dbc3a78801f8",
+                "7447bae9-89e9-40c1-a221-6bb12af5c6f0",
+                "7f57b9a8-5497-461f-8bf3-0e8850eff995",
+                "87b3aec5-cdb5-477b-a576-6055a6806da4",
+                "cea83194-3ec5-4ec7-b841-5da42d2db14b",
+                "d252970d-ccf1-4ab9-bab7-283dd9db22f3",
+                "d91fbf11-6427-4a84-86fa-43a693e172fc",
+                "e175d4f5-93cb-4cab-810d-35c1672362a3"
+            ],
+            "retrieved_chunk_ids": [
+                "d252970d-ccf1-4ab9-bab7-283dd9db22f3",
+                "d9c7ad21-ba7d-445a-a727-a2cee7366b6f",
+                "ebe19ec5-3333-4879-b07c-2098955b9ba4",
+                "2efc2a64-db2f-45c3-9f6d-6988e81edcc0",
+                "5eed321c-f54a-4db1-8290-9cfe54feee81",
+                "bde2b1ad-f19d-4fa9-a8cb-620e84ae79dd",
+                "c5d87494-e140-4132-b98e-0177754242c3",
+                "a8990e4c-7a4b-465c-8e88-9456ce8f6b94",
+                "058030ef-f990-4aab-b085-78f9f34fbee4",
+                "da0956e9-a15e-4e28-a49e-e75153c7b342"
+            ]
+        },
+        {
+            "id": 4,
+            "fila_excel": 5,
+            "query": "¿Tengo que sacar al herido del Auto?",
+            "expected_answer": "Como norma general: NO. No debés mover a un herido de un accidente de tráfico salvo que sea estrictamente necesario. Moverlo sin las precauciones adecuadas puede causar o agravar lesiones en la columna vertebral cervical.\n Solo podés moverlo en estos casos:\n     - Existe peligro inmediato e inminente para su vida (incendio, vehículo a punto de caer al agua).\n     - Necesitás colocarlo en Posición Lateral de Seguridad porque comienza a vomitar o sangrar por la boca. Si hay que moverlo, mantené siempre el eje cabeza–cuello–tronco alineado, moviéndolo como si fuera un bloque rígido. Tampoco retirés el casco a un motorista salvo indicación clara.",
+            "generated_answer": "- Identifica si el herido está en posición de peligro. \n- Si es posible, espera la llegada de personal especializado para la extracción del herido. \n- Si el herido está atrapado, realiza una evaluación rápida de la situación y actúa según los protocolos de emergencia viales. \n- Si el herido no está en peligro inmediato, busca ayuda para su extracción.",
+            "tiempo_segundos": 13.9,
+            "sts": 0.5659204418849894,
+            "critical_info_coverage": 0.6666666666666666,
+            "critical_facts": [
+                "no",
+                "peligro inmediato",
+                "bloque rígido"
+            ],
+            "answer_relevancy": 0.5733934784591871,
+            "preguntas_inversas": [
+                "¿Cómo se debe actuar si el herido está en peligro?",
+                "¿Qué pasos se deben seguir si el herido está atrapado?",
+                "¿Quién puede ayudar a extraer al herido si no es un profesional especializado?"
+            ],
+            "similitudes_inversas": [
+                0.5625,
+                0.5815,
+                0.5761
+            ],
+            "mrr_at_10": 0.0,
+            "recall_at_5": 0.0,
+            "gold_keywords": [
+                "columna vertebral cervical",
+                "bloque rígido"
+            ],
+            "gold_chunk_ids": [
+                "381e3a59-6237-45fb-9925-e72f7a52427b",
+                "57f9d745-5be8-4e81-94aa-adba8c45b9cd"
+            ],
+            "retrieved_chunk_ids": [
+                "9ad94fa0-c537-4e68-b0c3-be7b9917e704",
+                "c50bf275-14a4-4bab-8c0f-5fc3340d4ac4",
+                "db8e8929-20e6-4c70-862a-226298b1bbf4",
+                "04d0c49b-b36d-4d43-9c0d-46f6727e8c10",
+                "8c3a30e4-6729-43ff-8858-d4e953bc8833",
+                "ee44eb71-338c-42e4-8b87-66b16d814c44",
+                "b2df68a2-97bd-4ba8-bd34-9d9558e05f8e",
+                "a1ef265f-935b-4c7a-99cd-b24c54c422ee",
+                "707800d4-2979-4e85-9c74-fe5f3a6e20f3",
+                "c0174d93-3329-4209-8ff7-67f4938779af"
+            ]
+        },
+        {
+            "id": 5,
+            "fila_excel": 6,
+            "query": "El herido está consciente pero muy pálido, con piel fría y sudando. ¿Qué le pasa y qué hago?",
+            "expected_answer": "Esos síntomas palidez, sudoración fría, pulso rápido y débil, confusión e inquietud son señales de shock, una respuesta del organismo a la pérdida importante de sangre (puede ser interna, sin herida visible).\nEs una situación de peligro vital. Actuá así:\n 1. Llamá al 112 de inmediato si aún no lo hiciste.\n 2. No le des nada de comer ni beber puede provocar vómitos y complicaciones respiratorias graves.\n3. Colocalo en posición antishock: cabeza más baja que el resto del cuerpo, si es posible, si comienza a manifestar signos de inconsciencia, náuseas o vómitos, se colocara a la víctima en \"posición de defensa\". Recuerde que de debe preservar siempre el eje cabeza-cuello-tronco\n4. Tapalo ligeramente para que no pierda su propio calor, pero SIN sobrecalentarlo — el exceso de calor dilata los vasos de la piel y agrava el shock.\n5. Aflojale la ropa que le oprima: cuello, corbata, cinturón.\n6. No lo muevas innecesariamente — tratalo como si tuviera lesión en la columna vertebral.\n7. Vigilalo constantemente hasta que llegue la ayuda, porque un herido consciente puede perder el conocimiento de forma súbita.\nRecordá que un herido que parece \"bien\" puede empeorar rápidamente. La vigilancia continua es clave.",
+            "generated_answer": "- Preservar la vida del herido. \n- Colocar al herido en posición de defensa.\n- Tapar ligeramente al herido.\n- No dar líquidos al herido.\n- Aflojar las ropas de los heridos que puedan oprimirles alguna parte del cuerpo como cuello, corbata, cinturón, etc.",
+            "tiempo_segundos": 12.78,
+            "sts": 0.44579970881687087,
+            "critical_info_coverage": 0.0,
+            "critical_facts": [
+                "shock",
+                "112",
+                "antishock",
+                "calor"
+            ],
+            "answer_relevancy": 0.5176938564288037,
+            "preguntas_inversas": [
+                "¿Cuál es la prioridad en caso de un herido?",
+                "¿Qué acción se debe realizar para proteger al herido?",
+                "¿Qué acciones NO se deben realizar con un herido?"
+            ],
+            "similitudes_inversas": [
+                0.4825,
+                0.5513,
+                0.5193
+            ],
+            "mrr_at_10": 1.0,
+            "recall_at_5": 0.3333333333333333,
+            "gold_keywords": [
+                "antishock",
+                "posición de defensa"
+            ],
+            "gold_chunk_ids": [
+                "103a1e8b-4381-405d-a137-467338da77b9",
+                "378e1ffb-8f99-45ee-93fb-9c2b37fd467b",
+                "6eec7a25-6c09-4d55-a730-cfb5b75689d2",
+                "c7cc3545-69fb-42f2-b7b3-2b6b5ad5d686",
+                "ceaa54d1-ebcc-451a-bd08-90fc5eedaa39",
+                "d6fb21f8-655c-4b85-aa5b-5c9c348e646a"
+            ],
+            "retrieved_chunk_ids": [
+                "6eec7a25-6c09-4d55-a730-cfb5b75689d2",
+                "52170698-107d-4e55-9c25-7d10549405a8",
+                "2efc2a64-db2f-45c3-9f6d-6988e81edcc0",
+                "c95b2b1d-715a-4539-92b2-7218bf2a3ffe",
+                "c7cc3545-69fb-42f2-b7b3-2b6b5ad5d686",
+                "a09ee676-e971-46ff-b7cd-de1e55b4cbef",
+                "ea4a50bd-9a20-4f24-86c4-d072aa7329a2",
+                "3e41d0e3-2aa0-449f-b51a-398f9686b1a2",
+                "d252970d-ccf1-4ab9-bab7-283dd9db22f3",
+                "40cce135-6504-4e01-96ea-e7a0bca6c0c1"
+            ]
+        },
+        {
+            "id": 6,
+            "fila_excel": 7,
+            "query": "Un chico en moto acaba de chocar, debería sacarle el casco?",
+            "expected_answer": "Si se trata de un herido que lleve casco, para evitar mayores lesiones cervicales no se le debe quitar ni permitir que alguien se lo retire, salvo que fuera necesario y exista ayuda especializada. (pagina 61)",
+            "generated_answer": "- Identificar la gravedad de la lesión.\n- Si el chico está inconsciente o no respira, realizar RCP. \n-  Si el chico respira, verificar su estado y brindar atención básica.\n- No quitar el casco sin conocer técnicas específicas para hacerlo sin riesgo para el accidentado.\n- En caso de accidente grave, llamar a emergencias.",
+            "tiempo_segundos": 13.36,
+            "sts": 0.6800629140510557,
+            "critical_info_coverage": 0.5,
+            "critical_facts": [
+                "no",
+                "cervicales"
+            ],
+            "answer_relevancy": 0.3492154737026021,
+            "preguntas_inversas": [
+                "¿Cómo se debe proceder en caso de una lesión?",
+                "¿Qué acciones se deben realizar si el chico está inconsciente o no respira?",
+                "En qué situaciones es necesario llamar a emergencias?"
+            ],
+            "similitudes_inversas": [
+                0.4511,
+                0.3686,
+                0.2279
+            ],
+            "mrr_at_10": 1.0,
+            "recall_at_5": 0.21428571428571427,
+            "gold_keywords": [
+                "casco",
+                "cervicales",
+                "especializada"
+            ],
+            "gold_chunk_ids": [
+                "16392b99-3ca3-48aa-9b61-482666fe0939",
+                "18347c6d-b195-434a-8e25-7285a7d69acd",
+                "2f116671-65eb-448d-baa1-906027be562d",
+                "72441777-45c3-424c-a580-7e6f54cd1274",
+                "72458db4-75cd-463d-be9b-550d94ef2ed5",
+                "85c56ed0-3bb5-4571-b8ff-be0965dbcefe",
+                "97237eb0-4ae9-4731-8801-866a8c098e01",
+                "9ad94fa0-c537-4e68-b0c3-be7b9917e704",
+                "9da96b5c-edde-4919-ae6f-e8fed9b9433a",
+                "a2897f0e-c273-4610-8f7e-b5502b098302",
+                "abcc5ecd-a0b2-44f6-904a-ec32bc9fd87d",
+                "ceaa54d1-ebcc-451a-bd08-90fc5eedaa39",
+                "e28ee00d-c163-4418-83e1-1050ac8dc8a0",
+                "e9282bcd-565b-4461-8b3a-3f8ba3cf28f2"
+            ],
+            "retrieved_chunk_ids": [
+                "9da96b5c-edde-4919-ae6f-e8fed9b9433a",
+                "18347c6d-b195-434a-8e25-7285a7d69acd",
+                "72458db4-75cd-463d-be9b-550d94ef2ed5",
+                "05c14cae-4f35-43fd-bcd3-b3b4eb1215b4",
+                "8c3a30e4-6729-43ff-8858-d4e953bc8833",
+                "46396ec2-b66e-494f-be18-329af6aabfb9",
+                "e9098147-65ea-4981-b654-ccd7988191c6",
+                "ad6f986d-0b96-4cc5-b0a1-4df4a2005b61",
+                "fc29bf13-ebaf-42d6-b99c-b718ebb86094",
+                "ea4a50bd-9a20-4f24-86c4-d072aa7329a2"
+            ]
+        },
+        {
+            "id": 7,
+            "fila_excel": 8,
+            "query": "En que posición debo poner a un herido?",
+            "expected_answer": "La Posición Lateral de Seguridad sitúa al herido inconsciente con la cabeza de lado y la boca más baja, favoreciendo que la sangre, el vómito o cualquier secreción, salga libremente al exterior por la boca (pagina 45)",
+            "generated_answer": "- **No se debe mover al herido sin necesidad.** \n- **Si el herido no puede moverse o muestra signos de trauma en la cabeza, inmovilizarlo con cuidado.** \n- **En caso de duda, contactar con servicios de emergencia.**",
+            "tiempo_segundos": 12.32,
+            "sts": 0.6224116584264084,
+            "critical_info_coverage": 0.0,
+            "critical_facts": [
+                "posición lateral",
+                "seguridad"
+            ],
+            "answer_relevancy": 0.5604333118819508,
+            "preguntas_inversas": [
+                "¿Cuál es la recomendación para el movimiento del herido?",
+                "¿Qué se debe hacer si el herido no puede moverse y presenta signos de trauma en la cabeza?",
+                "¿Cuándo es necesario contactar con servicios de emergencia?"
+            ],
+            "similitudes_inversas": [
+                0.692,
+                0.6002,
+                0.3891
+            ],
+            "mrr_at_10": 0.0,
+            "recall_at_5": 0.0,
+            "gold_keywords": [
+                "posición lateral de seguridad"
+            ],
+            "gold_chunk_ids": [
+                "31ea3f25-089f-4fe2-9229-ffdfdc9d6869",
+                "c95b2b1d-715a-4539-92b2-7218bf2a3ffe"
+            ],
+            "retrieved_chunk_ids": [
+                "04d0c49b-b36d-4d43-9c0d-46f6727e8c10",
+                "694422fc-0396-42c7-8a1c-bac5216072ed",
+                "381e3a59-6237-45fb-9925-e72f7a52427b",
+                "aca3fad1-c5c7-47e5-9bce-62422a0c1ef1",
+                "c0174d93-3329-4209-8ff7-67f4938779af",
+                "2cf6f5fd-15c9-4347-ab47-d25fd1118ad8",
+                "32bea6eb-4e78-43f4-83c2-b18d3210504d",
+                "562a5506-1b1d-4fb9-92ab-11c6bc01fe8c",
+                "058030ef-f990-4aab-b085-78f9f34fbee4",
+                "5420bdcd-52fa-47e6-8530-e0343e010880"
+            ]
+        },
+        {
+            "id": 8,
+            "fila_excel": 9,
+            "query": "Me clavé un vidrio y la herida es grande, me saco el vidrio?",
+            "expected_answer": "No retirar ni intentar retirar los objetos clavados en la herida, puesto que se podría aumentar la lesión de los tejidos y la hemorragia. Simplemente, tapar la herida con el objeto incrustado e inmovilizar en bloque al paciente junto con el objeto penetrante. (pagina 69)",
+            "generated_answer": "- Inmovilizar la región de la fractura. \n-  Colocar un apósito para evitar en lo posible la infección. \n- No se recomienda sacar el vidrio.",
+            "tiempo_segundos": 10.72,
+            "sts": 0.7287311998044592,
+            "critical_info_coverage": 0.5,
+            "critical_facts": [
+                "no retirar",
+                "inmovilizar"
+            ],
+            "answer_relevancy": 0.5393510120922432,
+            "preguntas_inversas": [
+                "¿Cómo se debe proceder con la región de la fractura?",
+                "¿Qué medidas se deben tomar para prevenir infecciones?",
+                "¿Es recomendable retirar el vidrio de la fractura?"
+            ],
+            "similitudes_inversas": [
+                0.5397,
+                0.3211,
+                0.7572
+            ],
+            "mrr_at_10": 0.5,
+            "recall_at_5": 0.25,
+            "gold_keywords": [
+                "clavados",
+                "incrustado",
+                "inmovilizar"
+            ],
+            "gold_chunk_ids": [
+                "32bea6eb-4e78-43f4-83c2-b18d3210504d",
+                "381e3a59-6237-45fb-9925-e72f7a52427b",
+                "62f5390b-0ee1-42ef-be41-027307596dcc",
+                "694422fc-0396-42c7-8a1c-bac5216072ed",
+                "79a63384-2ebc-4a37-924d-142e4833463b",
+                "8c3a30e4-6729-43ff-8858-d4e953bc8833",
+                "ba68bdda-6221-41ca-aab8-0945fd7f1760",
+                "bb3ecd71-71a4-4285-8cbf-8cda22f09950",
+                "c74eb548-7510-438d-8378-042be45edc48",
+                "e9098147-65ea-4981-b654-ccd7988191c6",
+                "fa6eed9d-6000-49f9-8d3d-9250d96556d9",
+                "fc29bf13-ebaf-42d6-b99c-b718ebb86094"
+            ],
+            "retrieved_chunk_ids": [
+                "da0956e9-a15e-4e28-a49e-e75153c7b342",
+                "c74eb548-7510-438d-8378-042be45edc48",
+                "32bea6eb-4e78-43f4-83c2-b18d3210504d",
+                "fc29bf13-ebaf-42d6-b99c-b718ebb86094",
+                "b2df68a2-97bd-4ba8-bd34-9d9558e05f8e",
+                "2cf6f5fd-15c9-4347-ab47-d25fd1118ad8",
+                "db8e8929-20e6-4c70-862a-226298b1bbf4",
+                "457cd88d-6f1b-4e23-bfd9-c67020e73f8f",
+                "a8990e4c-7a4b-465c-8e88-9456ce8f6b94",
+                "99b4d8fc-73c4-45d2-8292-91cf82ef25b2"
+            ]
+        },
+        {
+            "id": 9,
+            "fila_excel": 10,
+            "query": "Hay una persona con quemaduras, qué hago?",
+            "expected_answer": "Se debe refrigerar la zona quemada con abundante agua fría y cubrir la herida con apósitos o telas limpias humedecidas. Nunca se deben aplicar pomadas ni pinchar las ampollas, ya que esto facilitaría la infección y la pérdida de líquidos. (pagina 71)",
+            "generated_answer": "- Extinguir el fuego que quede en las ropas del herido. \n- Envolver al herido para tapar la mayor superficie posible de su cuerpo.\n- Vigilar al herido y buscar signos de shock o dificultades respiratorias. \n- Si se presenta shock, colocar al herido en posición horizontal o \"antishock\". \n- Realizar las medidas de reanimación pertinentes.",
+            "tiempo_segundos": 14.77,
+            "sts": 0.6287982479003177,
+            "critical_info_coverage": 0.0,
+            "critical_facts": [
+                "agua fría",
+                "no pomadas",
+                "no pinchar"
+            ],
+            "answer_relevancy": 0.6260175727365918,
+            "preguntas_inversas": [
+                "¿Cómo se debe proceder para extinguir el fuego que quede en las ropas del herido?",
+                "¿Qué acciones se deben realizar para envolver al herido y protegerlo del frío?",
+                "¿Cuáles son los pasos a seguir si el herido presenta shock?"
+            ],
+            "similitudes_inversas": [
+                0.6949,
+                0.6062,
+                0.577
+            ],
+            "mrr_at_10": 0.3333333333333333,
+            "recall_at_5": 0.5,
+            "gold_keywords": [
+                "ampollas",
+                "pomadas",
+                "agua fría"
+            ],
+            "gold_chunk_ids": [
+                "77ca1e8b-96fc-4d22-805d-68cef6984f03",
+                "d723cf86-16a1-4ee6-9c0b-a2e682441d7a"
+            ],
+            "retrieved_chunk_ids": [
+                "d3cc11a2-3aae-4c4f-baa5-64ef2c863c70",
+                "c7cc3545-69fb-42f2-b7b3-2b6b5ad5d686",
+                "d723cf86-16a1-4ee6-9c0b-a2e682441d7a",
+                "52170698-107d-4e55-9c25-7d10549405a8",
+                "6d7222df-2d52-4895-9b88-3a761a62d841",
+                "77ca1e8b-96fc-4d22-805d-68cef6984f03",
+                "d6fb21f8-655c-4b85-aa5b-5c9c348e646a",
+                "8ef3a9a5-8bf8-46b1-8352-79356f2c9405",
+                "04d0c49b-b36d-4d43-9c0d-46f6727e8c10",
+                "2b24f5d0-424c-436c-b318-27973e93aa01"
+            ]
+        },
+        {
+            "id": 10,
+            "fila_excel": 11,
+            "query": "Mi hermano perdió un dedo, qué hago?",
+            "expected_answer": "Cubrir la zona amputada con gasas estériles, almohadillar con algodón y comprimir por un vendaje. Si existiera una hemorragia muy abundante, aplicar un torniquete. Lavar la parte desprendida con agua, cubrirla con gasas estériles, introducirla en una bolsa o recipiente hermético y a continuación sumergir la bolsa o el recipiente en agua con cubitos de hielo (evitar contacto directo con el hielo). Procurar el traslado inmediato del accidentado a un centro asistencial que en la medida de lo posible deberá ser informado del tipo de lesión. (pagina 70)",
+            "generated_answer": "- **Evalúa la situación:** Asegúrate de que tu hermano está consciente y puede hablar.\n- **Protege al herido:**  Utiliza un vendaje para proteger la herida del dedo perdido. \n- **Eleva la extremidad:** Eleva la extremidad donde se produjo el daño, manteniendo la zona elevada.\n- **Llama a emergencia:** Llama al número de emergencias (911) o al servicio de rescate local.\n- **Mantén la calma:**  Mientras esperas a que llegue la ayuda, mantén la calma y proporciona apoyo al herido.",
+            "tiempo_segundos": 17.42,
+            "sts": 0.542543394672454,
+            "critical_info_coverage": 0.0,
+            "critical_facts": [
+                "gasas",
+                "bolsa hermética",
+                "hielo",
+                "no contacto directo"
+            ],
+            "answer_relevancy": 0.3753886375579658,
+            "preguntas_inversas": [
+                "¿Cómo se debe evaluar la situación en caso de un accidente con un dedo perdido?",
+                "¿Qué medidas se deben tomar para proteger a la persona herida?",
+                "¿Cuál es el paso más importante que se debe realizar después de que se produzca el accidente?"
+            ],
+            "similitudes_inversas": [
+                0.5831,
+                0.3168,
+                0.2263
+            ],
+            "mrr_at_10": 0.0,
+            "recall_at_5": 0.0,
+            "gold_keywords": [
+                "amputada",
+                "hermético",
+                "hielo",
+                "gasas estériles"
+            ],
+            "gold_chunk_ids": [
+                "04a69895-ecb0-4cff-b35e-e5a21532d0a5",
+                "6d7222df-2d52-4895-9b88-3a761a62d841"
+            ],
+            "retrieved_chunk_ids": [
+                "ebe19ec5-3333-4879-b07c-2098955b9ba4",
+                "64803280-e909-40ba-bfd3-6c94bb97c716",
+                "aca3fad1-c5c7-47e5-9bce-62422a0c1ef1",
+                "32bea6eb-4e78-43f4-83c2-b18d3210504d",
+                "04d0c49b-b36d-4d43-9c0d-46f6727e8c10",
+                "058030ef-f990-4aab-b085-78f9f34fbee4",
+                "2efc2a64-db2f-45c3-9f6d-6988e81edcc0",
+                "c74eb548-7510-438d-8378-042be45edc48",
+                "3e41d0e3-2aa0-449f-b51a-398f9686b1a2",
+                "d252970d-ccf1-4ab9-bab7-283dd9db22f3"
+            ]
+        },
+        {
+            "id": 11,
+            "fila_excel": 12,
+            "query": "¡Mi papá se cortó la cabeza con el techo del auto y le chorrea muchísima sangre por la cara, parece gravísimo y me da miedo que se desangre! ¿Qué hago?",
+            "expected_answer": "Las heridas del cuero cabelludo característicamente sangran en abundancia, lo que, unido al aspecto llamativo de la herida, puede dar la impresión de extrema gravedad. Sin embargo, habitualmente no es así. La actitud del auxiliador habrá de limitarse a colocar un apósito o vendaje sobre la herida. Tema 5, Página 60",
+            "generated_answer": "- **No se debe retirar ningún cuerpo extraño de la herida.**\n- **Mantén la calma y llama al 911.**\n- **Verifica la respiración y el pulso.**\n- **Si la víctima está inconsciente, realiza RCP (Respiración Cardíaca Profunda) hasta que llegue un profesional.**\n- **No se debe tapar excesivamente la herida.**\n- **Traslado a un centro médico lo antes posible.**",
+            "tiempo_segundos": 15.96,
+            "sts": 0.5340596098844923,
+            "critical_info_coverage": 0.0,
+            "critical_facts": [
+                "apósito",
+                "vendaje"
+            ],
+            "answer_relevancy": 0.3577821981900755,
+            "preguntas_inversas": [
+                "¿Qué acciones deben tomar en caso de una persona con una herida?",
+                "¿Cuál es el primer paso a seguir en caso de que una persona esté inconsciente?",
+                "¿Qué medidas se deben tomar después de verificar la respiración y el pulso?"
+            ],
+            "similitudes_inversas": [
+                0.5066,
+                0.3884,
+                0.1784
+            ],
+            "mrr_at_10": 0.1111111111111111,
+            "recall_at_5": 0.0,
+            "gold_keywords": [
+                "cuero cabelludo",
+                "apósito",
+                "vendaje"
+            ],
+            "gold_chunk_ids": [
+                "023d7961-5701-43b1-9b2f-62b8e55d01b5",
+                "04a69895-ecb0-4cff-b35e-e5a21532d0a5",
+                "052372fd-fdab-444d-a78f-a219bc7d2822",
+                "11926203-5f08-40fc-8ac1-311b7bab006b",
+                "2b24f5d0-424c-436c-b318-27973e93aa01",
+                "32bea6eb-4e78-43f4-83c2-b18d3210504d",
+                "378e1ffb-8f99-45ee-93fb-9c2b37fd467b",
+                "493da935-efe3-4b47-acc4-40d52b232a15",
+                "64803280-e909-40ba-bfd3-6c94bb97c716",
+                "77ca1e8b-96fc-4d22-805d-68cef6984f03",
+                "8ef3a9a5-8bf8-46b1-8352-79356f2c9405",
+                "995eba27-8a3e-467d-95ae-91266b01428e",
+                "ba68bdda-6221-41ca-aab8-0945fd7f1760",
+                "bcdc6339-583a-486b-ad7f-79c8049f8e98",
+                "da0956e9-a15e-4e28-a49e-e75153c7b342"
+            ],
+            "retrieved_chunk_ids": [
+                "fa6eed9d-6000-49f9-8d3d-9250d96556d9",
+                "2efc2a64-db2f-45c3-9f6d-6988e81edcc0",
+                "ea4a50bd-9a20-4f24-86c4-d072aa7329a2",
+                "570916eb-5abd-4377-a04b-124812cc35d9",
+                "e9098147-65ea-4981-b654-ccd7988191c6",
+                "46396ec2-b66e-494f-be18-329af6aabfb9",
+                "6eec7a25-6c09-4d55-a730-cfb5b75689d2",
+                "d252970d-ccf1-4ab9-bab7-283dd9db22f3",
+                "023d7961-5701-43b1-9b2f-62b8e55d01b5",
+                "52f667ac-155c-4199-ad70-f3dbf82059e4"
+            ]
+        },
+        {
+            "id": 12,
+            "fila_excel": 13,
+            "query": "¡El conductor está muy asustado y dolorido! Me pide que le dé una pastilla que tiene en la guantera para calmarse, ¿se la puedo dar?",
+            "expected_answer": "Abstenerse de dar cualquier tipo de sustancia o medicación a los heridos sin indicación médica. Tema 6 pagina 80",
+            "generated_answer": "No poseo ese procedimiento en mis protocolos de emergencia viales registrados. Por favor, realiza la consulta pertinente o procede según el protocolo general.",
+            "tiempo_segundos": 5.65,
+            "sts": 0.5450833203585849,
+            "critical_info_coverage": 0.5,
+            "critical_facts": [
+                "no",
+                "abstenerse"
+            ],
+            "answer_relevancy": 0.0,
+            "preguntas_inversas": [],
+            "similitudes_inversas": [],
+            "mrr_at_10": 0.14285714285714285,
+            "recall_at_5": 0.0,
+            "gold_keywords": [
+                "abstenerse",
+                "medicación",
+                "indicación médica"
+            ],
+            "gold_chunk_ids": [
+                "614ae819-f33f-4edd-b376-08800633b7be",
+                "c2ee0c4b-a31b-43e0-880a-dec64ce3009a",
+                "ffafeb90-f019-46c2-a194-8a07e50b9b80"
+            ],
+            "retrieved_chunk_ids": [
+                "94d79abb-ba4a-4814-b47b-fae3b7581abd",
+                "c3f64de4-6251-4ad0-9846-99b6de2eb5c4",
+                "ea4a50bd-9a20-4f24-86c4-d072aa7329a2",
+                "8c53e1e8-e15c-4c86-9e93-192994794a30",
+                "ad6f986d-0b96-4cc5-b0a1-4df4a2005b61",
+                "8c3a30e4-6729-43ff-8858-d4e953bc8833",
+                "c2ee0c4b-a31b-43e0-880a-dec64ce3009a",
+                "ceaa54d1-ebcc-451a-bd08-90fc5eedaa39",
+                "5420bdcd-52fa-47e6-8530-e0343e010880",
+                "c95b2b1d-715a-4539-92b2-7218bf2a3ffe"
+            ]
+        },
+        {
+            "id": 13,
+            "fila_excel": 14,
+            "query": "Mi amigo se golpeó la cabeza, está desmayado y le sale sangre por la nariz y las orejas. ¿Le meto un algodón para que no sangre?",
+            "expected_answer": "NUNCA SE DEBEN TAPONAR LAS HEMORRAGIAS POR OIDO NI POR NARIZ. Para evitar el riesgo de asfixia, si existe hemorragia nasal se debe colocar al herido inconsciente en posición de decúbito lateral estable. tema 5 pagina 65",
+            "generated_answer": "- Mantén la calma. \n- No retire ningún cuerpo extraño del ojo.\n-  Vigila su respiración y circulación.\n-  Procura su traslado al centro médico lo antes posible. \n-  Tapar ligeramente el herido. \n-  No le metas un algodón para que no sangre.",
+            "tiempo_segundos": 13.25,
+            "sts": 0.703744809702208,
+            "critical_info_coverage": 0.0,
+            "critical_facts": [
+                "nunca taponar",
+                "lateral"
+            ],
+            "answer_relevancy": 0.3994733132837513,
+            "preguntas_inversas": [
+                "¿Cómo se debe actuar en caso de una lesión ocular?",
+                "¿Qué acciones deben tomar las personas ante una lesión ocular?",
+                "¿Cuál es la prioridad en el tratamiento de una lesión ocular?"
+            ],
+            "similitudes_inversas": [
+                0.4537,
+                0.4401,
+                0.3047
+            ],
+            "mrr_at_10": 1.0,
+            "recall_at_5": 0.2727272727272727,
+            "gold_keywords": [
+                "taponar",
+                "oído",
+                "decúbito lateral"
+            ],
+            "gold_chunk_ids": [
+                "1c49dd0a-80f3-43c9-b7ea-ad29e6e10adf",
+                "3874b6d3-d8e1-4831-a4d7-c03c9f670fbd",
+                "3f2eed5e-7428-467d-b84f-3de18a2db478",
+                "493da935-efe3-4b47-acc4-40d52b232a15",
+                "570916eb-5abd-4377-a04b-124812cc35d9",
+                "995eba27-8a3e-467d-95ae-91266b01428e",
+                "9c8bd862-6e91-4a8d-b279-0936249c032a",
+                "d6fb21f8-655c-4b85-aa5b-5c9c348e646a",
+                "f0b0cefa-834a-48aa-833a-0f0e78735d9f",
+                "fa6eed9d-6000-49f9-8d3d-9250d96556d9",
+                "fc29bf13-ebaf-42d6-b99c-b718ebb86094"
+            ],
+            "retrieved_chunk_ids": [
+                "fa6eed9d-6000-49f9-8d3d-9250d96556d9",
+                "6eec7a25-6c09-4d55-a730-cfb5b75689d2",
+                "d252970d-ccf1-4ab9-bab7-283dd9db22f3",
+                "3874b6d3-d8e1-4831-a4d7-c03c9f670fbd",
+                "570916eb-5abd-4377-a04b-124812cc35d9",
+                "c95b2b1d-715a-4539-92b2-7218bf2a3ffe",
+                "ea4a50bd-9a20-4f24-86c4-d072aa7329a2",
+                "52170698-107d-4e55-9c25-7d10549405a8",
+                "f0b0cefa-834a-48aa-833a-0f0e78735d9f",
+                "b5c6bb40-e8d0-40df-b2d2-f8f634e56e04"
+            ]
+        },
+        {
+            "id": 14,
+            "fila_excel": 15,
+            "query": "¡Choqué y estoy llamando a la ambulancia! ¿Qué información les tengo que dar para que vengan rápido?",
+            "expected_answer": "- Localización del lugar del accidente (calle, numero, punto kilometrico, localidad, si es una via de doble sentido es preciso informar de la direccion en la que se encuentra el problema)- Características y número de los vehículos implicados. - Número de heridos y toda aquella información que podamos aportar sobre ellos. tema 3 pagina 34",
+            "generated_answer": "- Llama al 112.\n- Indica la ubicación exacta del accidente.\n- Informa si hay víctimas con lesiones graves. \n- No intentes maniobrar el vehículo, espera a que llegue la ambulancia.",
+            "tiempo_segundos": 11.92,
+            "sts": 0.6991462483549059,
+            "critical_info_coverage": 0.0,
+            "critical_facts": [
+                "localización",
+                "vehículos",
+                "heridos"
+            ],
+            "answer_relevancy": 0.5231571661241875,
+            "preguntas_inversas": [
+                "¿Cuál es la primera acción a tomar en caso de un accidente?",
+                "¿Qué información es crucial proporcionar al servicio de emergencia?",
+                "¿Qué se debe hacer con el vehículo después del accidente?"
+            ],
+            "similitudes_inversas": [
+                0.5373,
+                0.6024,
+                0.4298
+            ],
+            "mrr_at_10": 0.5,
+            "recall_at_5": 0.08695652173913043,
+            "gold_keywords": [
+                "localización",
+                "implicados",
+                "vehículos"
+            ],
+            "gold_chunk_ids": [
+                "09eff10f-ac64-429d-8d5c-67c41336e5b7",
+                "1464d399-d578-4056-afb8-00801c22fba1",
+                "269594d2-b681-44f2-bef3-e114d3fa8b22",
+                "391f71d9-b9ee-4fe0-bdb7-ae5ee053d53b",
+                "4b1e3590-e443-4de4-83bc-5c9100c00c4f",
+                "5137e1cf-b0b1-4bd0-8415-b01959bfe824",
+                "5819bf42-fd7f-457d-ad12-b1fe082e27f1",
+                "5949f001-d3c1-4b67-b581-c0480de41bad",
+                "75a6856b-c60f-4dcb-9e0d-0d41a61bbbe7",
+                "7f0e37d6-59e3-4a29-9021-d81bdf51d7c0",
+                "9da96b5c-edde-4919-ae6f-e8fed9b9433a",
+                "a2897f0e-c273-4610-8f7e-b5502b098302",
+                "abcc5ecd-a0b2-44f6-904a-ec32bc9fd87d",
+                "b57f2ef9-e1fc-4fe3-96ff-27c83a7ac172",
+                "bd57eb68-bde8-426f-bfa5-06da334aea38",
+                "c2ee0c4b-a31b-43e0-880a-dec64ce3009a",
+                "d98173be-8605-42c3-8324-8cf3ffa8ede2",
+                "dd2d59d9-0da4-45f1-a433-df363f80f3a4",
+                "de4ef016-8ef2-494f-ae49-121cf7f124fe",
+                "e8d098b1-1c48-43c3-b9cc-f4e0452ad050",
+                "ece0406e-e5c9-468d-8735-a448cfd52725",
+                "f420147c-3eb6-4cce-841b-d2baa08d65db",
+                "fa023432-9bac-48db-aaee-fbf746b50197"
+            ],
+            "retrieved_chunk_ids": [
+                "1b0134c3-b427-4815-8910-6bc3161b7f18",
+                "abcc5ecd-a0b2-44f6-904a-ec32bc9fd87d",
+                "ea4a50bd-9a20-4f24-86c4-d072aa7329a2",
+                "a062da3a-bed6-482f-9326-592e4607e6b3",
+                "7f0e37d6-59e3-4a29-9021-d81bdf51d7c0",
+                "4a1d66ef-d98c-4ada-9d60-c45922d12ad5",
+                "047ec28e-c53e-41fd-91d4-30d08b806687",
+                "ac604a67-500a-41f9-8dac-3292d4173e2e",
+                "a60e858a-0ac9-4e28-a3b0-0ef472975cdd",
+                "85c56ed0-3bb5-4571-b8ff-be0965dbcefe"
+            ]
+        },
+        {
+            "id": 15,
+            "fila_excel": 16,
+            "query": "El auto volcó, a un amigo le quedó el brazo doblado y no lo puede mover, creo que se lo quebró. ¿Qué le hago?",
+            "expected_answer": "Cuando se sospeche una fractura de extremidad superior, se procederá, en general, a sostener el peso de la extremidad y a inmovilizarla. Ambas cosas pueden realizarse mediante la aplicación de un \"cabestrillo\" con un trozo de tela o con un pañuelo.. tema 5 pagina 68",
+            "generated_answer": "- Sujetar la muñeca contraria del herido con las manos. \n- Agarrar de este modo al accidentado, evitando que su cuello se mueva.\n- Utilizar el método \"auxiliadores alternados\" para movilizar al herido fuera del vehículo. \n- Si hay fractura en la extremidad superior, no realizar maniobras invasivas sin autorización médica.",
+            "tiempo_segundos": 14.65,
+            "sts": 0.7455019879124187,
+            "critical_info_coverage": 0.0,
+            "critical_facts": [
+                "inmovilizar",
+                "cabestrillo"
+            ],
+            "answer_relevancy": 0.572796966381978,
+            "preguntas_inversas": [
+                "¿Cómo se debe sujetar a una persona herida?",
+                "¿Qué método se utiliza para mover a un herido fuera del vehículo?",
+                "¿Qué acciones deben evitarse si se detecta una fractura en la extremidad superior de la persona herida?"
+            ],
+            "similitudes_inversas": [
+                0.531,
+                0.6215,
+                0.566
+            ],
+            "mrr_at_10": 0.5,
+            "recall_at_5": 0.03225806451612903,
+            "gold_keywords": [
+                "cabestrillo",
+                "fractura",
+                "extremidad superior"
+            ],
+            "gold_chunk_ids": [
+                "041f3b8f-8bd8-4663-901f-8dc30e39be0b",
+                "04a9851a-41af-4691-a842-47ee28f4ce32",
+                "11926203-5f08-40fc-8ac1-311b7bab006b",
+                "1e5109df-8763-4bd3-8ad9-c9261395de9c",
+                "20338b41-e131-48bc-9b09-c8e65c891e2f",
+                "3874b6d3-d8e1-4831-a4d7-c03c9f670fbd",
+                "457cd88d-6f1b-4e23-bfd9-c67020e73f8f",
+                "4f525eaa-4b57-465d-bdda-4cf1d040f628",
+                "51805db8-246a-46af-b570-cbcb33c26600",
+                "667a13d8-22e8-4ffe-bd40-d3ca1c361325",
+                "741944dc-88e1-4660-98bb-6ba65c2eece6",
+                "79a63384-2ebc-4a37-924d-142e4833463b",
+                "808e7f6c-8fdf-42bd-b89e-03b44b5463c4",
+                "86ce4805-1b2a-490f-abe1-3b5725a00bdc",
+                "8915c1c0-7247-41a0-9790-8f8dbcfcb6fb",
+                "9543f7ca-c6a7-4bc1-a452-3a9b9356d76b",
+                "9754e70f-30cd-4aa2-be24-d0900b0d025a",
+                "99b4d8fc-73c4-45d2-8292-91cf82ef25b2",
+                "9a9aa7e1-886b-4a24-8cfe-8de590a97ec8",
+                "a452e102-d3ee-4bc3-906f-906149729e0e",
+                "aca3fad1-c5c7-47e5-9bce-62422a0c1ef1",
+                "bb3ecd71-71a4-4285-8cbf-8cda22f09950",
+                "c74eb548-7510-438d-8378-042be45edc48",
+                "d61d8fcc-1431-4f1b-84cb-53dd7911fca6",
+                "d6fb21f8-655c-4b85-aa5b-5c9c348e646a",
+                "da0956e9-a15e-4e28-a49e-e75153c7b342",
+                "de7f44ca-5665-49f1-9172-92b2f8c9ea49",
+                "ebe19ec5-3333-4879-b07c-2098955b9ba4",
+                "ee3ef486-961a-440a-b72c-3014a8ec47a3",
+                "f0b0cefa-834a-48aa-833a-0f0e78735d9f",
+                "fc29bf13-ebaf-42d6-b99c-b718ebb86094"
+            ],
+            "retrieved_chunk_ids": [
+                "707800d4-2979-4e85-9c74-fe5f3a6e20f3",
+                "ebe19ec5-3333-4879-b07c-2098955b9ba4",
+                "e9098147-65ea-4981-b654-ccd7988191c6",
+                "04d0c49b-b36d-4d43-9c0d-46f6727e8c10",
+                "c50bf275-14a4-4bab-8c0f-5fc3340d4ac4",
+                "ea4a50bd-9a20-4f24-86c4-d072aa7329a2",
+                "63384551-b1a6-411b-b004-6c1ac1ddb1a6",
+                "058030ef-f990-4aab-b085-78f9f34fbee4",
+                "9ad94fa0-c537-4e68-b0c3-be7b9917e704",
+                "b2df68a2-97bd-4ba8-bd34-9d9558e05f8e"
+            ]
+        }
+    ]
+}
