@@ -1,0 +1,5 @@
+[project]
+  subdomain = "asistente-emergencias-rag-qcony8yd"
+
+[agent]
+  id = "CA_7vGxUcVTj8sw"

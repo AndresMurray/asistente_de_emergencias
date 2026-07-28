@@ -17,10 +17,8 @@ from livekit.agents import (  # type: ignore
     RunContext,
     function_tool,
     room_io,
+    inference,
 )
-from livekit.plugins.deepgram import STT as DeepgramSTT, TTS as DeepgramTTS  # type: ignore
-from livekit.plugins.openai import LLM as OpenAILLM  # type: ignore
-from livekit.plugins.cartesia import TTS as CartesiaTTS  # type: ignore
 
 load_dotenv(".env.local")
 
@@ -166,21 +164,17 @@ class Assistant(Agent):
 server = AgentServer()
 
 
-@server.rtc_session(agent_name="emergencias")
+@server.rtc_session()
 async def entrypoint(ctx: agents.JobContext):
     logger.info("Conectando al room %s", ctx.room.name)
     await ctx.connect(auto_subscribe=agents.AutoSubscribe.AUDIO_ONLY)
 
     session = AgentSession(
-        stt=DeepgramSTT(model="nova-3", language="es"),
-        llm=OpenAILLM(
-            model="llama-3.3-70b-versatile",
-            base_url="https://api.groq.com/openai/v1",
-            api_key=os.environ.get("GROQ_API_KEY", ""),
-        ),
-        tts=CartesiaTTS(
+        stt=inference.STT(model="deepgram/nova-3", language="es"),
+        llm=inference.LLM(model="openai/gpt-4o-mini"),
+        tts=inference.TTS(
+            model="cartesia/sonic-3",
             voice="595f1cfa-bd48-432c-a519-abe83e210398",
-            language="es",
         ),
     )
 

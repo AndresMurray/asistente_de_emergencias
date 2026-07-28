@@ -9,3 +9,4 @@ livekit-plugins-google
 livekit-plugins-cartesia
 livekit-plugins-openai
 aiohttp>=3.9.0
+python-dotenv>=1.0.0
