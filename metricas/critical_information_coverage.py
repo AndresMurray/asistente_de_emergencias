@@ -3,11 +3,20 @@ import sys
 import os
 import json
 from typing import List
+from dotenv import load_dotenv
+from openai import AsyncOpenAI
 
-# Añadir el directorio raíz al path para poder importar src
+# Cargar variables de entorno desde .env.local
+load_dotenv(".env.local")
+
+# Añadir el directorio raíz al path para poder importar src y agent
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.main import Pipeline
+# Configurar el fallback de la base de datos local si no está definida en .env.local
+if not os.environ.get("DATABASE_URL"):
+    os.environ["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5433/emergencias_vdb"
+
+from agent import SYSTEM_INSTRUCTIONS, search_similarity
 
 def critical_information_coverage(generated_answer: str, critical_facts: List[str]) -> float:
     """
@@ -25,17 +34,96 @@ def critical_information_coverage(generated_answer: str, critical_facts: List[st
             
     return covered_facts / len(critical_facts)
 
+async def ejecutar_agente_remoto(query: str, client: AsyncOpenAI) -> str:
+    """
+    Simula la llamada al agente remoto LiveKit ejecutando el LLM con las
+    mismas instrucciones y resolviendo la llamada de herramienta `buscar_protocolo`.
+    """
+    messages = [
+        {"role": "system", "content": SYSTEM_INSTRUCTIONS},
+        {"role": "user", "content": query}
+    ]
+    
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "buscar_protocolo",
+                "description": (
+                    "Busca en la base de datos vectorial los fragmentos de protocolo "
+                    "semanticamente mas relevantes para la consulta del operador de emergencia vial. "
+                    "Ejemplo de query: 'que hacer ante un choque con heridos'"
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "La consulta de búsqueda semántica",
+                        }
+                    },
+                    "required": ["query"],
+                },
+            },
+        }
+    ]
+    
+    try:
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            tools=tools,
+            tool_choice="auto",
+            temperature=0.1
+        )
+        
+        response_message = response.choices[0].message
+        tool_calls = response_message.tool_calls
+        
+        if tool_calls:
+            # Agregar el mensaje del asistente que pide llamar a la herramienta
+            messages.append(response_message)
+            
+            for tool_call in tool_calls:
+                function_name = tool_call.function.name
+                function_args = json.loads(tool_call.function.arguments)
+                
+                if function_name == "buscar_protocolo":
+                    search_query = function_args.get("query", query)
+                    # Ejecutar la búsqueda real usando la lógica de agent.py
+                    tool_output = await search_similarity(search_query)
+                    
+                    messages.append({
+                        "tool_call_id": tool_call.id,
+                        "role": "tool",
+                        "name": function_name,
+                        "content": tool_output
+                    })
+            
+            # Segunda llamada al LLM enviando los resultados de la herramienta
+            second_response = await client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages,
+                temperature=0.1
+            )
+            return second_response.choices[0].message.content or ""
+            
+        return response_message.content or ""
+    except Exception as e:
+        print(f"  [Error LLM] Error al invocar OpenAI: {e}")
+        return ""
+
 async def main():
-    print("--- EVALUACIÓN DE CRITICAL INFO COVERAGE CON RAG REAL ---")
-    print("Inicializando conexión a Base de Datos y Ollama...")
+    print("--- EVALUACIÓN DE CRITICAL INFO COVERAGE CON AGENTE LIVEKIT SIMULADO ---")
+    print("Inicializando cliente de OpenAI y cargando dataset...")
     
-    # Forzar la URL correcta de la base de datos (puerto 5433, base emergencias_vdb) 
-    # tal como está configurado en tu docker-compose para la DB vectorial.
-    os.environ["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5433/emergencias_vdb"
-    
-    # Inicializar el pipeline real
-    pipe_instance = Pipeline()
-    await pipe_instance.on_startup()
+    # Inicializar cliente de OpenAI
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print("Error: No se encontró la variable de entorno OPENAI_API_KEY.")
+        return
+        
+    client = AsyncOpenAI(api_key=api_key)
     
     # Cargar dataset unificado desde JSON
     dataset_path = os.path.join(os.path.dirname(__file__), "dataset_evaluacion.json")
@@ -55,19 +143,10 @@ async def main():
         critical_facts = data["critical_facts"]
         
         print(f"Consulta {i+1}: '{query}'")
-        print("  Generando respuesta real (esto puede tardar unos segundos)...")
+        print("  Generando respuesta simulada con gpt-4o-mini y buscar_protocolo...")
         
-        # GENERACIÓN REAL A TRAVÉS DEL PIPELINE
-        # El modelo y la URL de Ollama los toma de la configuración del pipeline (Valves)
-        response_stream = pipe_instance.pipe(query, pipe_instance.valves.MODEL_NAME, [])
-        
-        # Recolectamos la respuesta completa ya que viene en un generador (stream)
-        generated_answer = ""
-        if isinstance(response_stream, str):
-            generated_answer = response_stream
-        else:
-            for token in response_stream:
-                generated_answer += token
+        # Ejecutar llamada remota simulada
+        generated_answer = await ejecutar_agente_remoto(query, client)
                 
         coverage = critical_information_coverage(generated_answer, critical_facts)
         total_coverage += coverage
@@ -85,9 +164,6 @@ async def main():
     avg_coverage = total_coverage / num_queries
     print(f"Promedio global Coverage: {avg_coverage:.2f}")
     
-    # Limpieza
-    await pipe_instance.on_shutdown()
-    
     # Guardar resultados en JSON
     output_dir = os.path.join(os.path.dirname(__file__), "resultados")
     os.makedirs(output_dir, exist_ok=True)
@@ -98,7 +174,7 @@ async def main():
     
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump({
-            "fase": "Evaluación RAG Real",
+            "fase": "Evaluación Agente LiveKit Simulada",
             "promedio_global_critical_info_coverage": avg_coverage,
             "resultados_detallados": results
         }, f, indent=4, ensure_ascii=False)

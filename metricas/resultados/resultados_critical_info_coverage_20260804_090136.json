@@ -1,0 +1,284 @@
+{
+    "fase": "Evaluación Agente LiveKit Simulada",
+    "promedio_global_critical_info_coverage": 0.0,
+    "resultados_detallados": [
+        {
+            "query_id": 1,
+            "query": "Acabo de presenciar un accidente de tráfico",
+            "critical_facts": [
+                "proteger",
+                "avisar",
+                "socorrer",
+                "112"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 2,
+            "query": "Hay una persona inconsciente que no respira",
+            "critical_facts": [
+                "frente-mentón",
+                "112",
+                "compresiones",
+                "insuflaciones"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 3,
+            "query": "Una persona está sangrando mucho por el brazo ¿Que Hago?",
+            "critical_facts": [
+                "presión directa",
+                "elevar",
+                "presión arterial",
+                "torniquete"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 4,
+            "query": "¿Tengo que sacar al herido del Auto?",
+            "critical_facts": [
+                "no",
+                "peligro inmediato",
+                "bloque rígido"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 5,
+            "query": "El herido está consciente pero muy pálido, con piel fría y sudando. ¿Qué le pasa y qué hago?",
+            "critical_facts": [
+                "shock",
+                "112",
+                "antishock",
+                "calor"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 6,
+            "query": "Un chico en moto acaba de chocar, debería sacarle el casco?",
+            "critical_facts": [
+                "no",
+                "cervicales"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 7,
+            "query": "En que posición debo poner a un herido?",
+            "critical_facts": [
+                "posición lateral",
+                "seguridad"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 8,
+            "query": "Me clavé un vidrio y la herida es grande, me saco el vidrio?",
+            "critical_facts": [
+                "no retirar",
+                "inmovilizar"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 9,
+            "query": "Hay una persona con quemaduras, qué hago?",
+            "critical_facts": [
+                "agua fría",
+                "no pomadas",
+                "no pinchar"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 10,
+            "query": "Mi hermano perdió un dedo, qué hago?",
+            "critical_facts": [
+                "gasas",
+                "bolsa hermética",
+                "hielo",
+                "no contacto directo"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 11,
+            "query": "¡Mi papá se cortó la cabeza con el techo del auto y le chorrea muchísima sangre, parece gravísimo y me da miedo que se desangre! ¿Qué hago?",
+            "critical_facts": [
+                "apósito",
+                "vendaje"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 12,
+            "query": "¡El conductor está muy asustado y dolorido! Me pide que le dé una pastilla que tiene en la guantera para calmarse, ¿se la puedo dar?",
+            "critical_facts": [
+                "no",
+                "abstenerse"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 13,
+            "query": "Mi amigo se golpeó la cabeza, está desmayado y le sale sangre por la nariz y las orejas. ¿Le meto un algodón para que no sangre?",
+            "critical_facts": [
+                "nunca taponar",
+                "lateral"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 14,
+            "query": "¡Choqué y estoy llamando a la ambulancia! ¿Qué información les tengo que dar para que vengan rápido?",
+            "critical_facts": [
+                "localización",
+                "vehículos",
+                "heridos"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 15,
+            "query": "El auto volcó, a un amigo le quedó el brazo doblado y no lo puede mover, creo que se lo quebró. ¿Qué le hago?",
+            "critical_facts": [
+                "inmovilizar",
+                "cabestrillo"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 16,
+            "query": "Hubo un choque y hay una persona herida pero no desmayada, que hago?",
+            "critical_facts": [
+                "vigilar",
+                "no pierde el conocimiento",
+                "hemorragias"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 17,
+            "query": "Acaban de chocar enfrente mío y la persona esta en la calle tirada, la muevo a la vereda?",
+            "critical_facts": [
+                "no mover",
+                "columna cervical",
+                "inmovilizar cuello"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 18,
+            "query": "Chocó un auto y la persona accidentada respira raro",
+            "critical_facts": [
+                "pedir ayuda",
+                "posición de defensa",
+                "no dar de beber",
+                "shock"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 19,
+            "query": "Choqué y me duele algo en el ojo",
+            "critical_facts": [
+                "trasladar",
+                "no manipular",
+                "no retirar cuerpo extraño"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 20,
+            "query": "Necesito sacar a una persona accidentada de su auto",
+            "critical_facts": [
+                "esperar ayuda especializada",
+                "axila",
+                "mandíbula",
+                "cuello"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 21,
+            "query": "¿Qué debería llevar en el botiquín del auto?",
+            "critical_facts": [
+                "guantes",
+                "gasas",
+                "vendas",
+                "desinfectante"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 22,
+            "query": "Vi un accidente pero no sé nada de primeros auxilios, ¿puedo seguir de largo?",
+            "critical_facts": [
+                "no",
+                "omisión del deber de socorro",
+                "pedir auxilio"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 23,
+            "query": "Chocó un camión que transporta mercancías peligrosas y el conductor no puede actuar, ¿qué hago?",
+            "critical_facts": [
+                "no actuar sobre la mercancía",
+                "112",
+                "paneles naranja",
+                "alertar"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 24,
+            "query": "El herido es un niño y no respira, ¿la RCP es igual que en adultos?",
+            "critical_facts": [
+                "5 ventilaciones de rescate",
+                "un tercio",
+                "2 dedos"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        },
+        {
+            "query_id": 25,
+            "query": "La ambulancia no llega, ¿puedo llevar al herido al hospital en mi auto?",
+            "critical_facts": [
+                "excepcional",
+                "30 minutos",
+                "torniquete",
+                "shock"
+            ],
+            "generated_answer": "",
+            "critical_info_coverage": 0.0
+        }
+    ]
+}
