@@ -1,0 +1,185 @@
+{
+    "fase": "Evaluación Agente LiveKit Simulado - STS",
+    "metrica": "Semantic Text Similarity",
+    "modelo_llm": "llama-3.3-70b-versatile",
+    "modelo_embeddings": "cohere embed-multilingual-v3.0",
+    "sts_global": 0.6787536036639443,
+    "num_consultas": 25,
+    "resultados_detallados": [
+        {
+            "query_id": 1,
+            "query": "Acabo de presenciar un accidente de tráfico",
+            "expected_answer": "Seguí el esquema P.A.S.: Proteger, Avisar y Socorrer. 1. PROTEGER: Detenete en lugar seguro fuera de la calzada, apagá el motor, encendé las luces de emergencia y colocá los triángulos de preseñalización a 50 metros del vehículo (visibles desde 100m). Poné el chaleco reflectante ANTES de bajar del auto. Identificá peligros:  incendio, combustible derramado, mercancías peligrosas. 2. AVISAR: Llamá al 112 inmediatamente. 3. SOCORRER: Auxiliá a los heridos sin moverlos, salvo que sea estrictamente necesario.",
+            "generated_answer": "Sos testigo de un accidente de tráfico, chequeá si hay heridos, no te acerques al lugar del siniestro si hay riesgo de incendio o explosión, llamá al número de emergencia y esperá instrucciones.",
+            "sts": 0.6432918946950319
+        },
+        {
+            "query_id": 2,
+            "query": "Hay una persona inconsciente que no respira",
+            "expected_answer": "Es una situación de paro cardiorrespiratorio. Actuá así:\n  1. Llamá al 112 o enviá a alguien a llamar inmediatamente.\n  2. Abrí la vía aérea con la maniobra frente-mentón: una mano en la frente empujando hacia atrás, la otra bajo el mentón elevándolo.\n  3. Comprobá respiración mirando, escuchando y sintiendo durante máximo 10 segundos.\n  4. Si no respira, comenzá compresiones torácicas:\n      - Talón de la mano en el centro del pecho.\n      - Brazos verticales, comprimí 4-5 cm a ritmo de 100 por minuto.\n      - Alterná 30 compresiones + 2 insuflaciones boca a boca.\n5. No pares hasta que llegue ayuda cualificada, la víctima respire, o te agotes.\n Si no podés hacer insuflaciones, realizá solo compresiones continuas a 100 por minuto.",
+            "generated_answer": "Según el protocolo de reanimación cardiopulmonar, vos tenés que iniciar la resucitación. Primero, verificá que el lugar esté seguro para vos y para la persona. Luego, llamá a emergencias y pedí ayuda. Comenzá con 30 compresiones torácicas, seguidas de dos respiraciones asistidas. Repetí este ciclo hasta que llegue la ayuda médica o hasta que la persona comience a respirar de manera espontánea. No te detengas, es crucial seguir con el protocolo de RCP.",
+            "sts": 0.7962067141929293
+        },
+        {
+            "query_id": 3,
+            "query": "Una persona está sangrando mucho por el brazo ¿Que Hago?",
+            "expected_answer": "Seguí estos pasos en orden:\n 1. Presión directa: Aplicá presión firme sobre la herida con una gasa o paño limpio. NO levantes ni cambies la tela aunque se manche. Usá guantes si tenés.\n 2. Elevá el miembro: Manteniendo la presión, levantá el brazo por encima del nivel del corazón para dificultar la salida de sangre.\n3. Presión arterial: Si con lo anterior no alcanza, presioná la arteria humeral (cara interna del brazo, bajo el bíceps) contra el hueso, sin soltar la presión en la herida.\n4. Torniquete: SOLO como último recurso y únicamente si hay amputación. Una vez colocado, NO lo retirés ni aflojés hasta que el herido llegue al hospital. Anotá la hora en que lo pusiste.\n Si la sangre sale por oídos, nariz o boca, NO intentes cohibirla — puede tener origen intracraneal y taponar es peligroso.",
+            "generated_answer": "Aplicá presión directa sobre la herida con un paño limpio o una gasa, si tenés a mano. Si la sangre atraviesa el paño, no lo saqués, poné otro encima y seguí aplicando presión. Llamá a emergencias y pedí ayuda médica de inmediato.",
+            "sts": 0.7786775671032279
+        },
+        {
+            "query_id": 4,
+            "query": "¿Tengo que sacar al herido del Auto?",
+            "expected_answer": "Como norma general: NO. No debés mover a un herido de un accidente de tráfico salvo que sea estrictamente necesario. Moverlo sin las precauciones adecuadas puede causar o agravar lesiones en la columna vertebral cervical.\n Solo podés moverlo en estos casos:\n     - Existe peligro inmediato e inminente para su vida (incendio, vehículo a punto de caer al agua).\n     - Necesitás colocarlo en Posición Lateral de Seguridad porque comienza a vomitar o sangrar por la boca. Si hay que moverlo, mantené siempre el eje cabeza–cuello–tronco alineado, moviéndolo como si fuera un bloque rígido. Tampoco retirés el casco a un motorista salvo indicación clara.",
+            "generated_answer": "No saques al herido del auto a menos que haya riesgo inminente, como incendio o explosión. Si tenés que sacarlo, hazlo con cuidado, manteniendo la cabeza y el cuello inmóviles.",
+            "sts": 0.7624919929303718
+        },
+        {
+            "query_id": 5,
+            "query": "El herido está consciente pero muy pálido, con piel fría y sudando. ¿Qué le pasa y qué hago?",
+            "expected_answer": "Esos síntomas palidez, sudoración fría, pulso rápido y débil, confusión e inquietud son señales de shock, una respuesta del organismo a la pérdida importante de sangre (puede ser interna, sin herida visible).\nEs una situación de peligro vital. Actuá así:\n 1. Llamá al 112 de inmediato si aún no lo hiciste.\n 2. No le des nada de comer ni beber puede provocar vómitos y complicaciones respiratorias graves.\n3. Colocalo en posición antishock: cabeza más baja que el resto del cuerpo, si es posible, si comienza a manifestar signos de inconsciencia, náuseas o vómitos, se colocara a la víctima en \"posición de defensa\". Recuerde que de debe preservar siempre el eje cabeza-cuello-tronco\n4. Tapalo ligeramente para que no pierda su propio calor, pero SIN sobrecalentarlo — el exceso de calor dilata los vasos de la piel y agrava el shock.\n5. Aflojale la ropa que le oprima: cuello, corbata, cinturón.\n6. No lo muevas innecesariamente — tratalo como si tuviera lesión en la columna vertebral.\n7. Vigilalo constantemente hasta que llegue la ayuda, porque un herido consciente puede perder el conocimiento de forma súbita.\nRecordá que un herido que parece \"bien\" puede empeorar rápidamente. La vigilancia continua es clave.",
+            "generated_answer": "Parece que el herido está en shock. Tenés que mantenerlo caliente, con una manta o algo similar. Dale oxígeno si tenés acceso a eso. No le des nada para beber. Mantenelo en posición de shock, con las piernas elevadas. Y llamá a emergencias para que vengan lo antes posible.",
+            "sts": 0.789519025846349
+        },
+        {
+            "query_id": 6,
+            "query": "Un chico en moto acaba de chocar, debería sacarle el casco?",
+            "expected_answer": "Si se trata de un herido que lleve casco, para evitar mayores lesiones cervicales no se le debe quitar ni permitir que alguien se lo retire, salvo que fuera necesario y exista ayuda especializada. (pagina 61)",
+            "generated_answer": "No le saqués el casco al chico, a menos que tenga dificultades para respirar o que el casco esté dañado y sea necesario retirarlo para evaluar su estado. Si es posible, intentá estabilizar la cabeza y el cuello del chico con las manos o con algo que tengas a mano, como una toalla o una frazada, para evitar movimientos bruscos que puedan empeorar una posible lesión en la columna vertebral. Esperá a que llegue el equipo de emergencia para que puedan evaluar y tratar al chico de manera segura.",
+            "sts": 0.7280135675455034
+        },
+        {
+            "query_id": 7,
+            "query": "En que posición debo poner a un herido?",
+            "expected_answer": "La Posición Lateral de Seguridad sitúa al herido inconsciente con la cabeza de lado y la boca más baja, favoreciendo que la sangre, el vómito o cualquier secreción, salga libremente al exterior por la boca (pagina 45)",
+            "generated_answer": "Ponelo en posición de recuperación, sobre el lado izquierdo, con la pierna izquierda doblada y la derecha extendida, y con la cabeza hacia abajo para evitar la aspiración. Asegurate de que la vía aérea esté despejada.",
+            "sts": 0.651242284030965
+        },
+        {
+            "query_id": 8,
+            "query": "Me clavé un vidrio y la herida es grande, me saco el vidrio?",
+            "expected_answer": "No retirar ni intentar retirar los objetos clavados en la herida, puesto que se podría aumentar la lesión de los tejidos y la hemorragia. Simplemente, tapar la herida con el objeto incrustado e inmovilizar en bloque al paciente junto con el objeto penetrante. (pagina 69)",
+            "generated_answer": "No te saques el vidrio, eso puede empeorar la herida. Dejalo en su lugar y aplica presion con un paño limpio para controlar el sangrado. Pedí ayuda médica de inmediato.",
+            "sts": 0.7094654322857133
+        },
+        {
+            "query_id": 9,
+            "query": "Hay una persona con quemaduras, qué hago?",
+            "expected_answer": "Se debe refrigerar la zona quemada con abundante agua fría y cubrir la herida con apósitos o telas limpias humedecidas. Nunca se deben aplicar pomadas ni pinchar las ampollas, ya que esto facilitaría la infección y la pérdida de líquidos. (pagina 71)",
+            "generated_answer": "Enfriá las quemaduras con agua corriente no helada durante diez minutos, retirá cualquier ropa o joyería que esté en contacto con la quemadura, no rompás ampollas, cubrí la zona con un paño limpio y secó, y trasladá a la víctima a un centro médico lo antes posible.",
+            "sts": 0.824278546157274
+        },
+        {
+            "query_id": 10,
+            "query": "Mi hermano perdió un dedo, qué hago?",
+            "expected_answer": "Cubrir la zona amputada con gasas estériles, almohadillar con algodón y comprimir por un vendaje. Si existiera una hemorragia muy abundante, aplicar un torniquete. Lavar la parte desprendida con agua, cubrirla con gasas estériles, introducirla en una bolsa o recipiente hermético y a continuación sumergir la bolsa o el recipiente en agua con cubitos de hielo (evitar contacto directo con el hielo). Procurar el traslado inmediato del accidentado a un centro asistencial que en la medida de lo posible deberá ser informado del tipo de lesión. (pagina 70)",
+            "generated_answer": "No tengo ese procedimiento en mis protocolos de emergencia viales registrados. Por favor, hacé la consulta pertinente o procedé segun el protocolo general.",
+            "sts": 0.5820037487781519
+        },
+        {
+            "query_id": 11,
+            "query": "¡Mi papá se cortó la cabeza con el techo del auto y le chorrea muchísima sangre por la cara, parece gravísimo y me da miedo que se desangre! ¿Qué hago?",
+            "expected_answer": "Las heridas del cuero cabelludo característicamente sangran en abundancia, lo que, unido al aspecto llamativo de la herida, puede dar la impresión de extrema gravedad. Sin embargo, habitualmente no es así. La actitud del auxiliador habrá de limitarse a colocar un apósito o vendaje sobre la herida. Tema 5, Página 60",
+            "generated_answer": "Llamá al número de emergencia de inmediato, pedí ayuda médica de emergencia. Mientras llegan, mantené a tu papá acostado en una superficie plana y estable, con la cabeza ligeramente elevada. Aplicá presión sobre la herida con un paño limpio o una gasa para tratar de controlar el sangrado. No te preocupés por quitar nada de la herida, solo aplicá presión. Hablá con tu papá, tratá de mantenerlo consciente y tranquilo. No lo movás a menos que esté en peligro. Esperá a que llegue la ayuda médica.",
+            "sts": 0.6486713066916078
+        },
+        {
+            "query_id": 12,
+            "query": "¡El conductor está muy asustado y dolorido! Me pide que le dé una pastilla que tiene en la guantera para calmarse, ¿se la puedo dar?",
+            "expected_answer": "Abstenerse de dar cualquier tipo de sustancia o medicación a los heridos sin indicación médica. Tema 6 pagina 80",
+            "generated_answer": "No le des nada, no tengo ese procedimiento en mis protocolos de emergencia viales registrados. Por favor, hacé la consulta pertinente o procedé segun el protocolo general.",
+            "sts": 0.5675540787737011
+        },
+        {
+            "query_id": 13,
+            "query": "Mi amigo se golpeó la cabeza, está desmayado y le sale sangre por la nariz y las orejas. ¿Le meto un algodón para que no sangre?",
+            "expected_answer": "NUNCA SE DEBEN TAPONAR LAS HEMORRAGIAS POR OIDO NI POR NARIZ. Para evitar el riesgo de asfixia, si existe hemorragia nasal se debe colocar al herido inconsciente en posición de decúbito lateral estable. tema 5 pagina 65",
+            "generated_answer": "No, no le metas un algodón. Dejá que la sangre salga, no lo obstruyas. Buscá ayuda médica de inmediato.",
+            "sts": 0.6325280921988474
+        },
+        {
+            "query_id": 14,
+            "query": "¡Choqué y estoy llamando a la ambulancia! ¿Qué información les tengo que dar para que vengan rápido?",
+            "expected_answer": "- Localización del lugar del accidente (calle, numero, punto kilometrico, localidad, si es una via de doble sentido es preciso informar de la direccion en la que se encuentra el problema)- Características y número de los vehículos implicados. - Número de heridos y toda aquella información que podamos aportar sobre ellos. tema 3 pagina 34",
+            "generated_answer": "Deciles a la ambulancia la ubicación exacta del accidente, la cantidad de personas involucradas y si hay heridos graves. También les tenés que dar tu número de teléfono para que te puedan contactar si necesitan más información.",
+            "sts": 0.7400164390158579
+        },
+        {
+            "query_id": 15,
+            "query": "El auto volcó, a un amigo le quedó el brazo doblado y no lo puede mover, creo que se lo quebró. ¿Qué le hago?",
+            "expected_answer": "Cuando se sospeche una fractura de extremidad superior, se procederá, en general, a sostener el peso de la extremidad y a inmovilizarla. Ambas cosas pueden realizarse mediante la aplicación de un \"cabestrillo\" con un trozo de tela o con un pañuelo.. tema 5 pagina 68",
+            "generated_answer": "Inmoviliza el brazo con un cabestrillo o una tablilla, sin moverlo. Llamá a emergencias para que lo trasladen a un hospital. No le des nada para comer ni beber.",
+            "sts": 0.6436484558065406
+        },
+        {
+            "query_id": 16,
+            "query": "Hubo un choque y hay una persona herida pero no desmayada, que hago?",
+            "expected_answer": "El accidentado que conserva su nivel de alerta, responde a estímulos, y está consciente conserva su función respiratoria y su función circulatoria, es decir respira y su corazón está bombeando sangre, por lo que no será necesario continuar con la valoración primaria (el ABC). No obstante el herido consciente, puede tener hemorragias, fracturas o lesiones internas que pueden empeorar su estado de forma brusca, por tanto se le debe vigilar hasta que llegue el personal sanitario, comprobando cada cierto tiempo que no pierde el conocimiento y que no se deteriora su situación. \nRecuerde que el herido consciente también puede encontrarse en situaciones que comprometan su vida, como hemorragias abundantes, y puede tener lesiones al nivel de la columna cervical por tanto habrá que guardar las mismas precauciones en cuanto a la retirada del casco y la movilización del cuello.\nPAG 44",
+            "generated_answer": "Sos el operador en el lugar, entonces tenés que mantener a la persona herida en calma y pedirle que no se mueva hasta que llegue el equipo médico. Revisá si hay sangrado y aplicá presión con un paño limpio si es necesario. No la movás a menos que esté en peligro inminente. Mantené la calma y esperá a que llegue el equipo de emergencia.",
+            "sts": 0.6748968348426219
+        },
+        {
+            "query_id": 17,
+            "query": "Acaban de chocar enfrente mío y la persona esta en la calle tirada, la muevo a la vereda?",
+            "expected_answer": "No mover al herido en ningún caso, sobre todo si se encuentra inconsciente, por el riesgo de lesiones en la columna vertebral cervical. Se debe sospechar lesión vértebro-medular en cualquier accidentado que:\n• Esté inconsciente y tenga señales de golpes, heridas o hematomas en cuello o cabeza.\n• Sea conductor o pasajero de motocicleta o ciclomotor.\n• Haya manifestado, en algún momento, no sentir o poder mover alguna parte de su cuerpo.\nEn estos casos, hay que inmovilizar la región del cuello y no trasladar al herido en vehículo particular. Si hubiera vómitos o hemorragias en boca o nariz se le colocará en la \"posición de defensa\" con las precauciones expuestas en el capítulo correspondiente. Si se trata de un herido que lleve casco, para evitar mayores lesiones cervicales no se le debe quitar ni permitir que alguien se lo retire, salvo que fuera necesario y exista ayuda especializada.\nPAG 60",
+            "generated_answer": "No movés a la persona hasta que no estés seguro de que no tiene lesiones graves, sobre todo en el cuello o la columna vertebral. Si tenés que moverla para sacarla de un lugar peligroso, hacelo con cuidado y tratá de mantener la cabeza y el cuello lo más quietos posible. Pero lo ideal es esperar a que llegue el equipo de emergencia para que puedan evaluar la situación y actuar de la manera más segura.",
+            "sts": 0.7696486108867553
+        },
+        {
+            "query_id": 18,
+            "query": "Chocó un auto y la persona accidentada respira raro",
+            "expected_answer": "Es posible hablar de dos tipos de lesiones: traumatismos cerrados (si no hay rotura de los tejidos de la piel) y traumatismos abiertos (se produce una comunicación entre el interior del tórax o abdomen y el exterior).\nAnte un traumatismo torácico o abdominal, se deben tener presentes las siguientes consideraciones:\n• Lo primero que hay que hacer siempre es solicitar auxilio, pedir ayuda médica y avisar a una ambulancia.\n• Un herido que tenga un traumatismo abierto de tórax, generalmente sufre dificultades respiratorias más o menos severas. Si se sospecha lesión pulmonar unilateral (herida penetrante, burbuja de sangre en la herida, etc.), rotar al individuo en la posición de defensa inclinando al paciente hacia el costado lesionado, facilitando así la movilidad respiratoria del pulmón sano.\n• Ante cualquier traumatismo abierto, es preciso tener cuidado de no tocar ni manipular la herida; tan solo se colocará un apósito o venda en la zona.\n• No dar nunca nada de beber o de comer a estos heridos.\n• Cualquier traumatismo en el tórax o en el abdomen puede ocasionar una lesión de alguna víscera interior del cuerpo que, a pesar de su gravedad, no se manifieste exteriormente. Por ello, hay que estar atentos en especial a la posible aparición de síntomas de shock (colapso), lo que supondría un agravamiento del estado de la víctima y la necesidad de atención médica adecuada.\n• Toda persona que haya sufrido un traumatismo en tórax o abdomen debe ser sometida a control médico, aunque aparentemente se encuentre en buen estado de salud tras el accidente.\nPAG 64",
+            "generated_answer": "Según el protocolo de emergencia vial, si la persona accidentada respira de manera irregular, es importante mantenerla calmada y en una posición cómoda. Si está consciente, anímala a que respire profundamente y de manera lenta. Si la respiración es muy dificultosa o si la persona está inconsciente, es crucial llamar a emergencias de inmediato y seguir las instrucciones del operador hasta que llegue el equipo de rescate. No intentes mover a la persona a menos que esté en peligro inminente. Mantené la calma y esperá a que llegue el equipo de emergencia.",
+            "sts": 0.5744619197996922
+        },
+        {
+            "query_id": 19,
+            "query": "Choqué y me duele algo en el ojo",
+            "expected_answer": "• Ante cualquier lesión ocular (golpe, arañazo o herida), será preciso trasladar al herido a un centro asistencial, prescindiendo de manipular el ojo. Si hubiese algún cuerpo extraño incrustado en el globo ocular, NO se debe retirar en ningún caso.\n\nPAG 65",
+            "generated_answer": "No tengo ese procedimiento en mis protocolos de emergencia viales registrados. Por favor, hacé la consulta pertinente o procedé segun el protocolo general.",
+            "sts": 0.4914056843446508
+        },
+        {
+            "query_id": 20,
+            "query": "Necesito sacar a una persona accidentada de su auto",
+            "expected_answer": "Siempre es preferible esperar a que, con ayuda especializada, el ocupante del vehículo pueda ser extraído sin dificultad mediante el corte de chapa, retirada de puertas, etc. Sin embargo, es bueno conocer de qué manera hay que sujetar y movilizar al herido desde el interior del vehículo para no provocarle más lesiones. Los pasos a seguir son los siguientes:\n• Observar y cerciorarse de que el cuerpo de la víctima está libre de hierros, volante o cualquier\nparte del vehículo que le comprima, y que sus pies no se encuentren enganchados con los pedales.\n• Colocarse detrás de la víctima, para poderla sujetar con los brazos de este modo: pasando un brazo por debajo del brazo y la axila del herido, sujetar su muñeca contraria con las manos; el otro brazo, pasando por debajo de la axila del lado opuesto, permitirá sujetar la mandíbula del herido.\n• Una vez agarrado de este modo el accidentado, y siempre evitando que su cuello se mueva, se procederá a extraerlo del vehículo.\nPAG 77",
+            "generated_answer": "Primero, asegurate de que el lugar sea seguro para vos y para la persona accidentada. Apagá el motor del auto y activá las luces de emergencia. Si es posible, sacá la llave del contacto para evitar que el auto se mueva. Luego, revisá si hay algún riesgo inminente como fugas de combustible o daños estructurales que puedan afectar la estabilidad del vehículo. Si la persona está consciente y no tiene lesiones aparentes que puedan empeorar con el movimiento, como fracturas en la columna vertebral, ayúdala a salir del auto de manera cuidadosa. Si la persona está inconsciente o tiene lesiones graves, no la movés hasta que llegue el equipo de emergencia médica. En cualquier caso, es importante llamar a los servicios de emergencia lo antes posible para obtener asistencia profesional.",
+            "sts": 0.7581992397955903
+        },
+        {
+            "query_id": 21,
+            "query": "¿Qué debería llevar en el botiquín del auto?",
+            "expected_answer": "Aunque no es obligatorio, sí es recomendable llevar en el vehículo un pequeño botiquín con los elementos imprescindibles, siempre en condiciones de ser utilizado. Entre el material se puede incluir: guantes \"quirúrgicos\" (a mano, por ejemplo en la guantera), algodón prensado arrollado y estéril, compresas estériles, vendas, gasas y apósitos estériles, una tira de goma elástica de entre cinco y diez centímetros de ancho y no menos de metro y medio de largo, un pañuelo grande, esparadrapo, un par de tijeras, unas pinzas, imperdibles, alguna solución desinfectante y, si sabe utilizarse, una mascarilla para la ventilación artificial. Lo más importante es mantenerlos siempre en condiciones de uso y saber utilizarlos: en caso de desconocimiento o duda, lo mejor es abstenerse. (pagina 17)",
+            "generated_answer": "No tengo ese procedimiento en mis protocolos de emergencia viales registrados. Por favor, hacé la consulta pertinente o procedé segun el protocolo general.",
+            "sts": 0.5249484739401323
+        },
+        {
+            "query_id": 22,
+            "query": "Vi un accidente pero no sé nada de primeros auxilios, ¿puedo seguir de largo?",
+            "expected_answer": "No. El socorro y la petición de auxilio es una obligación moral y un deber cuyo incumplimiento castiga el Código Penal como delito de omisión del deber de socorro. Incurre en este delito el que no socorriere a una persona que se hallare desamparada y en peligro manifiesto y grave, cuando pudiere hacerlo sin riesgo propio ni de terceros (multa de tres a doce meses), y también el que, impedido de prestar socorro, no demande con urgencia auxilio ajeno. Una cosa es no saber hacer una cura de urgencia y otra muy distinta no pedir auxilio y no cooperar para que las víctimas sean atendidas. (pagina 16)",
+            "generated_answer": "No, no te podés ir. Tenés que llamar a emergencias y esperar instrucciones. No te acerques al lugar del accidente si no sabés qué hacer, pero no te podés ir sin avisar a alguien.",
+            "sts": 0.5791894998016719
+        },
+        {
+            "query_id": 23,
+            "query": "Chocó un camión que transporta mercancías peligrosas y el conductor no puede actuar, ¿qué hago?",
+            "expected_answer": "Cualquier persona que advierta la anormal inmovilización o estado del vehículo deberá: abstenerse de actuar o intervenir directamente sobre la mercancía; dar cuenta inmediatamente del hecho a través del nº 112 por el procedimiento más rápido y eficaz; procurar alertar del peligro existente a quienes puedan resultar afectados; y auxiliar, en su caso, a las víctimas, pero absteniéndose de actuar sobre la carga o el vehículo. La comunicación incluirá el lugar del accidente, el estado del vehículo, los datos de las materias peligrosas transportadas (los números consignados en los paneles rectangulares de color naranja) y la existencia de víctimas. (pagina 13)",
+            "generated_answer": "Evacuá el área inmediatamente, llamá a emergencias y pedí apoyo especializado para manejar las mercancías peligrosas. No te acerqués al camión, mantené una distancia segura y esperá a que lleguen los equipos de emergencia capacitados para manejar este tipo de situaciones.",
+            "sts": 0.6736190911727244
+        },
+        {
+            "query_id": 24,
+            "query": "El herido es un niño y no respira, ¿la RCP es igual que en adultos?",
+            "expected_answer": "La secuencia de RCP explicada para adultos se puede utilizar también en niños que no responden a estímulos y que no respiran. No obstante, el niño se puede beneficiar de las siguientes modificaciones: si el niño está inconsciente y no respira, antes de realizar las compresiones torácicas, dé 5 ventilaciones de rescate (en niños pequeños, la boca del auxiliador cubre la boca y la nariz del niño); comprima el tórax aproximadamente un tercio de su profundidad; utilice 2 dedos para niños menores de un año y una o dos manos para niños por encima de un año según sea necesario. (pagina 50)",
+            "generated_answer": "La RCP en niños que no respiran es similar a la de los adultos, pero con algunas diferencias importantes. La relación de compresiones y respiraciones es de 30 a 2 para niños de 1 a 8 años, y de 30 a 2 para niños mayores de 8 años, al igual que en adultos. Sin embargo, es crucial recordar que la frecuencia cardíaca en niños es más rápida que en adultos, por lo que se deben realizar 100 a 120 compresiones por minuto. Además, la profundidad de las compresiones debe ser de un tercio a la mitad del pecho del niño. Si estás solo con el niño, debes hacer 5 ciclos de RCP antes de llamar a emergencias. Si hay otra persona contigo, uno debe llamar a emergencias mientras el otro comienza la RCP. Recuerda que la RCP en niños requiere una técnica adecuada para su edad y tamaño.",
+            "sts": 0.8452713181473178
+        },
+        {
+            "query_id": 25,
+            "query": "La ambulancia no llega, ¿puedo llevar al herido al hospital en mi auto?",
+            "expected_answer": "Como norma general no: el transporte de heridos debe hacerse en vehículos especialmente destinados para tal fin y por personal profesional, y el traslado por particulares ha de ser una actuación absolutamente excepcional. Podría estar justificado cuando no haya sido posible solicitar ayuda sanitaria por ningún medio, o si han transcurrido más de 30 minutos desde que se solicitó la ayuda y ha sido preciso colocar un torniquete a la víctima, o el herido presenta una hemorragia externa incoercible o signos de shock en aumento. En tal caso: mantener alineado el eje cabeza-cuello-tronco, circular a velocidad moderada y sin brusquedades, y el herido siempre debe ir acompañado. (paginas 78-79)",
+            "generated_answer": "No tengo ese procedimiento en mis protocolos de emergencia viales registrados. Por favor, hacé la consulta pertinente o procedé segun el protocolo general.",
+            "sts": 0.5795902728153801
+        }
+    ]
+}

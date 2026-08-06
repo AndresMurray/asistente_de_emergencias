@@ -1,0 +1,76 @@
+[
+  {
+    "query": "¿Qué datos se deben registrar al tomar conocimiento de un siniestro vial?",
+    "context": "[GENERAL]\nuella información que podamos aportar sobre ellos. - Características especiales del accidente (existen personas atrapadas, existe peligro de caída del vehículo, está implicado un vehículo que transporta mercancías peligrosas, el vehículo ha caído al agua, etc.). - Es conveniente dejar un número de teléfono de contacto. - Cualquier otra información que sea importante para los equipos de emergencia Se debe esperar a que desde la central nos den la conformidad, una vez comunicada la emergencia\n\n[GENERAL]\npuede depender que llegue o no la ayuda adecuada. ¿Qué información se ha de dar cuando se llama al 112? - Localización del lugar del accidente (calle, número, punto kilométrico, localidad, si es una vía de doble sentido es preciso informar de la dirección en la que se encuentra el problema…). - Características y número de los vehículos implicados. - Número de heridos y toda aquella información que podamos aportar sobre ellos.\n\n[GENERAL]\nque haya víctimas en el interior de los vehículos a las que no es posible extraer de los mismos, hay que limitarse a efectuar aquellas maniobras y observaciones que en tal situación sean posibles. El comportamiento correcto será: - Pedir ayuda especializada. La activación del sistema de emergencia a través del nº 112 permite que acuda al lugar del accidente la ayuda adecuada (bomberos, servicio sanitario, Agentes). - Intentar acceder hasta la proximidad de las víctimas para conocer su estado.",
+    "answer": "Che, al tomar conocimiento de un siniestro vial, tenés que registrar la localización del lugar del accidente, como calle, número, punto kilométrico, localidad, y si es una vía de doble sentido, la dirección en la que se encuentra el problema. También tenés que dar características y número de los vehículos implicados, y número de heridos, cualquier información que podamos aportar sobre ellos. Y no te olvides de dejar un número de teléfono de contacto, por cualquier cosa. Esperá la conformidad desde la central antes de seguir adelante.",
+    "retrieval_ms": 3195.835922000697,
+    "llm_ms": 1024.9483219995454,
+    "total_ms": 4220.784244000242,
+    "id": 1,
+    "expected_scope": "in_scope",
+    "keywords": [
+      "registro",
+      "ubicación",
+      "lesionados",
+      "conocimiento"
+    ]
+  },
+  {
+    "query": "¿Cuánto tiempo tiene el equipo de emergencia para llegar al lugar del accidente?",
+    "context": "[GENERAL]\nsanitaria. Dichas actuaciones se realizan en esos primeros minutos denominados \"vitales\" por la trascendencia que tienen para el futuro de la víctima. Cuando el personal sanitario llega, tras realizar el primer tratamiento del lesionado en el lugar del accidente, le trasladará en transporte especializado a un hospital y seleccionará el más adecuado en función de las lesiones y la gravedad del sujeto. Por último el paciente si lo precisa, pasará a un programa\n\n[GENERAL]\no va a ser posible hasta que no llegue la atención sanitaria. Es tan importante este hecho que en casos de heridos graves, las posibilidades de supervivencia del accidentado van disminuyendo conforme se retrasa la llegada de la ayuda sanitaria, aunque se apliquen correctamente las maniobras de resucitación cardiopulmonar. Por otra parte la alerta se ha de dar a un servicio de emergencias integral. Para acceder en España\n\n[GENERAL]\nniente debe tener estas dos ideas claras, el aviso ha de darse lo antes posible, pero además ha de realizarse de la forma y en el lugar adecuado. Por un lado el tiempo es fundamental, sobre todo si el accidentado tiene compromiso vital (si está inconsciente, si no respira,…) ya que en estos casos, nuestra actuación va a suplir temporalmente sus funciones vitales, pero la recuperación definitiva, no va a ser posible hasta que no llegue la atención",
+    "answer": "No tengo un tiempo específico para la llegada del equipo de emergencia en mis protocolos, pero es fundamental que lleguen lo antes posible, sobre todo si el accidentado tiene compromiso vital. La atención sanitaria es crucial en los primeros minutos después del accidente, así que es importante que el equipo de emergencia llegue con la mayor celeridad posible.",
+    "retrieval_ms": 817.4091570017481,
+    "llm_ms": 923.6133000013069,
+    "total_ms": 1741.022457003055,
+    "id": 2,
+    "expected_scope": "in_scope",
+    "keywords": [
+      "arribo",
+      "10 minutos",
+      "escena"
+    ]
+  },
+  {
+    "query": "¿Cómo actuar en la intervención médica ante heridos graves?",
+    "context": "[GENERAL]\nralmente, se trata de un herido de carácter grave. Ante este tipo de lesionados, la actuación del auxiliador se limitará a observar y controlar las funciones vitales de respiración y circulación sanguínea, evitar lesiones sobreañadidas por inadecuada manipulación o transporte y estar atento a algunas complicaciones que potencialmente puedan surgir. No obstante, en el presente apartado del Manual se hará una breve referencia a fracturas\n\n[GENERAL]\ns lesiones. Los pasos a seguir son los siguientes: - Observar y cerciorarse de que el cuerpo de la víctima está libre de hierros, volante o cualquier parte del vehículo que le comprima, y que sus pies no se encuentren enganchados con los pedales. - Colocarse detrás de la víctima, para poderla sujetar con los brazos de este modo: pasando un brazo por debajo del brazo y la axila del herido, sujetar su muñeca contraria con las manos; el otro\n\n[GENERAL]\nse encuentran muchas veces en estado de pérdida de consciencia como consecuencia de las lesiones encefálicas. En estos supuestos, la actitud correcta del auxiliador será atender al estado respiratorio del herido, vigilando la posible obstrucción de las vías aéreas por la propia lengua del accidentado, por restos de sangre y secreciones o por cuerpos extraños, tales como dientes u otros. También debe observar la",
+    "answer": "Che, en caso de heridos graves, lo primero que tenés que hacer es observar y controlar las funciones vitales de respiración y circulación sanguínea. Asegurate de que el cuerpo del herido esté libre de cualquier objeto que lo comprima o le cause daño. Colocate detrás de la víctima y sujétala con los brazos para evitar movimientos bruscos. Si el herido está inconsciente, tenés que vigilar su estado respiratorio, asegurándote de que no haya obstrucción de las vías aéreas por la lengua, sangre, secreciones o cuerpos extraños. Está atento a cualquier complicación que pueda surgir y no te olvides de evitar lesiones sobreañadidas por manipulación o transporte inadecuados.",
+    "retrieval_ms": 817.6712780004891,
+    "llm_ms": 1127.1177790004003,
+    "total_ms": 1944.7890570008894,
+    "id": 3,
+    "expected_scope": "in_scope",
+    "keywords": [
+      "intervención",
+      "médico",
+      "estabilización"
+    ]
+  },
+  {
+    "query": "¿Cuál es el protocolo de recolección de muestras para el perito judicial?",
+    "context": "[GENERAL]\nncho por un lado de la boca, barriendo su interior hasta el otro extremo sin estirar el dedo, así evitaremos introducir accidentalmente el objeto más al fondo de la boca e incluso hacia la vía aérea, con el consiguiente riesgo de asfixia. B=Respiración: Una vez que se ha realizado la apertura de la vía aérea, habrá que comprobar si el accidentado respira o no respira durante un tiempo no superior a 10 segundos.\n\n[GENERAL]\nos desinfectantes, tales como los yodados, sólo es aconsejable si se conocen los riesgos de su uso. En caso de amputaciones, la actuación correcta consistirá en: - Cubrir la zona amputada con gasas estériles, almohadillar con algodón y comprimir por un vendaje. - Si existiera una hemorragia muy abundante, aplicar un torniquete, pero siempre con las precauciones ya expuestas en este manual. - Lavar la parte desprendida con agua, cubrirla con gasas estériles, introducirla en una bolsa o\n\n[GENERAL]\ncuando rezume sangre o líquido. El algodón no debe estar en contacto directamente con la herida, lo que se evitará colocando una gasa entre el apósito y la herida. En cambio, cuando se trate de pequeñas heridas y rasguños que no expulsen líquidos, es preferible dejarlas al descubierto. - Evitar la colocación de algodón (pues quedará incrustado en la herida) y la aplicación de productos a base de alcohol. Utilizar otros desinfectantes, tales como los yodados, sólo es",
+    "answer": "No tengo ese procedimiento en mis protocolos de emergencia viales registrados. Por favor, hacé la consulta pertinente o procedé segun el protocolo general.",
+    "retrieval_ms": 744.914721000896,
+    "llm_ms": 597.557761000644,
+    "total_ms": 1342.47248200154,
+    "id": 4,
+    "expected_scope": "out_of_scope",
+    "keywords": [
+      "No poseo ese procedimiento",
+      "911"
+    ]
+  },
+  {
+    "query": "¿Cuál es la capital de Francia y qué museos hay que visitar?",
+    "context": "[GENERAL]\na la acción \"de bomba\" del corazón lo distribuye, mediante los vasos sanguíneos, a todo el cuerpo. El cerebro, órgano en el que se centraliza toda la información y el control del resto de las funciones del cuerpo humano, es especialmente sensible a la falta de oxígeno, de tal forma que cuando pasan unos minutos en los que no dispone del mismo se empieza a producir muerte neuronal y lesiones irreversibles.\n\n[GENERAL]\nrtante. En este capítulo se describen por separado actuación y valoración para que resulte didáctico, pero como veremos en el siguiente tema, a medida que vamos realizando la valoración y vamos encontrando un fallo, primero lo solucionamos y luego continuamos con el paso siguiente. Si encontramos un fallo en \"la A\" (la apertura de la vía aérea), inmediatamente lo solucionamos con la maniobra de frente-mentón. Lo mismo ocurre con \"la B\", y así sucesivamente. TEMA 3 Pág. 41 RESUMEN:\n\n[GENERAL]\nléfono público no es necesario introducir monedas. El centro en el que se recibe la alerta envía todos los efectivos necesarios (sanitarios, policiales, bomberos, etc.) en función de las características del suceso, de tal forma que si informamos que hay un herido atrapado dentro del vehículo, el centro de emergencias dará aviso a los bomberos y estos facilitarán el acceso del personal sanitario al herido. TEMA 3 Pág. 34",
+    "answer": "No tengo ese procedimiento en mis protocolos de emergencia viales registrados. Por favor, hacé la consulta pertinente o procedé segun el protocolo general.",
+    "retrieval_ms": 735.9931230002985,
+    "llm_ms": 583.3379910000076,
+    "total_ms": 1319.3311140003061,
+    "id": 5,
+    "expected_scope": "out_of_scope",
+    "keywords": [
+      "No poseo ese procedimiento",
+      "911"
+    ]
+  }
+]
