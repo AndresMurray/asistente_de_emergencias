@@ -37,11 +37,14 @@ import aiohttp
 import openpyxl
 from dotenv import load_dotenv
 
-# Añadir directorio raíz al path para importar agent.py
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# Directorio raíz del proyecto
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-# Cargar variables de entorno
-load_dotenv(".env.local")
+# Añadir directorio raíz al path para importar agent.py
+sys.path.append(PROJECT_ROOT)
+
+# Cargar variables de entorno desde la raíz del proyecto (donde vive .env.local)
+load_dotenv(os.path.join(PROJECT_ROOT, ".env.local"))
 
 # Fallback de la base de datos local si no está definida en .env.local
 if not os.environ.get("DATABASE_URL"):
