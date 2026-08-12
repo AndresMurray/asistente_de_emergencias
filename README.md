@@ -61,12 +61,16 @@ Crea un archivo `.env.local` en la raíz del proyecto con la siguiente configura
 COHERE_API_KEY=tu_cohere_key
 
 # Base de Datos (Supabase)
-DATABASE_URL=postgresql://postgres.vbspedxghlkucshoacif:Z%26%40q8XKA%2Af%21%2BJ7F@aws-1-us-west-2.pooler.supabase.com:5432/postgres
+DATABASE_URL=tudatabase_url
 
 # Conexión LiveKit Cloud (para pruebas WebRTC remotas)
-LIVEKIT_URL=wss://tu-proyecto.livekit.cloud
+LIVEKIT_URL=tulivekiturl
 LIVEKIT_API_KEY=tu_api_key
 LIVEKIT_API_SECRET=tu_api_secret
+
+# Clon de Voz
+CARTESIA_API_KEY=tu_api_key
+
 ```
 
 ---
@@ -92,12 +96,33 @@ Para iniciar el agente de LiveKit en modo desarrollo:
 python agent.py dev
 ```
 
-### 3. Evaluar Cobertura de Información Crítica (Métrica Coverage)
-La métrica simula llamadas multiturno y evalúa si el agente transmitió todos los puntos críticos del protocolo oficial (exigiendo un score `>= 0.8`).
+### 3. Despliegue en LiveKit Cloud (Producción)
 
-Ejecutar la suite de pruebas mediante pytest:
+Para desplegar el agente en LiveKit Cloud, se utiliza el CLI oficial de LiveKit (`lk`).
+
+#### Prerrequisitos:
+1. Tener instalado el **LiveKit CLI** (`lk`).
+2. Autenticarse en tu cuenta de LiveKit Cloud:
+   ```bash
+   lk cloud auth
+   ```
+
+#### Comando de Despliegue:
+Para subir cambios en el código o en las dependencias al agente en la nube:
 ```bash
-pytest metricas/critical_information_coverage.py -v
+lk agent deploy
 ```
+*Este comando lee el archivo [livekit.toml](file:///c:/Users/ASUS/Desktop/LS/Construccion%20sistemas%20RAG/Asistente_de_emergencias/livekit.toml) en la raíz del proyecto para identificar la aplicación y el ID del agente, compila el entorno y realiza el redespliegue.*
 
-*Nota: La prueba se conectará a tu sala de LiveKit Cloud mediante WebRTC si las credenciales de LiveKit están configuradas, y enviará consultas de texto. Si el agente en la nube no responde a tiempo, conmutará automáticamente al simulador local e implementará una validación heurística de cobertura sin requerir créditos externos.*
+---
+
+#### ❓ ¿Qué cambios requieren redespliegue y cuáles no?
+
+| Tipo de Cambio | ¿Requiere Despliegue (`lk agent deploy`)? | Detalles / Acción Requerida |
+| :--- | :---: | :--- |
+| **Código del Agente** (`agent.py` o scripts importados) | **Sí** | Cualquier cambio en la lógica de respuestas, prompts del LLM, herramientas de función (`function_tool`), configuración de voces, etc. |
+| **Dependencias del Proyecto** (`requirements.txt`) | **Sí** | Al modificar o añadir librerías en `requirements.txt`, es necesario redesplegar para reconstruir la imagen del contenedor con el nuevo entorno. |
+| **Configuraciones de LiveKit** (`livekit.toml`) | **Sí** | Cambios que afecten la metadata o identificadores del agente en LiveKit. |
+| **Ingesta de Documentos (Base de Datos)** | **No** | Si agregas nuevos PDFs y ejecutas la ingesta (`ingest.py`), los cambios impactan directamente a la base de datos remota en Supabase. El agente en producción consume esta base de datos dinámicamente en tiempo real. |
+| **Variables de Entorno en Producción** | **No** *(Requiere configuración en consola)* | Las variables de entorno de producción (como `COHERE_API_KEY`, `DATABASE_URL`, etc.) **no** se suben a través del archivo local `.env.local` por motivos de seguridad. Debes configurarlas en el **LiveKit Cloud Dashboard** en la sección de configuraciones del Agente. Al guardarlas en la consola de LiveKit, se aplican automáticamente sin requerir un comando de despliegue. |
+
