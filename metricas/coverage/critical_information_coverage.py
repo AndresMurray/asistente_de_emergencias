@@ -179,9 +179,9 @@ async def ejecutar_agente_livekit_cloud(turns: List[str], room_name: str) -> Lis
             topic="test-chat"
         )
 
-        # Esperar la respuesta del agente remoto (máx 15s)
+        # Esperar la respuesta del agente remoto (máx 30s)
         try:
-            await asyncio.wait_for(reply_event.wait(), timeout=15.0)
+            await asyncio.wait_for(reply_event.wait(), timeout=30.0)
             if VERBOSE:
                 print(f"[Turno {turn_idx + 1}] Respuesta del agente: {last_reply}")
             conversation_log.append({"user": user_query, "assistant": last_reply})

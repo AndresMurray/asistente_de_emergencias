@@ -198,16 +198,25 @@ async def entrypoint(ctx: agents.JobContext):
                 logger.info("Chat recibido: %s", query)
 
                 async def process_chat():
-                    run_result = session.run(user_input=query)
-                    await run_result
+                    try:
+                        session.interrupt()
+                        await asyncio.sleep(0.2)
+                        run_result = session.run(user_input=query)
+                        await run_result
+                    except (asyncio.CancelledError, Exception) as e:
+                        logger.warning("Run de chat interrumpido o fallido: %s", e)
+                    
                     messages = session.history.messages()
                     assistant_msgs = [m for m in messages if m.role == "assistant"]
                     reply = assistant_msgs[-1].text_content if assistant_msgs else "No se pudo generar respuesta."
                     logger.info("Respondiendo chat: %s", reply)
-                    await ctx.room.local_participant.publish_data(
-                        payload=json.dumps({"type": "chat_reply", "message": reply}).encode("utf-8"),
-                        topic="test-chat"
-                    )
+                    try:
+                        await ctx.room.local_participant.publish_data(
+                            payload=json.dumps({"type": "chat_reply", "message": reply}).encode("utf-8"),
+                            topic="test-chat"
+                        )
+                    except Exception as e:
+                        logger.error("Error publicando chat_reply: %s", e)
 
                 asyncio.create_task(process_chat())
         except Exception as e:
