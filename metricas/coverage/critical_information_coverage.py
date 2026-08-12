@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import sys
 import os
 import json
@@ -7,6 +8,7 @@ import random
 import string
 import requests
 import pytest
+import re
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 from livekit import rtc, api
@@ -40,21 +42,43 @@ ESCENARIOS = cargar_escenarios()
 SIMULATED_CALLS = {k: v["turns"] for k, v in ESCENARIOS.items()}
 FALLBACK_CHECKLISTS = {k: v["fallback_checklist"] for k, v in ESCENARIOS.items()}
 
+RUN_TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
 
 def generar_room_name() -> str:
     chars = string.ascii_lowercase + string.digits
     rand_str = ''.join(random.choice(chars) for _ in range(8))
     return f"eval-room-{rand_str}"
 
+def limpiar_json(text: str) -> str:
+    """
+    Limpia los bloques de código markdown de un string de JSON si están presentes
+    y remueve comas sobrantes al final de arrays u objetos.
+    """
+    text = text.strip()
+    if text.startswith("```json"):
+        text = text[7:]
+    elif text.startswith("```"):
+        text = text[3:]
+    if text.endswith("```"):
+        text = text[:-3]
+    text = text.strip()
+    # Eliminar comas finales inválidas en JSON
+    text = re.sub(r',\s*([\]}])', r'\1', text)
+    return text.strip()
+
+
+
 def llamar_llm(prompt: str, json_format: bool = False) -> str:
     """
-    Realiza una petición síncrona a la API de Gemini (gemini-2.5-flash).
+    Realiza una petición síncrona a la API de Gemini (gemini-3.5-flash).
     """
     gemini_key = os.getenv("GEMINI_API_KEY")
     if not gemini_key:
         raise ValueError("Falta la variable de entorno GEMINI_API_KEY para ejecutar la evaluación con Gemini.")
     
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={gemini_key}"
     headers = {"Content-Type": "application/json"}
     
     payload = {
@@ -74,12 +98,11 @@ def llamar_llm(prompt: str, json_format: bool = False) -> str:
             res_data = response.json()
             return res_data["candidates"][0]["content"]["parts"][0]["text"]
         else:
-            if VERBOSE:
-                print(f"[Gemini] Error API Gemini: {response.status_code} - {response.text}")
+            print(f"\n[Gemini] Error API Gemini: Código {response.status_code} - {response.text}")
     except Exception as e:
-        if VERBOSE:
-            print(f"[Gemini] Error al llamar a Gemini: {e}")
+        print(f"\n[Gemini] Error de conexión al llamar a Gemini: {e}")
     return ""
+
 
 
 
@@ -108,13 +131,12 @@ async def obtener_checklist_de_supabase(escenario: str, query_inicial: str) -> L
         
         response_text = llamar_llm(prompt, json_format=True)
         if response_text:
-            data = json.loads(response_text)
+            data = json.loads(limpiar_json(response_text))
             checklist = data.get("checklist", [])
             if checklist:
                 return checklist
     except Exception as e:
-        if VERBOSE:
-            print(f"[Checklist] Error extrayendo de Supabase: {e}. Usando fallback.")
+        print(f"\n[Checklist] Error extrayendo de Supabase o decodificando JSON: {e}. Usando fallback.")
     return FALLBACK_CHECKLISTS[escenario]
 
 async def ejecutar_agente_livekit_cloud(turns: List[str], room_name: str) -> List[Dict[str, str]]:
@@ -221,10 +243,9 @@ async def evaluar_cobertura_juez(transcript: str, checklist: List[str]) -> Dict[
     try:
         response_text = llamar_llm(prompt, json_format=True)
         if response_text:
-            return json.loads(response_text)
+            return json.loads(limpiar_json(response_text))
     except Exception as e:
-        if VERBOSE:
-            print(f"[Juez] Error llamando al LLM: {e}")
+        print(f"\n[Juez] Error al procesar respuesta del LLM Juez o decodificar JSON: {e}")
         
     # ── Fallback Heurístico por Coincidencia de Subcadenas ──
     puntos_cubiertos = []
@@ -244,6 +265,41 @@ async def evaluar_cobertura_juez(transcript: str, checklist: List[str]) -> Dict[
         "puntos_no_cubiertos": puntos_no_cubiertos,
         "score": score
     }
+
+def guardar_resultado(escenario: str, transcript: str, checklist: List[str], result: Dict[str, Any]) -> str:
+    directorio_resultados = os.path.join(os.path.dirname(__file__), "resultados")
+    os.makedirs(directorio_resultados, exist_ok=True)
+    
+    nombre_archivo = f"resultado_run_{RUN_TIMESTAMP}.json"
+    ruta_archivo = os.path.join(directorio_resultados, nombre_archivo)
+    
+    # Cargar datos existentes si el archivo ya fue creado en esta sesión
+    datos_run = {
+        "fecha_ejecucion": datetime.datetime.now().isoformat(),
+        "resultados": {}
+    }
+    
+    if os.path.exists(ruta_archivo):
+        try:
+            with open(ruta_archivo, "r", encoding="utf-8") as f:
+                datos_run = json.load(f)
+        except Exception:
+            pass
+            
+    # Añadir o actualizar el resultado de este escenario específico
+    datos_run["resultados"][escenario] = {
+        "checklist": checklist,
+        "transcript": transcript,
+        "score": result.get("score", 0.0),
+        "puntos_cubiertos": result.get("puntos_cubiertos", []),
+        "puntos_no_cubiertos": result.get("puntos_no_cubiertos", []),
+        "analisis_juez": result.get("analisis", "")
+    }
+    
+    with open(ruta_archivo, "w", encoding="utf-8") as f:
+        json.dump(datos_run, f, ensure_ascii=False, indent=2)
+    return os.path.relpath(ruta_archivo, start=os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 
 # ── Pruebas con Pytest ────────────────────────────────────────────────────────
 @pytest.mark.asyncio
@@ -282,16 +338,23 @@ async def test_critical_information_coverage(escenario):
     # 4. Evaluar con el Juez local (con fallback heurístico)
     result = await evaluar_cobertura_juez(transcript, checklist)
     
-    print(f"\n--- RESULTADOS PARA ESCENARIO: {escenario} ---")
-    print(f"Checklist Utilizada: {checklist}")
-    print(f"Score obtenido: {result.get('score', 0.0):.2f}")
-    print(f"Puntos Cubiertos: {result.get('puntos_cubiertos', [])}")
-    print(f"Puntos NO Cubiertos: {result.get('puntos_no_cubiertos', [])}")
-    print(f"Análisis del Juez: {result.get('analisis', '')}")
+    # Guardar en archivo
+    ruta_relativa = guardar_resultado(escenario, transcript, checklist, result)
     
-    assert result.get("score", 0.0) >= 0.8, (
-        f"El score de cobertura {result.get('score', 0.0):.2f} is menor al umbral de 0.80.\n"
-        f"Puntos no cubiertos: {result.get('puntos_no_cubiertos', [])}"
+    score = result.get("score", 0.0)
+    veredicto = "PASSED" if score >= 0.8 else "FAILED"
+    
+    print(f"\n========================================================")
+    print(f" ESCENARIO: {escenario.upper()} ({veredicto})")
+    print(f"========================================================")
+    print(f"- Score obtenido: {score:.2f} (Umbral >= 0.80)")
+    print(f"- Puntos cubiertos: {len(result.get('puntos_cubiertos', []))}/{len(checklist)}")
+    print(f"- Reporte guardado en: {ruta_relativa}")
+    print(f"========================================================\n")
+    
+    assert score >= 0.8, (
+        f"El score de cobertura {score:.2f} es menor al umbral de 0.80.\n"
+        f"Ver detalles en: {ruta_relativa}"
     )
 
 # ── Ejecución Directa ─────────────────────────────────────────────────────────
@@ -305,13 +368,8 @@ async def main():
         VERBOSE = True
         
     for escenario, turns in SIMULATED_CALLS.items():
-        print(f"\n========================================================")
-        print(f" ESCENARIO: {escenario.upper()}")
-        print(f"========================================================")
-        
         # 1. Obtener Checklist
         checklist = await obtener_checklist_de_supabase(escenario, turns[0])
-        print(f"Checklist del protocolo: {checklist}\n")
         
         # 2. Correr conversación multiturno
         if not (LIVEKIT_URL and LIVEKIT_API_KEY and LIVEKIT_API_SECRET):
@@ -338,11 +396,19 @@ async def main():
         # 4. Evaluar con el Juez local
         result = await evaluar_cobertura_juez(transcript, checklist)
         
-        print(f"\n--- VERDICTO JUEZ (LiveKit Cloud) ---")
-        print(f"Score de Cobertura: {result.get('score', 0.0):.2f}")
-        print(f"Puntos Cubiertos: {result.get('puntos_cubiertos', [])}")
-        print(f"Puntos NO Cubiertos: {result.get('puntos_no_cubiertos', [])}")
-        print(f"Análisis: {result.get('analisis', '')}")
+        # Guardar en archivo
+        ruta_relativa = guardar_resultado(escenario, transcript, checklist, result)
+        
+        score = result.get("score", 0.0)
+        veredicto = "PASSED" if score >= 0.8 else "FAILED"
+        
+        print(f"\n========================================================")
+        print(f" ESCENARIO: {escenario.upper()} ({veredicto})")
+        print(f"========================================================")
+        print(f"- Score obtenido: {score:.2f} (Umbral >= 0.80)")
+        print(f"- Puntos cubiertos: {len(result.get('puntos_cubiertos', []))}/{len(checklist)}")
+        print(f"- Reporte guardado en: {ruta_relativa}")
+        print(f"========================================================\n")
 
 if __name__ == "__main__":
     asyncio.run(main())
