@@ -1,0 +1,28 @@
+{
+  "hemorragia_grave": {
+    "turns": [
+      "Una persona está sangrando mucho por el brazo ¿Qué hago?",
+      "Ya le puse un trapo pero sigue sangrando y traspasando la tela, ¿se lo saco para poner otro?",
+      "La ambulancia va a tardar, ¿le hago un torniquete?"
+    ],
+    "fallback_checklist": [
+      "presión directa",
+      "no quitar el primer apósito o tela",
+      "elevar el miembro",
+      "torniquete solo si es extremo/grave"
+    ]
+  },
+  "perdida_conocimiento": {
+    "turns": [
+      "Mi compañero chocó la moto, está en el suelo desmayado, ¿qué hago?",
+      "¿Debería sacarle el casco para que respire mejor?",
+      "Está respirando pero hace un ruido raro, ¿en qué posición lo pongo?"
+    ],
+    "fallback_checklist": [
+      "no mover al herido",
+      "no quitar el casco",
+      "posición lateral de seguridad",
+      "comprobar respiración"
+    ]
+  }
+}

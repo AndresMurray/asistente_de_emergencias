@@ -9,12 +9,13 @@ import requests
 import pytest
 from typing import List, Dict, Any
 from dotenv import load_dotenv
+from livekit import rtc, api
 
 # Cargar variables de entorno desde .env.local
 load_dotenv(".env.local")
 
-# Añadir el directorio raíz al path para poder importar src y agent
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Añadir el directorio raíz al path para poder importar agent
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 # Configurar el fallback de la base de datos local si no está definida en .env.local
 if not os.environ.get("DATABASE_URL"):
@@ -22,77 +23,65 @@ if not os.environ.get("DATABASE_URL"):
 
 from agent import SYSTEM_INSTRUCTIONS, search_similarity
 
-# ── Configuración de Verbose, Ollama y LiveKit ────────────────────────────────
+# ── Configuración de Verbose y LiveKit ────────────────────────────────
 VERBOSE = os.environ.get("LIVEKIT_EVALS_VERBOSE", "0") == "1"
 LIVEKIT_URL = os.getenv("LIVEKIT_URL")
 LIVEKIT_API_KEY = os.getenv("LIVEKIT_API_KEY")
 LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET")
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("MODEL_NAME", "gemma2:2b")
 
-# ── Escenarios Multiturno Simulados ───────────────────────────────────────────
-SIMULATED_CALLS = {
-    "hemorragia_grave": [
-        "Una persona está sangrando mucho por el brazo ¿Qué hago?",
-        "Ya le puse un trapo pero sigue sangrando y traspasando la tela, ¿se lo saco para poner otro?",
-        "La ambulancia va a tardar, ¿le hago un torniquete?"
-    ],
-    "perdida_conocimiento": [
-        "Mi compañero chocó la moto, está en el suelo desmayado, ¿qué hago?",
-        "¿Debería sacarle el casco para que respire mejor?",
-        "Está respirando pero hace un ruido raro, ¿en qué posición lo pongo?"
-    ]
-}
+# ── Escenarios Multiturno Simulados (Cargados desde test_scenarios.json) ──────
+def cargar_escenarios() -> dict:
+    ruta_json = os.path.join(os.path.dirname(__file__), "test_scenarios.json")
+    with open(ruta_json, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-# Fallback de Checklists si la base de datos o la extracción fallan
-FALLBACK_CHECKLISTS = {
-    "hemorragia_grave": [
-        "presión directa",
-        "no quitar el primer apósito o tela",
-        "elevar el miembro",
-        "torniquete solo si es extremo/grave"
-    ],
-    "perdida_conocimiento": [
-        "no mover al herido",
-        "no quitar el casco",
-        "posición lateral de seguridad",
-        "comprobar respiración"
-    ]
-}
+ESCENARIOS = cargar_escenarios()
+SIMULATED_CALLS = {k: v["turns"] for k, v in ESCENARIOS.items()}
+FALLBACK_CHECKLISTS = {k: v["fallback_checklist"] for k, v in ESCENARIOS.items()}
+
 
 def generar_room_name() -> str:
     chars = string.ascii_lowercase + string.digits
     rand_str = ''.join(random.choice(chars) for _ in range(8))
     return f"eval-room-{rand_str}"
 
-def llamar_ollama_local(prompt: str, json_format: bool = False) -> str:
+def llamar_llm(prompt: str, json_format: bool = False) -> str:
     """
-    Realiza una petición síncrona a la API local de Ollama.
+    Realiza una petición síncrona a la API de Gemini (gemini-2.5-flash).
     """
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        raise ValueError("Falta la variable de entorno GEMINI_API_KEY para ejecutar la evaluación con Gemini.")
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+    headers = {"Content-Type": "application/json"}
+    
     payload = {
-        "model": OLLAMA_MODEL,
-        "prompt": prompt,
-        "stream": False,
-        "options": {
-            "temperature": 0.1
-        }
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }]
     }
+    
     if json_format:
-        payload["format"] = "json"
-
+        payload["generationConfig"] = {
+            "responseMimeType": "application/json"
+        }
+        
     try:
-        response = requests.post(
-            f"{OLLAMA_URL}/api/generate",
-            json=payload,
-            timeout=10
-        )
+        response = requests.post(url, headers=headers, json=payload, timeout=20)
         if response.status_code == 200:
-            return response.json().get("response", "")
+            res_data = response.json()
+            return res_data["candidates"][0]["content"]["parts"][0]["text"]
+        else:
+            if VERBOSE:
+                print(f"[Gemini] Error API Gemini: {response.status_code} - {response.text}")
     except Exception as e:
         if VERBOSE:
-            print(f"[Ollama] Error al llamar a Ollama local: {e}")
+            print(f"[Gemini] Error al llamar a Gemini: {e}")
     return ""
+
+
 
 async def obtener_checklist_de_supabase(escenario: str, query_inicial: str) -> List[str]:
     """
@@ -117,7 +106,7 @@ async def obtener_checklist_de_supabase(escenario: str, query_inicial: str) -> L
             f"}}\n"
         )
         
-        response_text = llamar_ollama_local(prompt, json_format=True)
+        response_text = llamar_llm(prompt, json_format=True)
         if response_text:
             data = json.loads(response_text)
             checklist = data.get("checklist", [])
@@ -125,7 +114,7 @@ async def obtener_checklist_de_supabase(escenario: str, query_inicial: str) -> L
                 return checklist
     except Exception as e:
         if VERBOSE:
-            print(f"[Checklist] Error extrayendo de Supabase con Ollama: {e}. Usando fallback.")
+            print(f"[Checklist] Error extrayendo de Supabase: {e}. Usando fallback.")
     return FALLBACK_CHECKLISTS[escenario]
 
 async def ejecutar_agente_livekit_cloud(turns: List[str], room_name: str) -> List[Dict[str, str]]:
@@ -133,7 +122,7 @@ async def ejecutar_agente_livekit_cloud(turns: List[str], room_name: str) -> Lis
     Conecta al room de LiveKit Cloud, envía los mensajes por canal de datos
     y espera las respuestas del agente remoto.
     """
-    from livekit import rtc, api
+    
 
     if not LIVEKIT_URL or not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
         raise ValueError("Faltan variables de entorno de LiveKit para la conexión a la nube.")
@@ -230,12 +219,12 @@ async def evaluar_cobertura_juez(transcript: str, checklist: List[str]) -> Dict[
     )
     
     try:
-        response_text = llamar_ollama_local(prompt, json_format=True)
+        response_text = llamar_llm(prompt, json_format=True)
         if response_text:
             return json.loads(response_text)
     except Exception as e:
         if VERBOSE:
-            print(f"[Juez] Error llamando a Ollama: {e}")
+            print(f"[Juez] Error llamando al LLM: {e}")
         
     # ── Fallback Heurístico por Coincidencia de Subcadenas ──
     puntos_cubiertos = []
@@ -258,7 +247,7 @@ async def evaluar_cobertura_juez(transcript: str, checklist: List[str]) -> Dict[
 
 # ── Pruebas con Pytest ────────────────────────────────────────────────────────
 @pytest.mark.asyncio
-@pytest.mark.parametrize("escenario", ["hemorragia_grave", "perdida_conocimiento"])
+@pytest.mark.parametrize("escenario", list(SIMULATED_CALLS.keys()))
 async def test_critical_information_coverage(escenario):
     turns = SIMULATED_CALLS[escenario]
     
@@ -267,36 +256,19 @@ async def test_critical_information_coverage(escenario):
     assert len(checklist) > 0, "La checklist no puede estar vacía"
     
     # 2. Correr conversación multiturno
-    conversation = []
-    usó_livekit_cloud = False
+    if not (LIVEKIT_URL and LIVEKIT_API_KEY and LIVEKIT_API_SECRET):
+        raise ValueError(
+            "Faltan credenciales de LiveKit Cloud (LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) "
+            "en .env.local para ejecutar la evaluación en la nube."
+        )
+        
+    room_name = generar_room_name()
+    conversation = await ejecutar_agente_livekit_cloud(turns, room_name)
     
-    if LIVEKIT_URL and LIVEKIT_API_KEY and LIVEKIT_API_SECRET:
-        try:
-            room_name = generar_room_name()
-            res = await ejecutar_agente_livekit_cloud(turns, room_name)
-            # Solo consideramos exitosa la conexión a la nube si al menos una respuesta fue válida
-            if any(turn["assistant"] != "[Sin respuesta/Timeout]" for turn in res):
-                conversation = res
-                usó_livekit_cloud = True
-            else:
-                print(f"\n[Advertencia] El agente en LiveKit Cloud no tiene el escuchador de chat aún. Usando simulador local.")
-        except Exception as e:
-            print(f"\n[Advertencia] Conexión a LiveKit Cloud falló: {e}. Usando simulador local.")
-            
-    if not usó_livekit_cloud:
-        # Simulador local con Ollama si está disponible, sino responde un texto plano básico de mock
-        print(f"[Test] Ejecutando simulación local...")
-        conversation = []
-        for query in turns:
-            prompt = f"Instrucciones del sistema:\n{SYSTEM_INSTRUCTIONS}\n\nConsulta del usuario: {query}"
-            reply = llamar_ollama_local(prompt)
-            if not reply:
-                # Mock local estático de respuestas correctas si Ollama está apagado
-                if escenario == "hemorragia_grave":
-                    reply = "Hacé presión directa sobre la herida. Es crucial no quitar el primer apósito o tela. Procedé a elevar el miembro afectado y considerá usar un torniquete solo si es extremo/grave."
-                else:
-                    reply = "Tenés que comprobar respiración. Es crucial no mover al herido y no quitar el casco bajo ninguna circunstancia. Colocalo en posición lateral de seguridad si respira."
-            conversation.append({"user": query, "assistant": reply})
+    # Verificar que el agente haya respondido a todos los turnos
+    for turn in conversation:
+        if turn["assistant"] == "[Sin respuesta/Timeout]":
+            raise RuntimeError(f"El agente en la nube no respondió o dio timeout en el turno: '{turn['user']}'")
         
     assert len(conversation) == len(turns), "La conversación no tiene el número esperado de turnos"
     
@@ -318,7 +290,7 @@ async def test_critical_information_coverage(escenario):
     print(f"Análisis del Juez: {result.get('analisis', '')}")
     
     assert result.get("score", 0.0) >= 0.8, (
-        f"El score de cobertura {result.get('score', 0.0):.2f} es menor al umbral de 0.80.\n"
+        f"El score de cobertura {result.get('score', 0.0):.2f} is menor al umbral de 0.80.\n"
         f"Puntos no cubiertos: {result.get('puntos_no_cubiertos', [])}"
     )
 
@@ -342,33 +314,19 @@ async def main():
         print(f"Checklist del protocolo: {checklist}\n")
         
         # 2. Correr conversación multiturno
-        conversation = []
-        usó_livekit_cloud = False
+        if not (LIVEKIT_URL and LIVEKIT_API_KEY and LIVEKIT_API_SECRET):
+            raise ValueError(
+                "Faltan credenciales de LiveKit Cloud (LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) "
+                "en .env.local para ejecutar la evaluación en la nube."
+            )
+            
+        room_name = generar_room_name()
+        conversation = await ejecutar_agente_livekit_cloud(turns, room_name)
         
-        if LIVEKIT_URL and LIVEKIT_API_KEY and LIVEKIT_API_SECRET:
-            try:
-                room_name = generar_room_name()
-                res = await ejecutar_agente_livekit_cloud(turns, room_name)
-                if any(turn["assistant"] != "[Sin respuesta/Timeout]" for turn in res):
-                    conversation = res
-                    usó_livekit_cloud = True
-                else:
-                    print(f"[Advertencia] El agente en LiveKit Cloud no respondió por chat. Usando simulador local.\n")
-            except Exception as e:
-                print(f"[Advertencia] Conexión a LiveKit Cloud falló: {e}. Usando simulador local.\n")
-                
-        if not usó_livekit_cloud:
-            print(f"[Main] Ejecutando simulación local...")
-            conversation = []
-            for query in turns:
-                prompt = f"Instrucciones del sistema:\n{SYSTEM_INSTRUCTIONS}\n\nConsulta del usuario: {query}"
-                reply = llamar_ollama_local(prompt)
-                if not reply:
-                    if escenario == "hemorragia_grave":
-                        reply = "Hacé presión directa sobre la herida. Es crucial no quitar el primer apósito o tela. Procedé a elevar el miembro afectado y considerá usar un torniquete solo si es extremo/grave."
-                    else:
-                        reply = "Tenés que comprobar respiración. Es crucial no mover al herido y no quitar el casco bajo ninguna circunstancia. Colocalo en posición lateral de seguridad si respira."
-                conversation.append({"user": query, "assistant": reply})
+        # Verificar que el agente haya respondido a todos los turnos
+        for turn in conversation:
+            if turn["assistant"] == "[Sin respuesta/Timeout]":
+                raise RuntimeError(f"El agente en la nube no respondió o dio timeout en el turno: '{turn['user']}'")
         
         # 3. Formatear la transcripción
         transcript_lines = []
@@ -380,7 +338,7 @@ async def main():
         # 4. Evaluar con el Juez local
         result = await evaluar_cobertura_juez(transcript, checklist)
         
-        print(f"\n--- VERDICTO JUEZ ({'LiveKit Cloud' if usó_livekit_cloud else 'Simulador Local'}) ---")
+        print(f"\n--- VERDICTO JUEZ (LiveKit Cloud) ---")
         print(f"Score de Cobertura: {result.get('score', 0.0):.2f}")
         print(f"Puntos Cubiertos: {result.get('puntos_cubiertos', [])}")
         print(f"Puntos NO Cubiertos: {result.get('puntos_no_cubiertos', [])}")
