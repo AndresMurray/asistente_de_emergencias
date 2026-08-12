@@ -33,3 +33,6 @@ data/processed/
 # Required project exclusion
 hoja_ruta_quincena.md
 
+.vscode 
+.pytest_cache
+.__pycache__

@@ -257,7 +257,7 @@ class ProtocolChunker:
 if __name__ == "__main__":
     import sys
     import glob
-    from src.ingestion.extractors import ProtocolExtractor
+    from ingestion.extractors import ProtocolExtractor
 
     extractor = ProtocolExtractor()
     chunker = ProtocolChunker(chunk_size=500, chunk_overlap=50)
