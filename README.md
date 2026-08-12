@@ -1,116 +1,103 @@
-# Asistente de Respuesta Temprana a Emergencias Viales - PoC RAG
+# Asistente de Respuesta Temprana a Emergencias Viales - LiveKit Agent & RAG Cloud
 
-https://drive.google.com/drive/u/1/folders/1gd0nOFq6WJUgUpMEAZjwt4JArX_Nic_G
+Este repositorio contiene la arquitectura actualizada y optimizada para un **Asistente de Respuesta Temprana a Emergencias Viales** que opera por voz en tiempo real. 
 
-Este proyecto es una Prueba de Concepto (PoC) para un **Asistente de Respuesta Temprana a Emergencias Viales** auto-alojado localmente y optimizado para baja latencia (tiempo real).
-
-## 🚀 Tecnologías Principales
-- **Interfaz:** Open WebUI (utilizando su framework de Pipelines nativo en Python).
-- **Base de Datos Vectorial:** PostgreSQL con la extensión `pgvector`.
-- **Modelos / Inferencia Local:** Ollama / vLLM.
-- **Backend de Procesamiento:** Python 3.10+ (Tipado estricto con Pydantic).
+El sistema utiliza **LiveKit Agents** para la conexión WebRTC multiturno, conectándose a bases de datos e inferencias 100% en la nube para garantizar baja latencia y alta disponibilidad.
 
 ---
 
-## 🛠️ Requisitos Previos
+## 🛠️ Stack Tecnológico Actual
 
-Asegúrate de tener instalado en tu sistema:
-1. **Python 3.10 o superior**.
-2. **PostgreSQL** instalado localmente o corriendo en Docker (con soporte para `pgvector`).
-3. **Ollama** instalado y corriendo en segundo plano (`http://localhost:11434`).
-
----
-
-## ⚙️ Instalación y Configuración
-
-### 1. Clonar el repositorio y acceder a la carpeta
-```bash
-git clone <url-del-repositorio>
-cd Asistente_de_emergencias
-```
-
-### 2. Crear y activar el entorno virtual
-En Windows:
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
-En Linux/macOS:
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 3. Instalar dependencias
-```bash
-pip install -r requirements.txt
-```
+- **Orquestación de Voz en Tiempo Real**: [LiveKit Agents SDK](https://docs.livekit.io/agents/) (Python)
+- **STT (Reconocimiento de Voz)**: **Deepgram** (`nova-3`, Español `es`)
+- **LLM (Cerebro de Inferencia)**: **OpenAI** (`gpt-4o-mini`)
+- **TTS (Síntesis de Voz)**: **Cartesia** / **Deepgram** (`aura-2-agustina-es` o `sonic-3`)
+- **RAG (Recuperación y Embeddings)**:
+  - **Modelos de Embeddings**: **Cohere** (`embed-multilingual-v3.0` de 1024 dimensiones)
+  - **Base de Datos Vectorial**: **Supabase** (PostgreSQL + `pgvector`)
 
 ---
 
-## 🗄️ Configuración de la Base de Datos (PostgreSQL + pgvector)
+## 📂 Estructura del Proyecto
 
-1. Crea una base de datos llamada `emergencias_db` en tu instancia de PostgreSQL.
-2. Si corres PostgreSQL localmente, asegúrate de activar la extensión en la consola de la base de datos:
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS vector;
-   ```
-3. Configura la variable de entorno `DATABASE_URL` con tus credenciales. Por ejemplo:
-   ```powershell
-   # Windows PowerShell
-   $env:DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/emergencias_db"
-   
-   # Linux/macOS/Git Bash
-   export DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/emergencias_db"
-   ```
-   *Nota: Si la base de datos no está disponible, el sistema activará automáticamente un **simulador de base de datos en memoria (mock)** para que puedas probar el pipeline sin interrupciones.*
+```text
+asistente_de_emergencias/
+│
+├── data/                         # Datos locales (ignorados en git)
+│   ├── raw/                      # PDFs oficiales de los protocolos de emergencia
+│   └── processed/                # JSONs procesados conteniendo los chunks de texto
+│
+├── ingestion/                    # Pipeline de datos (PDF -> Supabase)
+│   ├── chunking.py               # Extrae texto limpio de los PDFs y genera el archivo de chunks JSON
+│   ├── extractors.py             # Extrae y limpia texto plano de PDFs usando PyPDF2/pdfplumber
+│   └── ingest.py                 # Calcula embeddings (Cohere) e inserta los chunks en Supabase
+│
+├── metricas/                     # Carpeta de Métricas y Evaluación del sistema
+│   ├── critical_information_coverage.py  # Métrica multiturno con evaluación local y soporte de LiveKit Cloud
+│   ├── mrr.py                    # Métrica de Mean Reciprocal Rank (MRR)
+│   ├── answer_relevancy.py       # Métrica de relevancia de respuestas
+│   └── recall_at_5.py            # Métrica de Recall @ 5
+│
+├── benchmarks/                   # Benchmarks de rendimiento y latencia
+│   └── benchmark.py              # Medición de TTFT y tokens/seg en Ollama
+│
+├── docs/                         # Documentación técnica
+│   └── arquitectura_stack.md     # Documento técnico detallando el flujo de datos
+│
+├── agent.py                      # Código principal del agente LiveKit (voz y chat)
+├── livekit.toml                  # Configuración de despliegue para LiveKit CLI
+├── requirements.txt              # Dependencias del proyecto
+└── .env.local                    # Archivo de configuración de variables de entorno locales
+```
 
 ---
 
-## 🧠 Configuración del LLM Local (Ollama)
+## ⚙️ Configuración y Variables de Entorno
 
-1. Abre tu terminal y asegúrate de que el servicio de Ollama esté activo.
-2. Descarga el modelo recomendado para esta PoC (por defecto `llama3:8b` o similar de 8 mil millones de parámetros):
+Crea un archivo `.env.local` en la raíz del proyecto con la siguiente configuración:
+
+```env
+# Cohere (Generación de embeddings en la ingesta)
+COHERE_API_KEY=tu_cohere_key
+
+# Base de Datos (Supabase)
+DATABASE_URL=postgresql://postgres.vbspedxghlkucshoacif:Z%26%40q8XKA%2Af%21%2BJ7F@aws-1-us-west-2.pooler.supabase.com:5432/postgres
+
+# Conexión LiveKit Cloud (para pruebas WebRTC remotas)
+LIVEKIT_URL=wss://tu-proyecto.livekit.cloud
+LIVEKIT_API_KEY=tu_api_key
+LIVEKIT_API_SECRET=tu_api_secret
+```
+
+---
+
+## 🚀 Guía de Uso
+
+### 1. Ingesta de Nuevos Protocolos (RAG)
+Si deseas agregar nuevos manuales de emergencias en PDF:
+1. Coloca los archivos `.pdf` en la carpeta `data/raw/`.
+2. Genera los fragmentos de texto (chunks):
    ```bash
-   ollama pull llama3:8b
+   python ingestion/chunking.py data/raw/
    ```
-3. Si deseas utilizar otro modelo ligero (ej. `phi3` o `gemma2`), puedes descargarlo e indicar su nombre configurando la variable de entorno o directamente en las opciones del Pipeline en Open WebUI.
-   *Nota: Si Ollama no está en ejecución, el cliente LLM caerá automáticamente en un **stream simulado (mock) de baja latencia** que genera tokens a un promedio de 40ms por palabra.*
+   *Esto guardará los fragmentos estructurados en `data/processed/protocolos_chunks.json`.*
+3. Sube los fragmentos y sus embeddings a Supabase:
+   ```bash
+   python ingestion/ingest.py
+   ```
 
----
-
-## 🧪 Pruebas y Validación Local
-
-### Ejecutar el Pipeline Aislado (Mocks de verificación)
-Puedes validar el funcionamiento básico del pipeline ejecutando directamente:
+### 2. Ejecutar el Agente Localmente (Desarrollo)
+Para iniciar el agente de LiveKit en modo desarrollo:
 ```bash
-# Definir la ruta del proyecto en el PYTHONPATH
-$env:PYTHONPATH="."
-python src/main.py
+python agent.py dev
 ```
 
-### Ejecutar la Suite de Evaluación Automatizada
-Para validar la latencia y la calidad de la respuesta (guardrails y detección fuera de alcance/judiciales), corre el siguiente comando:
+### 3. Evaluar Cobertura de Información Crítica (Métrica Coverage)
+La métrica simula llamadas multiturno y evalúa si el agente transmitió todos los puntos críticos del protocolo oficial (exigiendo un score `>= 0.8`).
+
+Ejecutar la suite de pruebas mediante pytest:
 ```bash
-$env:PYTHONPATH="."
-python tests_eval/evaluator.py
+pytest metricas/critical_information_coverage.py -v
 ```
 
-Esto procesará el dataset ubicado en `tests_eval/test_dataset.json` y generará un reporte de métricas en consola con el siguiente formato:
-- **Latencia promedio** por consulta (orientado a tiempo real).
-- **Precisión de Guardrails** (validando que redirija consultas fuera de alcance o judiciales al 911).
-- **Precisión de Respuestas** (validando presencia de palabras clave del manual de emergencia).
-
----
-
-## 🔌 Integración con Open WebUI Pipelines
-
-Este proyecto cumple estrictamente con el contrato del framework de **Open WebUI Pipelines**.
-
-Para integrar este RAG como una tubería activa en Open WebUI:
-1. Copia el archivo `src/main.py` o cárgalo en tu instancia de Open WebUI Pipelines.
-2. En la sección de administración de Open WebUI, edita los valores de las **Valves** (válvulas de configuración) para definir:
-   - `DATABASE_URL`: URI de conexión a pgvector.
-   - `OLLAMA_URL`: URL del endpoint local de Ollama (ej. `http://localhost:11434`).
-   - `MODEL_NAME`: Nombre del modelo a consultar (ej. `llama3:8b`).
-3. El pipeline aparecerá disponible como un nuevo "modelo" para chatear en la interfaz de usuario, procesando y recuperando información en tiempo real ante emergencias viales.
+*Nota: La prueba se conectará a tu sala de LiveKit Cloud mediante WebRTC si las credenciales de LiveKit están configuradas, y enviará consultas de texto. Si el agente en la nube no responde a tiempo, conmutará automáticamente al simulador local e implementará una validación heurística de cobertura sin requerir créditos externos.*
