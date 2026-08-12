@@ -186,6 +186,33 @@ async def entrypoint(ctx: agents.JobContext):
         ),
     )
 
+    from livekit import rtc
+    import json
+
+    @ctx.room.on("data_received")
+    def on_data_received(data_packet: rtc.DataPacket):
+        try:
+            payload = json.loads(data_packet.data.decode("utf-8"))
+            if payload.get("type") == "chat":
+                query = payload.get("message")
+                logger.info("Chat recibido: %s", query)
+
+                async def process_chat():
+                    run_result = session.run(user_input=query)
+                    await run_result
+                    messages = session.history.messages()
+                    assistant_msgs = [m for m in messages if m.role == "assistant"]
+                    reply = assistant_msgs[-1].text_content if assistant_msgs else "No se pudo generar respuesta."
+                    logger.info("Respondiendo chat: %s", reply)
+                    await ctx.room.local_participant.publish_data(
+                        payload=json.dumps({"type": "chat_reply", "message": reply}).encode("utf-8"),
+                        topic="test-chat"
+                    )
+
+                asyncio.create_task(process_chat())
+        except Exception as e:
+            logger.error("Error al procesar mensaje de chat: %s", e)
+
     await session.generate_reply(
         instructions=(
             "Saluda brevemente al operador. Di solo: "
