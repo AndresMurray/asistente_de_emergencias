@@ -1,0 +1,43 @@
+{
+  "fecha_ejecucion": "2026-08-12T20:02:59.267009",
+  "resultados": {
+    "hemorragia_grave": {
+      "checklist": [
+        "Presionar directamente la herida",
+        "Usar un paño limpio",
+        "No retirar el paño",
+        "Aplicar un torniquete",
+        "Presionar la arteria afectada"
+      ],
+      "transcript": "Usuario: Una persona está sangrando mucho por el brazo ¿Qué hago?\nAsistente: Para controlar la hemorragia en el brazo, hacé lo siguiente:\n\n1. Presioná con firmeza sobre la arteria humeral, en la mitad de la cara interna del brazo, debajo del bíceps.\n2. Si tenés material disponible, colocá un pañuelo o venda sobre la herida y aplicá compresión constante.\n3. Elevá el brazo por encima del nivel del corazón para ayudar a reducir el sangrado.\n\nSeguí controlando la herida hasta que llegue asistencia médica.\nUsuario: Ya le puse un trapo pero sigue sangrando y traspasando la tela, ¿se lo saco para poner otro?\nAsistente: No saques el trapo que está en contacto con la herida. Debés mantener la compresión directa sobre el punto sangrante y no levantar el paño que ya tenés. Si es posible, colocá un paño limpio sobre el trapo actual sin retirar lo que ya está. Seguí aplicando presión mientras mantenés el brazo elevado. Esto es crucial para detener el sangrado.\nUsuario: La ambulancia va a tardar, ¿le hago un torniquete?\nAsistente: No realices un torniquete a menos que la hemorragia sea severa y no podás detenerla con la compresión directa. Su aplicación puede poner en riesgo la vida del herido. Solo debe utilizarse en caso de amputación u otras situaciones extremas donde no se logre controlar el sangrado. Si decidís usarlo, aplicalo por encima de la zona sangrante y mantené la presión hasta que llegue la ambulancia. Sin embargo, priorizá siempre la compresión directa primero.",
+      "score": 1.0,
+      "puntos_cubiertos": [
+        "Presionar directamente la herida",
+        "Usar un paño limpio",
+        "No retirar el paño",
+        "Aplicar un torniquete",
+        "Presionar la arteria afectada"
+      ],
+      "puntos_no_cubiertos": [],
+      "analisis_juez": "El asistente médico vial cubrió de manera excelente y precisa los 5 puntos críticos de la checklist. En la primera respuesta, abordó la presión sobre la arteria afectada (arteria humeral) y la compresión directa de la herida. En la segunda intervención, ante la duda del usuario, indicó claramente usar un paño limpio y la importancia crítica de no retirar el paño inicial para no interrumpir la coagulación. Finalmente, explicó de forma correcta el uso del torniquete, limitándolo a situaciones extremas e indicando cómo aplicarlo si fuese necesario."
+    },
+    "perdida_conocimiento": {
+      "checklist": [
+        "no mover al herido",
+        "no quitar el casco",
+        "posición lateral de seguridad",
+        "comprobar respiración"
+      ],
+      "transcript": "Usuario: Mi compañero chocó la moto, está en el suelo desmayado, ¿qué hago?\nAsistente: Primero, no muevas a tu compañero. Inmoviliza la región del cuello para evitar lesiones adicionales. Si está desmayado, verifica su respiración y pulso. No le quites el casco a menos que sea absolutamente necesario y sepas cómo hacerlo sin riesgo. Llama a emergencias para que lo asistan. Mantén la calma y espera ayuda.\nUsuario: ¿Debería sacarle el casco para que respire mejor?\nAsistente: No, no le saques el casco a menos que sea absolutamente necesario y tengas una técnica adecuada para hacerlo. El movimiento puede agravar lesiones en el cuello. Enfocate en inmovilizarlo y espera a los servicios de emergencia.\nUsuario: Está respirando pero hace un ruido raro, ¿en qué posición lo pongo?\nAsistente: Dejalo en posición lateral de seguridad. Esto puede ayudar a mantener despejadas las vías respiratorias. Asegurate de que su boca y nariz estén libres. Controlá su respiración cada 2-3 minutos y no lo dejes solo hasta que llegue la ayuda.",
+      "score": 1.0,
+      "puntos_cubiertos": [
+        "no mover al herido",
+        "no quitar el casco",
+        "posición lateral de seguridad",
+        "comprobar respiración"
+      ],
+      "puntos_no_cubiertos": [],
+      "analisis_juez": "El asistente de emergencias cubrió de manera excelente y explícita los cuatro puntos críticos de la checklist durante la llamada. Indicó claramente no mover al herido al inicio de la comunicación, enfatizó en múltiples ocasiones la importancia de no quitarle el casco para evitar daños cervicales, sugirió verificar la respiración inicialmente y monitorearla de forma continua, y finalmente, instruyó de forma correcta colocar a la víctima en posición lateral de seguridad ante la respiración dificultosa."
+    }
+  }
+}
