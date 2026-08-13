@@ -187,12 +187,26 @@ def _instruccion_briefing(st: TriageState) -> str:
     la conversación, y con el transcript de alguien en pánico eso termina
     inventando nombres de calles.
     """
+    # El orden explícito no es redacción, es un arreglo de un fallo medido.
+    # Cuando la persona dice todo junto en un turno ("choqué en la ruta 2, hay un
+    # señor que no respira"), las tres tools corren en paralelo y la ÚLTIMA salida
+    # que lee el modelo es esta. Sin esta línea el modelo obedecía el "no
+    # arranques procedimientos nuevos" del final: resumía al operador y se comía
+    # las compresiones que acababa de recuperar del manual. O sea, encontraba la
+    # maniobra que salva la vida y no la decía. Es la peor falla posible acá.
+    primero = ""
+    if st.critico():
+        primero = (
+            "PRIMERO: si todavía no le diste la maniobra que salva la vida, "
+            "dásela ahora en una frase corta. Va ANTES del resumen al operador. "
+        )
     return (
-        "El operador del 911 ya está en la llamada y te escucha. "
+        primero + "El operador del 911 ya está en la llamada y te escucha. "
         "Resumile la situación en voz alta, usando SOLO estos datos "
         f"confirmados, sin agregar ni deducir nada: {st.brief()} "
         "Si algún dato dice NO CONFIRMADO, decí que no lo tenés. "
-        "Después de resumir, dejá de dar indicaciones nuevas y acompañá a la persona."
+        "Después del resumen no arranques procedimientos nuevos: acompañá a la "
+        "persona y seguí atento a si la escena cambia."
     )
 
 

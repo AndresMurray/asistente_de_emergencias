@@ -81,12 +81,37 @@ REFERENCIAS = re.compile(
 )
 REFERENCIA_TABLA = re.compile(r"\s*\((?:ver|véase)\s+tabla\)", re.IGNORECASE)
 
-# El corpus es un manual español y menciona el 112 trece veces. Quien llama es
+# El corpus es un manual español y menciona el 112 quince veces. Quien llama es
 # argentino. Se neutraliza en la ingesta para que el número casi nunca llegue al
 # modelo; la regla del prompt que prohíbe leer números del contexto es la segunda
-# línea de defensa.
-NUMERO_ESPANA = re.compile(r"\b112\b")
-REEMPLAZO_NUMERO = "el número de emergencias"
+# línea de defensa. No se traduce a «911»: el único lugar donde vive el número es
+# el prompt, así que meterlo en el corpus sería ponerle al manual español una
+# afirmación que no hace.
+#
+# Se traga el artículo y el «número/nº» que vengan adelante, porque un sub ciego
+# deja el texto agramatical y eso después se lee en voz alta. Los cuatro patrones
+# salen de mirar las quince ocurrencias reales, no de suponerlas:
+#   «a través del número 112»  -> «a través del número de emergencias»
+#   «El número 112 no se usa»  -> «El número de emergencias no se usa»
+#   «avisar al 112»            -> «avisar al número de emergencias»
+#   «Pida ayuda: (112)»        -> «Pida ayuda: (emergencias)»
+# Los lookarounds evitan comerse un decimal: el corpus tiene una tabla de
+# energías con números tipo «1,500» y «0,150», y \b112\b matchea dentro de
+# «112,5» porque la coma cuenta como límite de palabra.
+NUMERO_ESPANA = re.compile(
+    r"\b(?:(?P<art>[ad]?el|al)\s+)?(?:n(?:úmero|umero|º|o\.)\s*)?"
+    r"(?<![.,\d])112\b(?![.,]\d)",
+    re.IGNORECASE,
+)
+
+
+def _reemplazar_numero(m: re.Match) -> str:
+    art = m.group("art")
+    if not art:
+        # Suelto, sin artículo: son fragmentos de diagrama («Pedir ayuda cuanto
+        # antes 112»), donde meter «el número de emergencias» queda peor.
+        return "emergencias"
+    return f"{art} número de emergencias"
 
 # Abreviaturas que NO terminan una oración, para el corte por oraciones.
 ABREVIATURAS = {
@@ -244,7 +269,7 @@ def limpiar(texto: str) -> str:
     texto = PUNTOS_INDICE.sub(" ", texto)
     texto = REFERENCIA_TABLA.sub("", texto)
     texto = REFERENCIAS.sub("", texto)
-    texto = NUMERO_ESPANA.sub(REEMPLAZO_NUMERO, texto)
+    texto = NUMERO_ESPANA.sub(_reemplazar_numero, texto)
     # Restos de encabezado que hubieran quedado sin el «TEMA n» adelante.
     texto = re.sub(r"\s*P[áa]g\.\s*\d+\s*", " ", texto)
     texto = texto.replace("�", " ")

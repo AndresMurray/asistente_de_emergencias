@@ -24,6 +24,7 @@ import argparse
 import asyncio
 import logging
 import sys
+import threading
 
 from dotenv import load_dotenv
 
@@ -127,8 +128,34 @@ def _corto(valor, n: int = 95) -> str:
     return texto if len(texto) <= n else texto[:n] + "…"
 
 
+async def _leer(prompt: str) -> str | None:
+    """Lee una línea de stdin sin bloquear el event loop. None = fin de entrada.
+
+    input() directo bloquea el loop, y eso rompe justo lo que este script tiene
+    que poder ensayar: la derivación al 911 corre en background dentro del
+    AsyncToolset, así que con el loop bloqueado el marcado queda congelado
+    mientras uno escribe.
+
+    El hilo es daemon a propósito. Al cortar con Ctrl-C queda trabado leyendo
+    stdin, y un hilo del pool de asyncio.to_thread haría que el intérprete se
+    cuelgue al salir esperando a que termine.
+    """
+    loop = asyncio.get_running_loop()
+    fut: asyncio.Future[str | None] = loop.create_future()
+
+    def leer() -> None:
+        try:
+            texto = input(prompt)
+        except (EOFError, KeyboardInterrupt):
+            texto = None
+        loop.call_soon_threadsafe(lambda: fut.done() or fut.set_result(texto))
+
+    threading.Thread(target=leer, daemon=True).start()
+    return await fut
+
+
 async def interactivo(modelo: str) -> None:
-    print("Escribí como si fueras quien llama. Ctrl-D o 'salir' para terminar.\n")
+    print("Escribí como si fueras quien llama. Ctrl-C, Ctrl-D o 'salir' para terminar.\n")
     session = AgentSession[TriageState](
         userdata=TriageState(),
         llm=inference.LLM(
@@ -141,16 +168,25 @@ async def interactivo(modelo: str) -> None:
     await session.start(Assistant())
     try:
         while True:
-            try:
-                texto = input("\n>>> ").strip()
-            except EOFError:
+            texto = await _leer("\n>>> ")
+            if texto is None:
                 break
+            texto = texto.strip()
             if not texto or texto.lower() in ("salir", "exit", "quit"):
                 break
             await un_turno(session, texto)
-        resumen(session.userdata)
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        # asyncio.run() cancela la tarea principal ante Ctrl-C, así que el corte
+        # llega como CancelledError desde el await de adentro, no como
+        # KeyboardInterrupt. Igual queremos el resumen del estado.
+        print("\n· corte manual")
     finally:
-        await session.aclose()
+        resumen(session.userdata)
+        try:
+            await session.aclose()
+        except (asyncio.CancelledError, Exception):
+            # Si veníamos de un cancel, este await se cancela de nuevo al toque.
+            pass
 
 
 async def main() -> None:
@@ -188,4 +224,9 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        # Un Ctrl-C es una forma legítima de terminar un ensayo, no un error:
+        # sin esto salía un traceback de 20 líneas.
+        print("\n· cortado")

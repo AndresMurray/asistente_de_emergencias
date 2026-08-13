@@ -95,6 +95,14 @@ def test_no_menciona_el_numero_de_emergencias_espanol(chunks):
     malos = [c for c in chunks if re.search(r"\b112\b", c.texto)]
     assert not malos, f"{len(malos)} chunks mencionan el 112: {malos[0].texto[:90]!r}"
 
+    # Y que el reemplazo no haya dejado el texto roto, que es lo que pasaba antes:
+    # «El número el número de emergencias», «se llama al el número de emergencias».
+    rotos = [
+        c for c in chunks
+        if re.search(r"\b(?:al|del|el)\s+el\s+número|número\s+el\s+número", c.texto, re.I)
+    ]
+    assert not rotos, f"{len(rotos)} chunks con el reemplazo mal pegado: {rotos[0].texto[:120]!r}"
+
 
 def test_tamanos_dentro_de_rango(chunks):
     chicos = [c for c in chunks if len(c.texto) < MINIMO]
@@ -133,6 +141,38 @@ def test_es_indice_reconoce_las_corridas_de_puntos():
 
 def test_limpiar_neutraliza_el_numero_espanol():
     assert "112" not in limpiar("se solicitará ayuda a través del número 112, de tal forma")
+
+
+def test_neutralizar_el_112_no_deja_el_texto_agramatical():
+    """Sacar el número no alcanza: el reemplazo se lee en voz alta.
+
+    Un re.sub ciego de «112» por «el número de emergencias» producía «El número
+    el número de emergencias no se utiliza» y «se llama al el número de
+    emergencias». Estaba así en la base: chunks 16 y 20.
+    """
+    casos = {
+        "ayuda a través del número 112, de tal forma": "del número de emergencias,",
+        "El número 112 no se utiliza sólo": "El número de emergencias no",
+        "cuando se llama al 112? - Localización": "al número de emergencias?",
+        "a través del nº 112 permite": "del número de emergencias permite",
+        # Suelto, sin artículo: son fragmentos de diagrama.
+        "Pida ayuda: (112) Abra la vía aérea": "(emergencias)",
+    }
+    for entrada, esperado in casos.items():
+        salida = limpiar(entrada)
+        assert esperado in salida, f"{entrada!r} -> {salida!r}"
+        assert "el el " not in salida.lower()
+        assert "al el " not in salida.lower()
+        assert "número el número" not in salida.lower()
+
+
+def test_neutralizar_el_112_no_toca_decimales():
+    """\\b112\\b matchea dentro de «112,5»: la coma cuenta como límite de palabra.
+
+    El corpus tiene una tabla de energías con números como «1,500» y «0,150».
+    """
+    for intacto in ("112,5 kg", "112.5", "el 1123 no", "3.112"):
+        assert intacto in limpiar(intacto), f"se comió un número en {intacto!r}"
 
 
 def test_limpiar_saca_referencias_pero_deja_el_mnemonico():

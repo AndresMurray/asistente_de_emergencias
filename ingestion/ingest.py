@@ -121,6 +121,21 @@ def insertar(chunks: list[Chunk], vectores: list[list[float]], dsn: str, tabla: 
                 template="(%s,%s,%s::vector,%s,%s,%s,%s,%s,%s,%s,%s::jsonb)",
                 page_size=100,
             )
+            # Barrer lo que sobró de una versión anterior de este mismo documento.
+            #
+            # Sin esto la ingesta solo era idempotente para el caso "el texto no
+            # cambió": el ON CONFLICT es por content_hash, así que al CORREGIR un
+            # chunk cambia el hash, la fila nueva entra como insert y la vieja
+            # queda viva y buscable. O sea que una corrección no corregía nada,
+            # duplicaba, y el agente podía seguir recuperando el texto malo.
+            # Va en la misma transacción que el insert: o queda todo o no queda nada.
+            cur.execute(
+                f"DELETE FROM {tabla} WHERE source = ANY(%s) AND content_hash <> ALL(%s);",
+                (sorted({c.fuente for c in chunks}), [f[0] for f in filas]),
+            )
+            obsoletos = cur.rowcount
+            if obsoletos:
+                print(f"[ingesta] {obsoletos} chunk(s) obsoleto(s) borrado(s)")
             # cur.rowcount solo refleja el último lote de execute_values, así que
             # se cuenta la tabla en lugar de reportar un número engañoso.
             cur.execute(f"SELECT count(*) FROM {tabla};")
