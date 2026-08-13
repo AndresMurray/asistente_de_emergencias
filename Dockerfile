@@ -2,9 +2,12 @@
 # For more information on the build process, see https://docs.livekit.io/agents/ops/deployment/builds/
 # syntax=docker/dockerfile:1
 
-# Use the official Python base image with Python 3.13
-# We use the slim variant to keep the image size smaller while still having essential tools
-ARG PYTHON_VERSION=3.13
+# Use the official Python base image.
+# We use the slim variant to keep the image size smaller while still having essential tools.
+# 3.11 a propósito: es la versión del venv local, así que lo que se testea es lo
+# que se despliega. livekit-local-inference y livekit-blingfire traen wheels
+# compiladas y el path local de VAD/EOT es el que corre en producción.
+ARG PYTHON_VERSION=3.11
 FROM python:${PYTHON_VERSION}-slim AS base
 
 # Keeps Python from buffering stdout and stderr to avoid situations where

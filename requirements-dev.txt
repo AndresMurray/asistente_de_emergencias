@@ -1,0 +1,11 @@
+# Herramientas de ingesta y evaluación. No van en la imagen del agente.
+-r requirements.txt
+
+# Ingesta de PDFs (ingestion/)
+pymupdf==1.28.0
+requests==2.34.2
+pydantic==2.13.4
+
+# Tests y métricas (metricas/, metricas/coverage/)
+pytest==8.4.2
+pytest-asyncio==1.2.0
