@@ -19,6 +19,7 @@ from typing import Literal
 from .config import RagSettings, load_settings
 from .embeddings import embed_query
 from .errors import RetrievalError
+from .rerank import rerank
 from .store import ChunkStore, Fragment
 
 logger = logging.getLogger("rag.retriever")
@@ -103,10 +104,54 @@ class Retriever:
         )
 
     async def _search_inner(self, query: str) -> list[Fragment]:
-        vector = await embed_query(query, self._settings)
-        # Se traen k_vector candidatos y se recortan a top_k. Cuando entre el
-        # reranker de Cohere (Fase 4) va justo acá, entre las dos líneas.
-        candidatos = await self._store.search(vector, self._settings.k_vector)
-        if self._settings.min_score > 0:
-            candidatos = [f for f in candidatos if f.score >= self._settings.min_score]
-        return candidatos[: self._settings.top_k]
+        settings = self._settings
+        vector = await embed_query(query, settings)
+        candidatos = await self._store.search(vector, settings.k_vector)
+        if not candidatos:
+            return []
+
+        rerankeado = False
+        if settings.rerank_enabled:
+            candidatos, rerankeado = await self._rerank(query, candidatos)
+
+        # El piso depende de qué escala tienen los scores. Si el rerank falló y
+        # se degradó al coseno, aplicar el piso del reranker (0.08) sobre scores
+        # de coseno (0.4-0.7) no filtraría nada y pasaría toda la basura.
+        piso = settings.min_rerank_score if rerankeado else settings.min_score
+
+        if piso > 0:
+            candidatos = [f for f in candidatos if f.score >= piso]
+        return candidatos[: settings.top_k]
+
+    async def _rerank(
+        self, query: str, candidatos: list[Fragment]
+    ) -> tuple[list[Fragment], bool]:
+        """Reordena por relevancia real. Devuelve (fragmentos, se_rerankeó).
+
+        Si el reranker falla se degrada al orden del coseno, deliberadamente: una
+        respuesta con orden peor es mucho mejor que no responder, y la regla de
+        grounding del prompt filtra el contexto que no sirve. Un fallo del
+        reranker no debería sonar igual que "el manual no tiene esto".
+
+        Esto no es hipotético: la key de Cohere del proyecto es Trial, con tope
+        de 10 llamadas por minuto, y cada turno gasta 2 (embed + rerank). En una
+        llamada real de más de cinco turnos por minuto el reranker se apaga solo
+        y esta degradación es la que sostiene la conversación.
+        """
+        try:
+            ordenados = await rerank(query, [f.text for f in candidatos], self._settings)
+        except RetrievalError as exc:
+            logger.warning("rerank falló, sigo con el orden del coseno: %s", exc)
+            return candidatos, False
+
+        resultado: list[Fragment] = []
+        for indice, score in ordenados:
+            if 0 <= indice < len(candidatos):
+                fragmento = candidatos[indice]
+                # El score pasa a ser el del reranker, que es el que se le
+                # muestra al modelo y contra el que se compara el piso.
+                fragmento.score = score
+                resultado.append(fragmento)
+        if not resultado:
+            return candidatos, False
+        return resultado, True

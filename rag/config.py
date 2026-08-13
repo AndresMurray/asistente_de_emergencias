@@ -68,6 +68,24 @@ class RagSettings:
     embed_model: str = "embed-multilingual-v3.0"
     cohere_embed_url: str = "https://api.cohere.ai/v1/embed"
 
+    # --- reranking ---
+    # Segunda etapa: pgvector trae k_vector candidatos y el reranker los ordena.
+    # Resuelve el solapamiento que el coseno no puede con frases telegráficas.
+    rerank_enabled: bool = True
+    rerank_model: str = "rerank-v3.5"
+    rerank_top_n: int = 5
+    rerank_timeout_s: float = 2.0
+    cohere_rerank_url: str = "https://api.cohere.ai/v1/rerank"
+    # Piso sobre el score del reranker. Calibrado con las mismas 13 frases
+    # telegráficas que se usaron para min_score, y acá SÍ hay hueco limpio, que
+    # es exactamente lo que el coseno no podía dar:
+    #   legítimas ("se desangra", "esta convulsionando", …)  0.109 … 0.747
+    #   fuera de dominio (VTV, asado, seguros, fútbol)       0.015 … 0.070
+    #   piso 0.08 -> rechaza 0/8 legítimas, bloquea 5/5 basura
+    # Comparación con el coseno: ahí el mejor piso posible (0.45) dejaba pasar
+    # 2 de 8 consultas basura y no existía separación limpia.
+    min_rerank_score: float = 0.08
+
 
 def load_settings() -> RagSettings:
     database_url = os.environ.get("DATABASE_URL")
@@ -96,4 +114,8 @@ def load_settings() -> RagSettings:
         timeout_s=_env("RAG_TIMEOUT_S", "timeout_s", float),
         embed_timeout_s=_env("RAG_EMBED_TIMEOUT_S", "embed_timeout_s", float),
         min_score=_env("RAG_MIN_SCORE", "min_score", float),
+        rerank_enabled=_env("RAG_RERANK", "rerank_enabled", lambda v: v not in ("0", "false")),
+        rerank_model=_env("RAG_RERANK_MODEL", "rerank_model", str),
+        rerank_top_n=_env("RAG_RERANK_TOP_N", "rerank_top_n", int),
+        min_rerank_score=_env("RAG_MIN_RERANK_SCORE", "min_rerank_score", float),
     )

@@ -166,6 +166,16 @@ async def entrypoint(ctx: agents.JobContext):
             # se descarta y se escucha como falso arranque.
             "preemptive_generation": {"preemptive_tts": False, "max_speech_duration": 15.0},
         },
+        # OJO, esto puede fallar en silencio. El SDK reporta
+        # capabilities.keyterms=True para deepgram/nova-3 y le reenvía la lista
+        # como `keyterm` sin importar el idioma, así que NO hay warning si
+        # Deepgram no la aplica en español (históricamente el keyterm prompting
+        # de nova-3 estuvo limitado a inglés). No se puede verificar leyendo
+        # código: hay que correr `python agent.py console`, leer en voz alta
+        # «torniquete», «preseñalización» y «frente-mentón», y ver si aparecen
+        # bien en la transcripción. Si no, las alternativas son
+        # extra_kwargs={"keywords": [(termino, peso)]} de nova-2, o dejar solo la
+        # detección por LLM, que es agnóstica del proveedor.
         keyterms_options={
             "keyterms": KEYTERMS_ES,
             "keyterm_detection": {"enabled": True, "turn_interval": 2},
@@ -239,6 +249,19 @@ async def entrypoint(ctx: agents.JobContext):
     participant = await ctx.wait_for_participant()
     session.userdata.caller_identity = participant.identity
     _log_sip_attributes(participant)
+
+    # Deja rastro de la config que no se puede verificar leyendo código, para
+    # poder confrontarla contra lo que se escucha en una corrida de consola.
+    retriever = _get_retriever()
+    logger.info(
+        "config | llm=%s stt=deepgram/nova-3(es) keyterms=%d rerank=%s piso=%s",
+        os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
+        len(KEYTERMS_ES),
+        retriever.settings.rerank_model if retriever.settings.rerank_enabled else "off",
+        retriever.settings.min_rerank_score
+        if retriever.settings.rerank_enabled
+        else retriever.settings.min_score,
+    )
 
     # session.say en lugar de generate_reply: el saludo es una cadena fija y
     # antes se pagaba un round trip completo de LLM para producirla, justo en el
