@@ -15,6 +15,7 @@ load_dotenv(Path(__file__).parent / ".env.local", override=True)
 
 # Importar el agente del proyecto
 from agent import Assistant
+from triage import TriageState
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,8 +43,9 @@ def _extract_text(chat_item) -> str:
 async def ask(question: str) -> str:
     # Configurar la sesión con el mismo LLM que usa el agente en producción
     # (se puede sobreescribir con la variable de entorno LLM_MODEL)
-    llm_model = os.environ.get("LLM_MODEL", "openai/gpt-4o-mini")
+    llm_model = os.environ.get("LLM_MODEL", "openai/gpt-4.1-mini")
     session = AgentSession(
+        userdata=TriageState(),
         llm=inference.LLM(model=llm_model),
     )
 

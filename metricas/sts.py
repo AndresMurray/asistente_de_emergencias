@@ -1,3 +1,4 @@
+
 """
 STS - Semantic Text Similarity (métrica de Lalo)
 ==================================================
@@ -50,7 +51,21 @@ load_dotenv(os.path.join(PROJECT_ROOT, ".env.local"))
 if not os.environ.get("DATABASE_URL"):
     os.environ["DATABASE_URL"] = "postgresql://postgres:postgres@localhost:5433/emergencias_vdb"
 
-from agent import SYSTEM_INSTRUCTIONS, search_similarity
+from prompts import SYSTEM_INSTRUCTIONS
+from rag import Retriever
+
+
+# Un solo retriever para toda la corrida, igual que en agent.py: adentro tiene el
+# pool de conexiones y no conviene abrir uno por consulta.
+_retriever: Retriever | None = None
+
+
+def _get_retriever() -> Retriever:
+    global _retriever
+    if _retriever is None:
+        _retriever = Retriever()
+        _retriever.connect()
+    return _retriever
 
 
 # ── Configuración ───────────────────────────────────────────────────────────
@@ -173,8 +188,11 @@ async def ejecutar_agente_remoto(query: str) -> str:
 
                 if function_name == "buscar_protocolo":
                     search_query = function_args.get("query", query)
-                    # Ejecutar la búsqueda real usando la lógica de agent.py
-                    tool_output = await search_similarity(search_query)
+                    # Ejecutar la búsqueda real usando el retriever de rag/
+                    result = await _get_retriever().search(search_query)
+                    tool_output = result.para_llm() if result.status == "ok" else ""
+                    if result.status == "error":
+                        print(f"  [Error retrieval] {result.error}")
 
                     messages.append({
                         "tool_call_id": tool_call["id"],
@@ -198,25 +216,50 @@ async def get_cohere_embedding(text: str) -> List[float]:
     """
     Genera el embedding de un texto usando Cohere embed-multilingual-v3.0.
     Es el mismo modelo que usa la arquitectura cloud para retrieval.
+
+    La key del proyecto es Trial (~10 llamadas/min), y cada consulta del
+    dataset gasta dos embeddings (respuesta generada + esperada). El throttle
+    compartido de rag/ratelimit espacia TODAS las llamadas a Cohere del proceso
+    (retrieval incluido). Si igual llega un 429, se reintenta con backoff
+    exponencial hasta 8 veces.
     """
+    payload = {
+        "texts": [text],
+        "model": EMBED_MODEL,
+        "input_type": "search_document",
+        "embedding_types": ["float"],
+    }
+    headers = {
+        "Authorization": f"Bearer {COHERE_API_KEY}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    from rag.ratelimit import esperar_turno
+
     async with aiohttp.ClientSession() as session:
-        async with session.post(
-            COHERE_EMBED_URL,
-            headers={
-                "Authorization": f"Bearer {COHERE_API_KEY}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            json={
-                "texts": [text],
-                "model": EMBED_MODEL,
-                "input_type": "search_document",
-                "embedding_types": ["float"],
-            },
-        ) as response:
-            response.raise_for_status()
-            data = await response.json()
-            return data["embeddings"]["float"][0]
+        for attempt in range(8):
+            await esperar_turno()
+            async with session.post(
+                COHERE_EMBED_URL, headers=headers, json=payload
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data["embeddings"]["float"][0]
+
+                if response.status == 429:
+                    retry_after = response.headers.get("Retry-After")
+                    espera = int(retry_after) if retry_after else min(2 ** attempt * 6, 60)
+                    print(
+                        f"  [Rate limit] 429 de Cohere, esperando {espera}s "
+                        f"(intento {attempt + 1}/8)"
+                    )
+                    await asyncio.sleep(espera)
+                    continue
+
+                response.raise_for_status()
+
+    raise RuntimeError("Cohere siguió devolviendo 429 después de 8 reintentos")
 
 
 # ── Similitud coseno ────────────────────────────────────────────────────────
@@ -315,6 +358,9 @@ async def main():
         }, f, indent=4, ensure_ascii=False)
 
     print(f"\nResultados guardados en '{output_file}'")
+
+    if _retriever is not None:
+        _retriever.close()
 
 
 if __name__ == "__main__":

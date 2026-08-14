@@ -12,6 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ask_livekit import ask
+from rag.session import close_fallback
 
 FALLBACK_ANSWER = (
     "No tengo ese procedimiento en mis protocolos de emergencia viales registrados. "
@@ -53,4 +54,7 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    finally:
+        close_fallback()
