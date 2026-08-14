@@ -1,0 +1,45 @@
+{
+  "fecha_ejecucion": "2026-08-12T19:55:25.383326",
+  "resultados": {
+    "hemorragia_grave": {
+      "checklist": [
+        "Presionar la herida",
+        "Usar paño limpio",
+        "No levantar el paño",
+        "Presionar la arteria",
+        "Colocar un torniquete"
+      ],
+      "transcript": "Usuario: Una persona está sangrando mucho por el brazo ¿Qué hago?\nAsistente: Presioná firmemente sobre la arteria humeral en la mitad de la cara interna del brazo, debajo del bíceps, para controlar la hemorragia. Si es posible, aplicá un torniquete o comprensión con una venda o goma por encima de la zona sangrante. Mantén la presión hasta que la hemorragia cese o disminuya. Asegurate de no abandonar a la persona.\nUsuario: Ya le puse un trapo pero sigue sangrando y traspasando la tela, ¿se lo saco para poner otro?\nAsistente: No, no saques el trapo. Debés mantenerlo en su lugar y seguir aplicando presión. Si es necesario, podés añadir más material por encima, pero no retiras lo que ya está. La prioridad es mantener la presión sobre la herida.\nUsuario: La ambulancia va a tardar, ¿le hago un torniquete?\nAsistente: Sí, si la hemorragia no cesa con la presión directa, podés aplicar un torniquete. Asegurate de colocarlo por encima de la zona sangrante y comprimirlo con fuerza. Mantén un registro del tiempo que pasas con el torniquete aplicado.",
+      "score": 0.8,
+      "puntos_cubiertos": [
+        "1. Presionar la herida",
+        "3. No levantar el paño",
+        "4. Presionar la arteria",
+        "5. Colocar un torniquete"
+      ],
+      "puntos_no_cubiertos": [
+        "2. Usar paño limpio"
+      ],
+      "analisis_juez": "El asistente cubrió de manera efectiva la mayoría de los puntos críticos de la checklist. Explicó cómo presionar la arteria humeral (punto 4), insistió en mantener la presión constante sobre la herida (punto 1) y fue muy claro al indicar que no se debe retirar el trapo ya colocado para evitar romper el coágulo (punto 3). También dio instrucciones sobre la correcta aplicación y registro del tiempo del torniquete (punto 5). Sin embargo, omitió mencionar la necesidad de utilizar un paño o material limpio/estéril para la compresión (punto 2)."
+    },
+    "perdida_conocimiento": {
+      "checklist": [
+        "no mover al herido",
+        "no quitar el casco",
+        "posición lateral de seguridad",
+        "comprobar respiración"
+      ],
+      "transcript": "Usuario: Mi compañero chocó la moto, está en el suelo desmayado, ¿qué hago?\nAsistente: Primero, no lo muevas ni intentes trasladarlo. Inmovilizá su cuello. Llamá a emergencias. No le hables ni le hagas estímulos que puedan moverlo. Esperá ayuda profesional. Prioriza su seguridad.\nUsuario: ¿Debería sacarle el casco para que respire mejor?\nAsistente: No, no saques el casco. Podrías agravar una posible lesión. Mantenelo inmovilizado y esperá la llegada de los servicios de emergencia.\nUsuario: Está respirando pero hace un ruido raro, ¿en qué posición lo pongo?\nAsistente: No lo muevas a una posición diferente sin la debida evaluación. Si está consciente, mantenelo en la posición en la que se encuentra. Verificá que no tenga obstrucciones en las vías aéreas. Vigila su respiración cada pocos minutos. Esperá ayuda profesional.",
+      "score": 0.75,
+      "puntos_cubiertos": [
+        "no mover al herido",
+        "no quitar el casco",
+        "comprobar respiración"
+      ],
+      "puntos_no_cubiertos": [
+        "posición lateral de seguridad"
+      ],
+      "analisis_juez": "El asistente cumplió con éxito la instrucción de no mover al herido y de no quitarle el casco, explicando correctamente los riesgos asociados. También cubrió la comprobación de la respiración al indicar que se vigile constantemente y se verifiquen las vías aéreas. Sin embargo, no mencionó ni instruyó sobre la posición lateral de seguridad, a pesar de que el usuario refirió que la víctima estaba inconsciente ('desmayado') y respirando con dificultad ('ruido raro'), escenario donde esta maniobra suele evaluarse."
+    }
+  }
+}

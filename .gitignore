@@ -19,13 +19,8 @@ INSTRUCCIONES_EQUIPO.md
 # docker-env/
 
 # Docker appdata (volúmenes persistentes locales)
-appdata/ollama/
-appdata/owui/
-appdata/postgress/
-appdata/postgress_vector/
-appdata/pipelines/
-appdata/rawdata/
-!appdata/**/.gitkeep
+appdata/
+
 
 # Local data (PDFs and processed JSONs)
 data/raw/
@@ -34,3 +29,6 @@ data/processed/
 # Required project exclusion
 hoja_ruta_quincena.md
 
+.vscode 
+.pytest_cache
+.__pycache__
