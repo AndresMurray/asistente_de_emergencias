@@ -1,0 +1,261 @@
+{
+    "fase": "Evaluación Faithfulness (Arquitectura LiveKit simulada)",
+    "metrica": "Faithfulness",
+    "model_generation": "llama-3.3-70b-versatile",
+    "model_judge": "llama-3.3-70b-versatile",
+    "faithfulness_score_percent": 12.0,
+    "num_consultas": 25,
+    "num_faithful": 3,
+    "resultados_detallados": [
+        {
+            "query_id": 1,
+            "query": "Acabo de presenciar un accidente de tráfico",
+            "retrieved_context": "[GENERAL]\nueso constituye una fractura ósea. En accidentados de tráfico son lesiones muy habituales y, a menudo, ocasionan importantes complicaciones que pueden poner en peligro la vida del herido. Lo más habitual es que el lesionado en accidente de tráfico sea un \"politraumatizado\", es decir, que sufra varias fracturas graves así como complicaciones derivadas del propio traumatismo, por lo que, generalmente, se trata de un herido de carácter grave.\n\n[GENERAL]\nfrecuencia aparecen en los accidentes de tráfico. - Por la gravedad que suponen. El daño del sistema nervioso constituye la principal causa de fallecimiento en accidente de tráfico. Asimismo, las secuelas que originan son de una considerable importancia clínica y social. - Porque hay que conocer algunos conceptos básicos sobre la actuación a seguir en caso de encontrarse ante un herido de estas características.\n\n[GENERAL]\nsangre aumentando la frecuencia de contracción; el sujeto presentará un pulso rápido y débil. La sospecha de que un herido en accidente de tráfico se encuentra en shock supone tener presente que ha sufrido una lesión importante y que, probablemente, se encuentre en peligro vital. Por ello, el auxiliador debe: - Solicitar ayuda para que la víctima sea atendida por personal médico lo antes posible. - Observar cuidadosamente el estado del herido y, entre tanto llega la ayuda solicitada, actuar (en",
+            "generated_answer": "Sos testigo de un accidente de tráfico. Primero, asegurate de que estás a salvo. Luego, llama a emergencias y proporciona toda la información posible sobre el accidente, como la ubicación y el número de heridos. No te acerques a los vehículos accidentados si hay riesgo de incendio o explosión. Si es seguro hacerlo, intenta ayudar a las personas heridas, pero no las muevas a menos que estén en peligro. Si alguien está herido, trata de mantenerlo calmado y consciente hasta que llegue la ayuda médica. Recuerda, preservar la vida es lo más importante. ¿Necesitás ayuda adicional?",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "La respuesta contiene información inventada como 'llama a emergencias y proporciona toda la información posible sobre el accidente', 'no te acerques a los vehículos accidentados si hay riesgo de incendio o explosión' y 'preservar la vida es lo más importante', que no está respaldada directamente por el contexto proporcionado."
+            }
+        },
+        {
+            "query_id": 2,
+            "query": "Hay una persona inconsciente que no respira",
+            "retrieved_context": "[GENERAL]\ninconsciente que respira hay que tener en cuenta: - El problema fundamental del sujeto inconsciente es la asfixia por la caída de la lengua hacia la hipofaringe. Por ello es necesario realizar y mantener apertura de la vía aérea mediante la maniobra frente-mentón mientras el herido permanezca inconsciente. Si se le colocara en posición lateral de seguridad (ya veremos en qué casos) no sería necesario, ya que la lengua no caería hacia la parte posterior de la faringe, sino a un lado de la boca.\n\n[GENERAL]\nla respiración (ver-oír-sentir) durante no más de 10 segundos, comprobemos que no respira o su respiración no es normal. Ante esta situación, un herido inconsciente que no respira comenzaremos a realizar compresiones torácicas (masaje cardiaco) siguiendo las recomendaciones que se transcriben a continuación sobre Resucitación Cardiopulmonar Básica de noviembre de 2005 revisadas en 2010 del Consejo Europeo de Resucitación: 1º Realice compresiones torácicas:\n\n[GENERAL]\nizados está inconsciente, en este caso, como vimos en el capítulo 3 hemos de continuar con la valoración: - El primer paso es abrir la vía aérea (A): Cuando la persona está inconsciente tenemos que intentar proteger al cerebro de lesiones irreversibles derivadas de la falta de oxígeno. El primer obstáculo con el que se puede encontrar el aire para acceder al organismo, es la obstrucción de la vía aérea",
+            "generated_answer": "Abrí la vía aérea con la maniobra frente-mentón y comprobá la respiración. Si no respira, iniciá compresiones torácicas, 30 compresiones y dos respiraciones asistidas, repitiendo el ciclo hasta que llegue ayuda médica o el paciente recupere la conciencia y la respiración normal.",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "La respuesta inventa información no presente en el contexto, como el número específico de compresiones torácicas (30) y respiraciones asistidas (2), así como la mención de 'repitiendo el ciclo hasta que llegue ayuda médica o el paciente recupere la conciencia y la respiración normal', que no se encuentra en el contexto proporcionado."
+            }
+        },
+        {
+            "query_id": 3,
+            "query": "Una persona está sangrando mucho por el brazo ¿Que Hago?",
+            "retrieved_context": "[GENERAL]\nn pañuelo, venda, tela o goma sobre una extremidad de manera que comprima con fuerza tal la arteria sobre el hueso, que impida el paso de sangre por ella. Lo ideal será utilizar una tira ancha de goma elástica, que el auxiliador irá comprimiendo gradualmente en el miembro afectado por encima de la zona sangrante hasta que cese la hemorragia o disminuya de manera importante. También se puede improvisar el \"torniquete\", como\n\n[GENERAL]\nue no debe abandonarse bajo ninguna circunstancia: - Para controlar una hemorragia en el brazo: se presionará sobre la arteria humeral, aproximadamente en la mitad de la cara interna del brazo, debajo del relieve del bíceps. TEMA 4 Pág. 52 - Para controlar una hemorragia en la pierna: se presionará sobre la arteria femoral con el puño o la palma de la mano en la parte media de la ingle. - Para controlar una hemorragia en el cuello: el punto de presión será en la arteria carótida. La\n\n[GENERAL]\ns) el individuo ya suele estar inconsciente, y con riego cerebral insuficiente. La primera maniobra si nos encontramos ante una hemorragia de este tipo, es la compresión directa sobre el punto sangrante interponiendo algún paño, trapo o similar, que esté limpio, sin levantar para nada, la tela que hace contacto con la herida, para evitar que vuelva a sangrar. La filosofía de valoración-actuación es muy importante. En este capítulo se describen por separado",
+            "generated_answer": "Aplicá presión directa sobre la herida con un pañuelo o tela limpia, sin levantarla para evitar que vuelva a sangrar. Si es necesario, usá un torniquete por encima de la herida para controlar la hemorragia, presionando la arteria humeral en el caso de una herida en el brazo.",
+            "faithfulness_evaluation": {
+                "faithful": true,
+                "reason": "La respuesta se basa en información proporcionada en el contexto, como aplicar presión directa sobre la herida y el uso de un torniquete para controlar la hemorragia, incluyendo la mención específica de la arteria humeral para heridas en el brazo."
+            }
+        },
+        {
+            "query_id": 4,
+            "query": "¿Tengo que sacar al herido del Auto?",
+            "retrieved_context": "[GENERAL]\npara su reanimación, o sufran un riesgo evidente. 1.1.- EXTRACCIÓN DE UN HERIDO DEL INTERIOR DEL VEHÍCULO SINIESTRADO Siempre es preferible esperar a que, con ayuda especializada, el ocupante del vehículo pueda ser extraído sin dificultad mediante el corte de chapa, retirada de puertas, etc. Sin embargo, es bueno conocer de qué manera hay que sujetar y movilizar al herido desde el interior del vehículo para no provocarle más lesiones. Los pasos a seguir son los siguientes:\n\n[GENERAL]\nsujetar su muñeca contraria con las manos; el otro brazo, pasando por debajo de la axila del lado opuesto, permitirá sujetar la mandíbula del herido. - Una vez agarrado de este modo el accidentado, y siempre evitando que su cuello se mueva, se procederá a extraerlo del vehículo. 1.2.- MOVILIZACIÓN DE HERIDOS FUERA DEL VEHÍCULO Lo mejor es utilizar el método denominado de \"auxiliadores alternados\", pues da más seguridad.\n\n[GENERAL]\n. . . . . . . . . . . . . . . . . . . . . . . . 80 TEMA 6 Pág. 76 1. MOVILIZACIÓN DE HERIDOS Cuando se intenta auxiliar a los ocupantes de un vehículo accidentado, con frecuencia se observa que alguno de ellos ha quedado en el interior del mismo, de manera que resulta difícil el acceso hasta él. Pueden plantearse dos tipos diferentes de situaciones: que, tras el accidente, el conductor o alguno de los ocupantes se encuentre \"prisionero\" en el interior del vehículo por alguna de las partes de",
+            "generated_answer": "No, no saques al herido del auto a menos que haya un riesgo inminente para su vida, como un incendio o una explosión. Si es posible, espera a que llegue ayuda especializada para que puedan extraer al herido de manera segura. Si debes mover al herido, hazlo con cuidado y sujétalo firmemente para evitar causar más lesiones.",
+            "faithfulness_evaluation": {
+                "faithful": true,
+                "reason": "La respuesta se basa en la información proporcionada en el contexto, que establece que es preferible esperar a la ayuda especializada para extraer al herido y que, si es necesario moverlo, se debe hacer con cuidado para evitar causar más lesiones."
+            }
+        },
+        {
+            "query_id": 5,
+            "query": "El herido está consciente pero muy pálido, con piel fría y sudando. ¿Qué le pasa y qué hago?",
+            "retrieved_context": "[GENERAL]\nar que se produzcan daños orgánicos irreversibles. Así, en el sistema vascular, a través del Sistema Nervioso Vegetativo, se produce una contracción generalizada de los vasos sanguíneos periféricos, de modo que la sangre pueda permanecer en los lugares más vitales, fundamentalmente encéfalo y riñón. Como consecuencia, la piel se muestra pálida y fría y el herido permanece tumbado. Por su parte, el corazón responde a la pérdida de sangre aumentando la frecuencia de contracción; el\n\n[GENERAL]\ninternas pueden dar lugar a un shock o colapso de intensidad gradual y progresiva, consecuencia de la pérdida de sangre de la circulación general. Lo sospecharemos si el herido presenta palidez, sudoración fría, inquietud y confusión, pulso rápido y débil y respiración rápida y superficial. La pérdida de volumen sanguíneo supone que todo el sistema cardio-vascular responda para intentar compensar la situación y evitar que se produzcan daños orgánicos irreversibles.\n\n[GENERAL]\nn respiratoria y su función circulatoria, es decir respira y su corazón está bombeando sangre, por lo que no será necesario continuar con la valoración primaria (el ABC). No obstante el herido consciente, puede tener hemorragias, fracturas o lesiones internas que pueden empeorar su estado de forma brusca, por tanto se le debe vigilar hasta que llegue el personal sanitario, comprobando cada cierto tiempo que no pierde el conocimiento y que no se deteriora su situación.",
+            "generated_answer": "Parece que el herido está en shock, posiblemente por pérdida de sangre. Mantenelo tumbado, vigilá su respiración y circulación, y comprobá cada tanto que no pierda el conocimiento ni se deteriore. No le des nada para beber. Esperá a que llegue el personal sanitario.",
+            "faithfulness_evaluation": {
+                "faithful": true,
+                "reason": "La respuesta se basa en la información proporcionada en el contexto, que describe los síntomas del shock y las medidas a tomar en caso de una lesión, como mantener al herido tumbado y vigilar su estado hasta la llegada del personal sanitario."
+            }
+        },
+        {
+            "query_id": 6,
+            "query": "Un chico en moto acaba de chocar, debería sacarle el casco?",
+            "retrieved_context": "[GENERAL]\nelocidad o con grandes destrozos de los vehículos. - Los que circulaban en moto cuando sufrieron el accidente. Como norma general, no se debe quitar el casco a estos heridos. Si fuera preciso retirar el casco para atender su respiración, el auxiliador deberá conocer y emplear una técnica específica para hacerlo sin riesgo para el accidentado. En principio, puede parecer erróneo el pensar que atender a los heridos es \"lo último\". La experiencia\n\n[GENERAL]\nde evitar la retirada del casco salvo en aquellos casos en los que exista una indicación clara. Como norma general se ha de evitar siempre la movilización de los heridos y ha de ser el auxiliador quien se acerque a la víctima y no la víctima al auxiliador. 2º- AVISAR O ALERTAR: La llamada al Servicio de Emergencias Médicas, es una de las actuaciones más importantes que pueden realizar las personas que presencien un accidente, es la que pone en marcha la Cadena de\n\n[GENERAL]\nllevar casco multiplica casi por dos el riesgo de accidente mortal y por más de dos el riesgo de lesión craneofacial. TEMA 5 Pág. 74 Finalmente, hay que recordar un aspecto preventivo primordial: el uso del casco, tanto en motocicletas como en ciclomotores, en caso de accidente disminuye no sólo las lesiones y la frecuencia de fallecimientos por lesiones cráneo-encefálicas, sino también la gravedad de las mismas al menos a la mitad en comparación con aquellos que no lo usan.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 7,
+            "query": "En que posición debo poner a un herido?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 8,
+            "query": "Me clavé un vidrio y la herida es grande, me saco el vidrio?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 9,
+            "query": "Hay una persona con quemaduras, qué hago?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 10,
+            "query": "Mi hermano perdió un dedo, qué hago?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 11,
+            "query": "¡Mi papá se cortó la cabeza con el techo del auto y le chorrea muchísima sangre, parece gravísimo y me da miedo que se desangre! ¿Qué hago?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 12,
+            "query": "¡El conductor está muy asustado y dolorido! Me pide que le dé una pastilla que tiene en la guantera para calmarse, ¿se la puedo dar?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 13,
+            "query": "Mi amigo se golpeó la cabeza, está desmayado y le sale sangre por la nariz y las orejas. ¿Le meto un algodón para que no sangre?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 14,
+            "query": "¡Choqué y estoy llamando a la ambulancia! ¿Qué información les tengo que dar para que vengan rápido?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 15,
+            "query": "El auto volcó, a un amigo le quedó el brazo doblado y no lo puede mover, creo que se lo quebró. ¿Qué le hago?",
+            "retrieved_context": "[GENERAL]\nro tiempos. Los pasos a seguir son los siguientes: - Colocar un extremo del pañuelo sobre el lado del cuello opuesto al lado del brazo fracturado. - Colocar por delante el brazo flexionado en ángulo recto. - Doblar el extremo inferior del pañuelo hacia el otro lado del cuello y anudar al otro extremo por detrás del cuello. - Tensar y colocar (por ejemplo, con un imperdible) el extremo libre del pañuelo de manera que la extremidad quede bien inmovilizada. 2.6.- HERIDAS Y QUEMADURAS\n\n[GENERAL]\ns lesiones. Los pasos a seguir son los siguientes: - Observar y cerciorarse de que el cuerpo de la víctima está libre de hierros, volante o cualquier parte del vehículo que le comprima, y que sus pies no se encuentren enganchados con los pedales. - Colocarse detrás de la víctima, para poderla sujetar con los brazos de este modo: pasando un brazo por debajo del brazo y la axila del herido, sujetar su muñeca contraria con las manos; el otro\n\n[GENERAL]\nsujetar su muñeca contraria con las manos; el otro brazo, pasando por debajo de la axila del lado opuesto, permitirá sujetar la mandíbula del herido. - Una vez agarrado de este modo el accidentado, y siempre evitando que su cuello se mueva, se procederá a extraerlo del vehículo. 1.2.- MOVILIZACIÓN DE HERIDOS FUERA DEL VEHÍCULO Lo mejor es utilizar el método denominado de \"auxiliadores alternados\", pues da más seguridad.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 16,
+            "query": "Hubo un choque y hay una persona herida pero no desmayada, que hago?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 17,
+            "query": "Acaban de chocar enfrente mío y la persona esta en la calle tirada, la muevo a la vereda?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 18,
+            "query": "Chocó un auto y la persona accidentada respira raro",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 19,
+            "query": "Choqué y me duele algo en el ojo",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 20,
+            "query": "Necesito sacar a una persona accidentada de su auto",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 21,
+            "query": "¿Qué debería llevar en el botiquín del auto?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 22,
+            "query": "Vi un accidente pero no sé nada de primeros auxilios, ¿puedo seguir de largo?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 23,
+            "query": "Chocó un camión que transporta mercancías peligrosas y el conductor no puede actuar, ¿qué hago?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 24,
+            "query": "El herido es un niño y no respira, ¿la RCP es igual que en adultos?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        },
+        {
+            "query_id": 25,
+            "query": "La ambulancia no llega, ¿puedo llevar al herido al hospital en mi auto?",
+            "retrieved_context": "Ningún protocolo buscado.",
+            "generated_answer": "ERROR_GENERATION",
+            "faithfulness_evaluation": {
+                "faithful": false,
+                "reason": "Error generating response"
+            }
+        }
+    ]
+}
