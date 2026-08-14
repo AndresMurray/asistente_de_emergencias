@@ -27,9 +27,9 @@ def cohere_session() -> aiohttp.ClientSession:
         return _fallback
 
 
-def close_fallback() -> None:
+async def close_fallback() -> None:
     """Cierra la session propia si se creó (para scripts que corren y terminan)."""
     global _fallback
     if _fallback is not None:
-        _fallback.close()
+        await _fallback.close()
         _fallback = None

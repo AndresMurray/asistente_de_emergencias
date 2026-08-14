@@ -40,7 +40,7 @@ def _extract_text(chat_item) -> str:
     return "".join(parts).strip()
 
 
-async def ask(question: str) -> str:
+async def ask(question: str, prelude: list[str] | None = None) -> str:
     # Configurar la sesión con el mismo LLM que usa el agente en producción
     # (se puede sobreescribir con la variable de entorno LLM_MODEL)
     llm_model = os.environ.get("LLM_MODEL", "openai/gpt-4.1-mini")
@@ -51,6 +51,14 @@ async def ask(question: str) -> str:
 
     try:
         await session.start(agent=Assistant())
+
+        # Turns previos de la llamada (saludo, confirmación de seguridad,
+        # ubicación). Cada generate_reply acumula en el historial de la sesión,
+        # así que la query final llega con el contexto de una llamada real y el
+        # agente responde la pregunta puntual en vez de arrancar el triage.
+        for msg in prelude or []:
+            handle = session.generate_reply(user_input=msg)
+            await handle.wait_for_playout()
 
         handle = session.generate_reply(user_input=question)
         await handle.wait_for_playout()

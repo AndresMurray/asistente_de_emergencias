@@ -19,6 +19,16 @@ FALLBACK_ANSWER = (
     "Por favor, hacé la consulta pertinente o procedé según el protocolo general."
 )
 
+# Contexto previo de la llamada: simula el saludo y el triage inicial que ya
+# pasaron (confirmación de seguridad + ubicación) para que la query del dataset
+# llegue cuando el agente ya superó los primeros segundos. Sin esto, el agente
+# siempre arranca preguntando "¿estás fuera de la calzada?" y nunca responde la
+# consulta puntual, con lo que el STS mide la confusión, no el retrieval.
+PRELUDE = [
+    "Acabo de ver un accidente, hay un auto volcado.",
+    "Sí, estoy fuera de la calzada, a salvo. Estoy en la ruta 9, kilómetro 45.",
+]
+
 # Importar CSV de dataset
 dataset_path = Path(__file__).parent.parent / "DataSet.csv"
 df_dataset = pd.read_csv(dataset_path)
@@ -32,7 +42,7 @@ async def main():
     similarities = []
 
     for question, expected in zip(queries, expected_answers):
-        answer = await ask(question)
+        answer = await ask(question, prelude=PRELUDE)
         print(f"Pregunta: {question}")
         print(f"Respuesta: {answer}")
 
@@ -57,4 +67,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     finally:
-        close_fallback()
+        asyncio.run(close_fallback())
