@@ -21,6 +21,8 @@ import aiohttp
 
 from .config import RagSettings
 from .errors import RetrievalError
+from .ratelimit import esperar_turno
+from .session import cohere_session
 
 logger = logging.getLogger("rag.rerank")
 
@@ -37,8 +39,6 @@ async def rerank(
     if not documentos:
         return []
 
-    from livekit.agents.utils import http_context
-
     payload = {
         "model": settings.rerank_model,
         "query": query,
@@ -53,7 +53,8 @@ async def rerank(
     timeout = aiohttp.ClientTimeout(total=settings.rerank_timeout_s, connect=0.5)
 
     try:
-        async with http_context.http_session().post(
+        await esperar_turno()
+        async with cohere_session().post(
             settings.cohere_rerank_url, headers=headers, json=payload, timeout=timeout
         ) as response:
             if response.status != 200:

@@ -18,20 +18,10 @@ import aiohttp
 
 from .config import RagSettings
 from .errors import RetrievalError
+from .ratelimit import esperar_turno
+from .session import cohere_session
 
 logger = logging.getLogger("rag.embeddings")
-
-
-def _session() -> aiohttp.ClientSession:
-    """Session compartida del job; cae a una propia fuera del worker.
-
-    Dentro de un job de LiveKit, http_session() devuelve la session del proceso.
-    Fuera (tests, scripts de metricas/) levanta RuntimeError, así que ahí
-    creamos una al vuelo — el caller la cierra.
-    """
-    from livekit.agents.utils import http_context
-
-    return http_context.http_session()
 
 
 async def embed_query(text: str, settings: RagSettings) -> list[float]:
@@ -71,8 +61,9 @@ async def _embed_many(
     # y conviene fallar a RetrievalError para que el agente lo diga y derive.
     last_error: Exception | None = None
     for attempt in (1, 2):
+        await esperar_turno()
         try:
-            async with _session().post(
+            async with cohere_session().post(
                 settings.cohere_embed_url, headers=headers, json=payload, timeout=timeout
             ) as response:
                 if response.status >= 500 or response.status == 429:
