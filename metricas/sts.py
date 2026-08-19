@@ -1,4 +1,3 @@
-from ast import List
 import asyncio
 import math
 import os
@@ -11,6 +10,11 @@ import numpy as np
 # Importar la función ask del script ask_livekit.py
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
+
+PROJECT_ROOT = Path(__file__).parent.parent
+load_dotenv(PROJECT_ROOT / ".env.local", override=True)
+
 COHERE_EMBED_URL = "https://api.cohere.ai/v1/embed"
 COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 EMBED_MODEL = "embed-multilingual-v3.0"
