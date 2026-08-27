@@ -181,6 +181,16 @@ async def entrypoint(ctx: agents.JobContext):
     )
 
     session.say(SALUDO, allow_interruptions=True)
+    try:
+        asyncio.create_task(
+            ctx.room.local_participant.publish_data(
+                payload=json.dumps({"type": "chat_reply", "message": SALUDO}).encode("utf-8"),
+                topic="test-chat",
+            )
+        )
+    except Exception:
+        pass
+
     logger.info("agente activo en la sala %s", ctx.room.name)
 
 
@@ -194,15 +204,23 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
     @ctx.room.on("data_received")
     def on_data_received(data_packet: rtc.DataPacket):
         try:
-            payload = json.loads(data_packet.data.decode("utf-8"))
+            raw_text = data_packet.data.decode("utf-8")
+            try:
+                payload = json.loads(raw_text)
+            except Exception:
+                payload = raw_text
         except Exception as exc:
             logger.error("no pude parsear el paquete de chat: %s", exc)
             return
 
-        if payload.get("type") != "chat":
+        if isinstance(payload, dict):
+            query = payload.get("message") or payload.get("text") or payload.get("content")
+        else:
+            query = str(payload)
+
+        if not query or not query.strip():
             return
 
-        query = payload.get("message")
         logger.info("chat recibido: %s", query)
 
         async def process_chat():
