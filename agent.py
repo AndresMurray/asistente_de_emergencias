@@ -98,7 +98,7 @@ class Assistant(Agent):
 server = AgentServer()
 
 
-@server.rtc_session(agent_name="asistente-emergencias")
+@server.rtc_session()
 async def entrypoint(ctx: agents.JobContext):
     # Todas las líneas de log del job quedan correlacionables por sala.
     ctx.log_context_fields = {"room": ctx.room.name, "job": ctx.job.id}
