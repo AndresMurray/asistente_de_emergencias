@@ -1,15 +1,6 @@
 """Ingesta de chunks a pgvector.
 
-Cambios respecto de la versión anterior:
-
-- Embeddings batcheados: Cohere acepta hasta 96 textos por llamada, y antes se
-  hacía una llamada HTTP + un INSERT + un COMMIT por chunk, secuencial. Para 174
-  chunks eso son 348 round trips contra 2 llamadas y un INSERT.
-- Idempotente: content_hash + ON CONFLICT en lugar de TRUNCATE, así arreglar un
-  documento no obliga a re-embeber el corpus entero ni a vaciar la tabla.
-- La metadata llega a la base. Antes la línea
-  `[limpiar_texto(item["text"]) for item in data]` tiraba id y metadata, y por eso
-  el agente prefijaba todo con el literal hardcodeado «[GENERAL]».
+Soporta Google text-embedding-004 (768d) y Cohere embed-multilingual-v3.0 (1024d).
 
 Uso:
     python -m ingestion.ingest --texto data/processed/corpus_reconstruido.txt --dry-run
@@ -33,9 +24,9 @@ from psycopg2.extras import execute_values
 
 from ingestion.chunker import Chunk, chunkear
 
+GEMINI_BATCH_URL = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents"
 COHERE_URL = "https://api.cohere.ai/v1/embed"
-MODELO = "embed-multilingual-v3.0"
-LOTE = 96  # máximo que acepta Cohere por llamada
+LOTE = 90  # máximo seguro para Google y Cohere
 FUENTE_DEFAULT = "COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS.pdf"
 
 
@@ -44,7 +35,110 @@ def content_hash(texto: str, fuente: str) -> str:
     return hashlib.sha256(f"{fuente}\x00{normalizado}".encode()).hexdigest()
 
 
-def embeber_lote(textos: list[str], api_key: str) -> list[list[float]]:
+def asegurar_esquema(conn, tabla: str, dim: int = 768) -> None:
+    """Asegura que la tabla tenga las columnas y restricciones necesarias con la dimensión vectorial exacta."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = %s;
+            """,
+            (tabla,),
+        )
+        cols = {r[0] for r in cur.fetchall()}
+        if not cols:
+            # La tabla no existe, la creamos completa con vector(dim)
+            cur.execute(
+                f"""
+                CREATE TABLE IF NOT EXISTS {tabla} (
+                    id BIGSERIAL PRIMARY KEY,
+                    content_hash TEXT NOT NULL UNIQUE,
+                    text TEXT NOT NULL,
+                    embedding VECTOR({dim}) NOT NULL,
+                    source TEXT,
+                    section TEXT,
+                    subsection TEXT,
+                    page_start INT,
+                    page_end INT,
+                    ord INT NOT NULL DEFAULT 0,
+                    locale TEXT NOT NULL DEFAULT 'es-ES',
+                    metadata JSONB NOT NULL DEFAULT '{{}}'::jsonb,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                );
+                CREATE INDEX IF NOT EXISTS {tabla}_embedding_hnsw 
+                ON {tabla} USING hnsw (embedding vector_cosine_ops);
+                """
+            )
+            return
+
+        if "content_hash" not in cols:
+            cur.execute(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS content_hash TEXT;")
+            cur.execute(f"ALTER TABLE {tabla} DROP CONSTRAINT IF EXISTS {tabla}_content_hash_key;")
+            cur.execute(f"ALTER TABLE {tabla} ADD CONSTRAINT {tabla}_content_hash_key UNIQUE (content_hash);")
+        if "ord" not in cols:
+            cur.execute(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS ord INT NOT NULL DEFAULT 0;")
+        if "locale" not in cols:
+            cur.execute(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS locale TEXT NOT NULL DEFAULT 'es-ES';")
+        if "metadata" not in cols:
+            cur.execute(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{{}}'::jsonb;")
+        
+        # Asegurar tipo de dimensión de columna embedding
+        cur.execute(
+            f"ALTER TABLE {tabla} ALTER COLUMN embedding TYPE VECTOR({dim});"
+        )
+    conn.commit()
+
+
+def embeber_lote_gemini(textos: list[str], api_key: str) -> list[list[float]]:
+    # Modelos activos en la cuenta
+    modelos_prioritarios = [
+        "gemini-embedding-001",
+        "gemini-embedding-2",
+        "gemini-embedding-2-preview",
+        "text-embedding-004",
+    ]
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": api_key,
+    }
+
+    modelo_elegido = None
+    for mod in modelos_prioritarios:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{mod}:embedContent?key={api_key}"
+        payload = {
+            "model": f"models/{mod}",
+            "content": {"parts": [{"text": "test"}]},
+        }
+        res = requests.post(url, headers=headers, json=payload, timeout=10)
+        if res.status_code == 200:
+            modelo_elegido = mod
+            break
+
+    if not modelo_elegido:
+        raise RuntimeError("No se pudo conectar con ningún modelo de embeddings disponible en Google AI.")
+
+    vectores = []
+    for t in textos:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo_elegido}:embedContent?key={api_key}"
+        payload = {
+            "model": f"models/{modelo_elegido}",
+            "content": {"parts": [{"text": t}]},
+            "taskType": "RETRIEVAL_DOCUMENT",
+            "outputDimensionality": 768,
+        }
+        res = requests.post(url, headers=headers, json=payload, timeout=20)
+        if res.status_code != 200:
+            raise RuntimeError(f"Google AI ({modelo_elegido}) devolvió {res.status_code}: {res.text[:300]}")
+        vectores.append(res.json()["embedding"]["values"])
+
+    return vectores
+
+
+
+
+
+def embeber_lote_cohere(textos: list[str], api_key: str) -> list[list[float]]:
     respuesta = requests.post(
         COHERE_URL,
         headers={
@@ -54,8 +148,7 @@ def embeber_lote(textos: list[str], api_key: str) -> list[list[float]]:
         },
         json={
             "texts": textos,
-            "model": MODELO,
-            # Asimétrico respecto de la consulta, que usa search_query.
+            "model": "embed-multilingual-v3.0",
             "input_type": "search_document",
             "embedding_types": ["float"],
         },
@@ -98,8 +191,10 @@ def insertar(chunks: list[Chunk], vectores: list[list[float]], dsn: str, tabla: 
         for c, vector in zip(chunks, vectores)
     ]
 
+    dim = len(vectores[0]) if vectores else 768
     conn = psycopg2.connect(dsn, connect_timeout=10)
     try:
+        asegurar_esquema(conn, tabla, dim=dim)
         conn.autocommit = False
         with conn.cursor() as cur:
             execute_values(
@@ -121,14 +216,6 @@ def insertar(chunks: list[Chunk], vectores: list[list[float]], dsn: str, tabla: 
                 template="(%s,%s,%s::vector,%s,%s,%s,%s,%s,%s,%s,%s::jsonb)",
                 page_size=100,
             )
-            # Barrer lo que sobró de una versión anterior de este mismo documento.
-            #
-            # Sin esto la ingesta solo era idempotente para el caso "el texto no
-            # cambió": el ON CONFLICT es por content_hash, así que al CORREGIR un
-            # chunk cambia el hash, la fila nueva entra como insert y la vieja
-            # queda viva y buscable. O sea que una corrección no corregía nada,
-            # duplicaba, y el agente podía seguir recuperando el texto malo.
-            # Va en la misma transacción que el insert: o queda todo o no queda nada.
             cur.execute(
                 f"DELETE FROM {tabla} WHERE source = ANY(%s) AND content_hash <> ALL(%s);",
                 (sorted({c.fuente for c in chunks}), [f[0] for f in filas]),
@@ -136,8 +223,6 @@ def insertar(chunks: list[Chunk], vectores: list[list[float]], dsn: str, tabla: 
             obsoletos = cur.rowcount
             if obsoletos:
                 print(f"[ingesta] {obsoletos} chunk(s) obsoleto(s) borrado(s)")
-            # cur.rowcount solo refleja el último lote de execute_values, así que
-            # se cuenta la tabla en lugar de reportar un número engañoso.
             cur.execute(f"SELECT count(*) FROM {tabla};")
             total = int(cur.fetchone()[0])
         conn.commit()
@@ -150,14 +235,26 @@ def insertar(chunks: list[Chunk], vectores: list[list[float]], dsn: str, tabla: 
 
 
 def main() -> None:
+    load_dotenv(".env.local")
+
+    default_table = os.getenv("RAG_TABLE", "chunks_gemini")
+
+    posibles_rutas = [
+        "data/processed/clean/COMPORTAMIENTO-EN-CASO-DE-ACCIDENTE-PRIMEROS-AUXILIOS_clean.txt",
+        "data/processed/corpus_reconstruido.txt",
+        "data/processed/corpus_limpio.txt",
+    ]
+    ruta_default = next((r for r in posibles_rutas if os.path.exists(r)), posibles_rutas[0])
+
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--texto", required=True, help="archivo de texto del documento")
+    p.add_argument("--texto", default=ruta_default, help=f"archivo de texto del documento (default: {ruta_default})")
     p.add_argument("--fuente", default=FUENTE_DEFAULT, help="nombre del documento origen")
-    p.add_argument("--tabla", default="chunks")
+    p.add_argument("--tabla", default=default_table, help=f"tabla destino (default: {default_table})")
     p.add_argument("--dry-run", action="store_true", help="chunkea y reporta, sin tocar la base")
     args = p.parse_args()
 
-    load_dotenv(".env.local")
+    if not os.path.exists(args.texto):
+        sys.exit(f"ERROR: no se encontró el archivo de texto: {args.texto}")
 
     with open(args.texto, encoding="utf-8") as f:
         texto = f.read()
@@ -177,16 +274,29 @@ def main() -> None:
             print(f"      {c.texto[:200]}…")
         return
 
-    api_key = os.getenv("COHERE_API_KEY")
+    gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    cohere_key = os.getenv("COHERE_API_KEY")
     dsn = os.getenv("DATABASE_URL")
-    if not api_key or not dsn:
-        sys.exit("ERROR: faltan COHERE_API_KEY o DATABASE_URL (ver .env.example)")
+
+    if not dsn:
+        sys.exit("ERROR: falta DATABASE_URL en .env.local")
+
+    if not gemini_key and not cohere_key:
+        sys.exit("ERROR: falta GEMINI_API_KEY (o COHERE_API_KEY) en .env.local")
+
+    usar_gemini = bool(gemini_key)
+    proveedor = "Google text-embedding-004 (768d)" if usar_gemini else "Cohere embed-multilingual-v3.0 (1024d)"
+    print(f"[ingesta] usando proveedor de embeddings: {proveedor} hacia tabla '{args.tabla}'")
 
     vectores: list[list[float]] = []
     inicio = time.monotonic()
     for i in range(0, len(chunks), LOTE):
         lote = chunks[i : i + LOTE]
-        vectores.extend(embeber_lote([c.texto for c in lote], api_key))
+        textos_lote = [c.texto for c in lote]
+        if usar_gemini:
+            vectores.extend(embeber_lote_gemini(textos_lote, gemini_key))
+        else:
+            vectores.extend(embeber_lote_cohere(textos_lote, cohere_key))
         print(f"[ingesta] embebidos {len(vectores)}/{len(chunks)}", flush=True)
 
     if len(vectores) != len(chunks):
@@ -195,10 +305,10 @@ def main() -> None:
     total = insertar(chunks, vectores, dsn, args.tabla)
     print(
         f"[ingesta] LISTO: la tabla '{args.tabla}' quedó con {total} filas "
-        f"({len(chunks)} chunks procesados) en {time.monotonic() - inicio:.1f}s "
-        f"({(len(chunks) + LOTE - 1) // LOTE} llamadas a Cohere, 1 INSERT)"
+        f"({len(chunks)} chunks procesados) en {time.monotonic() - inicio:.1f}s"
     )
 
 
 if __name__ == "__main__":
     main()
+

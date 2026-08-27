@@ -1,12 +1,7 @@
-"""Embeddings de Cohere.
+"""Embeddings con Google AI Studio (text-embedding-004).
 
-Dos arreglos respecto de la versión que estaba inline en agent.py:
-
-1. Reusa la ClientSession compartida del SDK (utils.http_context.http_session())
-   en lugar de crear una nueva por llamada. Esa session ya trae un TCPConnector
-   con keepalive de 120s, así que se ahorra el handshake TLS con Cohere en cada
-   turno (~50-150 ms).
-2. Tiene timeout. Antes no había ninguno.
+Genera vectores de 768 dimensiones optimizados para búsqueda semántica.
+Utiliza aiohttp reutilizando la sesión compartida con keepalive.
 """
 
 from __future__ import annotations
@@ -18,77 +13,101 @@ import aiohttp
 
 from .config import RagSettings
 from .errors import RetrievalError
-from .ratelimit import esperar_turno
 from .session import cohere_session
 
 logger = logging.getLogger("rag.embeddings")
 
 
 async def embed_query(text: str, settings: RagSettings) -> list[float]:
-    """Embebe la consulta del usuario. input_type asimétrico respecto de la ingesta."""
-    return await _embed(text, settings, input_type="search_query")
+    """Embebe la consulta del usuario usando taskType RETRIEVAL_QUERY."""
+    if not settings.gemini_api_key:
+        raise RetrievalError("GEMINI_API_KEY no está configurada")
 
-
-async def embed_documents(texts: list[str], settings: RagSettings) -> list[list[float]]:
-    """Embebe chunks para ingesta. Cohere acepta hasta 96 textos por llamada."""
-    if len(texts) > 96:
-        raise ValueError(f"Cohere acepta 96 textos por llamada, recibí {len(texts)}")
-    return await _embed_many(texts, settings, input_type="search_document")
-
-
-async def _embed(text: str, settings: RagSettings, *, input_type: str) -> list[float]:
-    vectors = await _embed_many([text], settings, input_type=input_type)
-    return vectors[0]
-
-
-async def _embed_many(
-    texts: list[str], settings: RagSettings, *, input_type: str
-) -> list[list[float]]:
+    url = f"{settings.gemini_embed_url}?key={settings.gemini_api_key}"
     payload = {
-        "texts": texts,
-        "model": settings.embed_model,
-        "input_type": input_type,
-        "embedding_types": ["float"],
+        "model": f"models/{settings.embed_model}",
+        "content": {"parts": [{"text": text}]},
+        "taskType": "RETRIEVAL_QUERY",
+        "outputDimensionality": 768,
     }
     headers = {
-        "Authorization": f"Bearer {settings.cohere_api_key}",
         "Content-Type": "application/json",
-        "Accept": "application/json",
+        "x-goog-api-key": settings.gemini_api_key,
     }
     timeout = aiohttp.ClientTimeout(total=settings.embed_timeout_s, connect=0.5)
 
-    # Un solo reintento: más allá de eso ya se agotó la paciencia de quien llama,
-    # y conviene fallar a RetrievalError para que el agente lo diga y derive.
     last_error: Exception | None = None
     for attempt in (1, 2):
-        await esperar_turno()
         try:
             async with cohere_session().post(
-                settings.cohere_embed_url, headers=headers, json=payload, timeout=timeout
+                url, headers=headers, json=payload, timeout=timeout
             ) as response:
-                if response.status >= 500 or response.status == 429:
+                if response.status == 200:
+                    data = await response.json()
+                    return data["embedding"]["values"]
+                elif response.status in (429, 500, 503):
                     last_error = RetrievalError(
-                        f"Cohere devolvió {response.status}: {(await response.text())[:200]}"
-                    )
-                elif response.status != 200:
-                    # 4xx que no es rate limit: reintentar no va a ayudar.
-                    raise RetrievalError(
-                        f"Cohere devolvió {response.status}: {(await response.text())[:200]}"
+                        f"Google AI devolvió {response.status}: {(await response.text())[:200]}"
                     )
                 else:
-                    data = await response.json()
-                    return data["embeddings"]["float"]
+                    raise RetrievalError(
+                        f"Google AI devolvió {response.status}: {(await response.text())[:200]}"
+                    )
         except asyncio.TimeoutError as exc:
             last_error = RetrievalError(
-                f"timeout de {settings.embed_timeout_s}s embebiendo en Cohere"
+                f"timeout de {settings.embed_timeout_s}s embebiendo en Google AI"
             )
             last_error.__cause__ = exc
         except aiohttp.ClientError as exc:
-            last_error = RetrievalError(f"error de red hablando con Cohere: {exc}")
+            last_error = RetrievalError(f"error de red hablando con Google AI: {exc}")
             last_error.__cause__ = exc
 
         if attempt == 1:
             logger.warning("embedding falló (intento 1), reintentando: %s", last_error)
             await asyncio.sleep(0.15)
 
-    raise last_error or RetrievalError("no se pudo embeber la consulta")
+    raise last_error or RetrievalError("no se pudo embeber la consulta con Google AI")
+
+
+async def embed_documents(texts: list[str], settings: RagSettings) -> list[list[float]]:
+    """Embebe documentos para ingesta usando taskType RETRIEVAL_DOCUMENT.
+
+    Google batchEmbedContents acepta hasta 100 textos por llamada.
+    """
+    if not settings.gemini_api_key:
+        raise RetrievalError("GEMINI_API_KEY no está configurada")
+
+    if not texts:
+        return []
+
+    url = f"{settings.gemini_batch_embed_url}?key={settings.gemini_api_key}"
+    requests_payload = [
+        {
+            "model": f"models/{settings.embed_model}",
+            "content": {"parts": [{"text": t}]},
+            "taskType": "RETRIEVAL_DOCUMENT",
+            "outputDimensionality": 768,
+        }
+        for t in texts
+    ]
+
+    payload = {"requests": requests_payload}
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": settings.gemini_api_key,
+    }
+    timeout = aiohttp.ClientTimeout(total=30.0, connect=2.0)
+
+    try:
+        async with cohere_session().post(
+            url, headers=headers, json=payload, timeout=timeout
+        ) as response:
+            if response.status != 200:
+                raise RetrievalError(
+                    f"Google batchEmbedContents devolvió {response.status}: {(await response.text())[:300]}"
+                )
+            data = await response.json()
+            return [emb["values"] for emb in data.get("embeddings", [])]
+    except Exception as exc:
+        raise RetrievalError(f"error al generar embeddings en lote: {exc}") from exc
+
