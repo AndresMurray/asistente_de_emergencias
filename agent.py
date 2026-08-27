@@ -115,7 +115,8 @@ async def entrypoint(ctx: agents.JobContext):
         ),
         tts=inference.TTS(
             model="cartesia/sonic-3",
-            voice=os.getenv("CARTESIA_VOICE_ID", "5c25db7c-47b2-4d43-85f2-49d7ad5f514d"),
+            voice=os.getenv("CARTESIA_VOICE_ID", "b4b8e2af-6139-466e-a93a-30c20d2e1fc5"),
+            extra_kwargs={"language": "es"},
         ),
         turn_handling={
             "endpointing": {"mode": "dynamic", "max_delay": 4.5},
