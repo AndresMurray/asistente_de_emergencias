@@ -7,10 +7,6 @@ Comparado con `agent.py console`, esto no gasta STT ni TTS y no necesita hablarl
 a la máquina, así que se pueden probar veinte variantes de prompt en el tiempo
 que lleva una llamada.
 
-Lo que NO cubre, y por eso hay que probar en console antes de la demo: el
-reconocimiento de voz (los keyterms), el corte de turno, las interrupciones y
-cómo suena la voz.
-
 Uso:
     python ensayo.py                      # corre los escenarios guionados
     python ensayo.py --interactivo         # se escribe a mano
@@ -33,7 +29,6 @@ load_dotenv(".env.local")
 from livekit.agents import AgentSession, inference  # noqa: E402
 from livekit.agents.utils import http_context  # noqa: E402
 
-import telephony  # noqa: E402
 from agent import Assistant  # noqa: E402
 from triage import AVISO_CRITICO, TriageState, procesar_turno_usuario  # noqa: E402
 
@@ -41,17 +36,17 @@ from triage import AVISO_CRITICO, TriageState, procesar_turno_usuario  # noqa: E
 # tienen que fallar de forma segura.
 ESCENARIOS: dict[str, list[str]] = {
     "critico": [
-        "Choqué con la moto en la ruta 2 kilómetro 40, estoy en la banquina",
+        "Choqué con la moto, estoy en la banquina",
         "Hay un señor tirado en el asfalto, no se mueve y no respira",
         "Ya le hice las compresiones, ¿ahora qué?",
     ],
     "hemorragia": [
-        "Hola, hubo un choque en Camino Centenario y 514, en Berisso",
+        "Hola, hubo un choque múltiple",
         "Una chica se está desangrando de la pierna, sale mucha sangre",
         "Le puse una remera apretando, ¿está bien?",
     ],
     "leve": [
-        "Tuve un roce con otro auto en la autopista La Plata Buenos Aires",
+        "Tuve un roce con otro auto",
         "Nadie está lastimado, solo estamos asustados",
         "¿Tengo que mover el auto o lo dejo?",
     ],
@@ -59,10 +54,10 @@ ESCENARIOS: dict[str, list[str]] = {
         "Hola, quería saber cuánto sale la VTV",
         "¿Y el seguro me cubre el granizo?",
     ],
-    "sin_ubicacion": [
-        "¡Hay un accidente terrible, vengan rápido!",
-        "No sé dónde estoy, pero hay gente lastimada",
-        "Mandá la ambulancia ya",
+    "con_riesgo": [
+        "Chocamos contra un poste",
+        "No hay nadie herido pero sale humo y olor a combustible del motor",
+        "¿Qué hacemos?",
     ],
 }
 
@@ -76,7 +71,6 @@ async def correr(nombre: str, turnos: list[str], modelo: str) -> None:
             model=modelo,
             extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True},
         ),
-        tools=[telephony.toolset()],
         max_tool_steps=5,
     )
     await session.start(Assistant())
@@ -129,17 +123,7 @@ def _corto(valor, n: int = 95) -> str:
 
 
 async def _leer(prompt: str) -> str | None:
-    """Lee una línea de stdin sin bloquear el event loop. None = fin de entrada.
-
-    input() directo bloquea el loop, y eso rompe justo lo que este script tiene
-    que poder ensayar: la derivación al 911 corre en background dentro del
-    AsyncToolset, así que con el loop bloqueado el marcado queda congelado
-    mientras uno escribe.
-
-    El hilo es daemon a propósito. Al cortar con Ctrl-C queda trabado leyendo
-    stdin, y un hilo del pool de asyncio.to_thread haría que el intérprete se
-    cuelgue al salir esperando a que termine.
-    """
+    """Lee una línea de stdin sin bloquear el event loop."""
     loop = asyncio.get_running_loop()
     fut: asyncio.Future[str | None] = loop.create_future()
 
@@ -162,7 +146,6 @@ async def interactivo(modelo: str) -> None:
             model=modelo,
             extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True},
         ),
-        tools=[telephony.toolset()],
         max_tool_steps=5,
     )
     await session.start(Assistant())
@@ -176,16 +159,12 @@ async def interactivo(modelo: str) -> None:
                 break
             await un_turno(session, texto)
     except (KeyboardInterrupt, asyncio.CancelledError):
-        # asyncio.run() cancela la tarea principal ante Ctrl-C, así que el corte
-        # llega como CancelledError desde el await de adentro, no como
-        # KeyboardInterrupt. Igual queremos el resumen del estado.
         print("\n· corte manual")
     finally:
         resumen(session.userdata)
         try:
             await session.aclose()
         except (asyncio.CancelledError, Exception):
-            # Si veníamos de un cancel, este await se cancela de nuevo al toque.
             pass
 
 
@@ -204,9 +183,6 @@ async def main() -> None:
         return
 
     logging.basicConfig(level=logging.INFO if args.verboso else logging.WARNING)
-
-    if telephony.modo_simulado():
-        print("· derivación al 911 EN MODO SIMULADO (no se llama a ningún teléfono)")
     print(f"· modelo: {args.modelo}")
 
     async with http_context.open():
@@ -227,6 +203,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        # Un Ctrl-C es una forma legítima de terminar un ensayo, no un error:
-        # sin esto salía un traceback de 20 líneas.
         print("\n· cortado")
