@@ -26,6 +26,7 @@ from triage import (
     AVISO_CRITICO,
     TriageState,
     derivar_a_emergencias,
+    generar_aviso_critico,
     procesar_turno_usuario,
     registrar_datos_escena,
 )
@@ -90,8 +91,9 @@ class Assistant(Agent):
             new_message.text_content, self.session.userdata
         )
         if senal:
+            aviso = generar_aviso_critico(senal, self.session.userdata)
             turn_ctx.add_message(
-                role="system", content=AVISO_CRITICO.format(senal=senal)
+                role="system", content=aviso
             )
 
 
@@ -228,7 +230,8 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
             senal = procesar_turno_usuario(query, session.userdata)
             entrada = query
             if senal:
-                entrada = f"{query}\n\n[{AVISO_CRITICO.format(senal=senal)}]"
+                aviso = generar_aviso_critico(senal, session.userdata)
+                entrada = f"{query}\n\n[{aviso}]"
 
             try:
                 session.interrupt()

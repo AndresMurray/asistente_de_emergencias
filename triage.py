@@ -29,15 +29,22 @@ logger = logging.getLogger("triage")
 # Señales de riesgo de vida, tal como las dice una persona común por teléfono.
 # Se usan para detectar el caso crítico de forma DETERMINÍSTICA, sin depender de
 # que el modelo se acuerde de llamar una tool.
-SENALES_CRITICAS = (
+SENALES_INCONSCIENCIA = (
+    "inconsciente", "desmayado", "desvanecido", "no reacciona", "no responde", "no se mueve",
+)
+
+SENALES_PARO_RESPIRATORIO = (
     "no respira", "no está respirando", "no esta respirando", "dejó de respirar",
-    "dejo de respirar", "no reacciona", "no responde", "no se mueve",
-    "inconsciente", "desmayado", "desvanecido",
+    "dejo de respirar", "no tiene pulso", "se está muriendo", "se esta muriendo",
+)
+
+SENALES_CRITICAS = (
+    *SENALES_PARO_RESPIRATORIO,
+    *SENALES_INCONSCIENCIA,
     "se desangra", "sangra mucho", "mucha sangre", "hemorragia",
     "atrapado", "aplastado", "prensado",
     "fuego", "se prendió", "se prendio", "incendio", "humo", "combustible",
-    "nafta", "convulsion", "convulsión", "no tiene pulso", "se está muriendo",
-    "se esta muriendo",
+    "nafta", "convulsion", "convulsión",
 )
 
 
@@ -53,6 +60,34 @@ AVISO_CRITICO = (
     "corresponde, dala en un paso, y derivá con derivar_a_emergencias "
     "avisando que ya fue geolocalizada y el 911 va en camino."
 )
+
+
+def generar_aviso_critico(senal: str, st: TriageState) -> str:
+    """Genera la instrucción específica según el tipo de riesgo de vida detectado."""
+    senal_baja = senal.lower()
+    es_inconsciencia = any(s in senal_baja for s in SENALES_INCONSCIENCIA)
+
+    if es_inconsciencia and st.respira is None:
+        return (
+            f"PERSONA INCONSCIENTE («{senal}»): Aún NO se confirmó si respira. "
+            "PROHIBIDO ordenar RCP o masaje cardíaco a ciegas sin saber si respira. "
+            "Tu primer paso es pedir de inmediato que verifique si respira "
+            "(«Fijate si se le mueve el pecho o si sentís su respiración. ¿Respira?»), "
+            "y derivar con derivar_a_emergencias."
+        )
+    if es_inconsciencia and st.respira is True:
+        return (
+            f"PERSONA INCONSCIENTE QUE RESPIRA («{senal}»): Respira normalmente. "
+            "NO hagas compresiones torácicas ni RCP. Indicá mantener la vía aérea permeable "
+            "y vigilar la respiración continua hasta que llegue la ayuda, y derivá con derivar_a_emergencias."
+        )
+    if any(s in senal_baja for s in SENALES_PARO_RESPIRATORIO) or st.respira is False:
+        return (
+            f"PARO / NO RESPIRA («{senal}»): La persona no respira. "
+            "Buscá RCP con buscar_protocolo, indicá iniciar compresiones torácicas en el "
+            "centro del pecho de inmediato y derivá con derivar_a_emergencias."
+        )
+    return AVISO_CRITICO.format(senal=senal)
 
 
 def procesar_turno_usuario(texto: str, st: TriageState) -> str | None:
@@ -206,6 +241,18 @@ async def registrar_datos_escena(
     logger.info("triage | guardado=%s | estado=%s", guardados, st.brief())
 
     if st.critico() and not st.derivado:
+        if st.consciente is False and st.respira is None:
+            return (
+                "Registrado. HAY RIESGO DE VIDA (persona inconsciente): dejá de juntar datos. "
+                "NO indiques RCP sin saber si respira: pedile de inmediato verificar si "
+                "respira (si se le mueve el pecho) y derivá con derivar_a_emergencias."
+            )
+        if st.consciente is False and st.respira is True:
+            return (
+                "Registrado. La persona está inconsciente pero RESPIRA. "
+                "NO hagas RCP ni compresiones. Indicá mantener la vía aérea abierta y vigilar, "
+                "y derivá con derivar_a_emergencias."
+            )
         return (
             "Registrado. HAY RIESGO DE VIDA: dejá de juntar datos. "
             "Dale primero la indicación que salva la vida (buscala con "

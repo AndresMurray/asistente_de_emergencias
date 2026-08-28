@@ -22,6 +22,11 @@ import logging
 import sys
 import threading
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 from dotenv import load_dotenv
 
 load_dotenv(".env.local")
@@ -30,11 +35,26 @@ from livekit.agents import AgentSession, inference  # noqa: E402
 from livekit.agents.utils import http_context  # noqa: E402
 
 from agent import Assistant  # noqa: E402
-from triage import AVISO_CRITICO, TriageState, procesar_turno_usuario  # noqa: E402
+from triage import (
+    AVISO_CRITICO,
+    TriageState,
+    generar_aviso_critico,
+    procesar_turno_usuario,
+)  # noqa: E402
 
 # Escenarios pensados para ejercitar los caminos que importan, incluidos los que
 # tienen que fallar de forma segura.
 ESCENARIOS: dict[str, list[str]] = {
+    "inconsciente_respira": [
+        "Choqué contra otro auto, estoy en la banquina",
+        "El acompañante quedó inconsciente, no me responde",
+        "Sí, se le mueve el pecho, está respirando",
+    ],
+    "inconsciente_no_respira": [
+        "Choqué contra otro auto, estoy en la banquina",
+        "El acompañante está inconsciente y no responde",
+        "No, no se mueve el pecho y no respira",
+    ],
     "critico": [
         "Choqué con la moto, estoy en la banquina",
         "Hay un señor tirado en el asfalto, no se mueve y no respira",
@@ -88,7 +108,8 @@ async def un_turno(session: AgentSession, texto: str) -> None:
     # session.run() no pasa por Agent.on_user_turn_completed, así que la
     # detección determinística de riesgo de vida hay que invocarla acá.
     senal = procesar_turno_usuario(texto, session.userdata)
-    entrada = texto if not senal else f"{texto}\n\n[{AVISO_CRITICO.format(senal=senal)}]"
+    aviso = generar_aviso_critico(senal, session.userdata) if senal else ""
+    entrada = texto if not senal else f"{texto}\n\n[{aviso}]"
 
     print(f"\n>>> {texto}")
     if senal:
