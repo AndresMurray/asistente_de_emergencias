@@ -168,25 +168,43 @@ async def entrypoint(ctx: agents.JobContext):
     @session.on("conversation_item_added")
     def _on_item(ev):
         item = ev.item
-        if getattr(item, "role", None) != "assistant":
-            return
+        role = getattr(item, "role", None)
         m = getattr(item, "metrics", None) or {}
         if not m:
             return
-        # Save metrics for debug mode
-        session.userdata.last_llm_metrics = {
-            "e2e_latency_ms": m.get("e2e_latency"),
-            "llm_ttft_ms": m.get("llm_node_ttft"),
-            "tts_ttfb_ms": m.get("tts_node_ttfb"),
-            "end_of_turn_delay_ms": m.get("end_of_turn_delay"),
-        }
-        logger.info(
-            "latencia | e2e=%s ttft=%s tts_ttfb=%s fin_turno=%s",
-            _ms(m.get("e2e_latency")),
-            _ms(m.get("llm_node_ttft")),
-            _ms(m.get("tts_node_ttfb")),
-            _ms(m.get("end_of_turn_delay")),
-        )
+
+        if role == "assistant":
+            # Save metrics for debug mode
+            session.userdata.last_llm_metrics = {
+                "e2e_latency_ms": m.get("e2e_latency"),
+                "llm_ttft_ms": m.get("llm_node_ttft"),
+                "tts_ttfb_ms": m.get("tts_node_ttfb"),
+                "playback_latency_ms": m.get("playback_latency"),
+            }
+            logger.info(
+                "latencia | e2e=%s ttft=%s tts_ttfb=%s playback=%s",
+                _ms(m.get("e2e_latency")),
+                _ms(m.get("llm_node_ttft")),
+                _ms(m.get("tts_node_ttfb")),
+                _ms(m.get("playback_latency")),
+            )
+        elif role == "user":
+            # end_of_turn_delay solo existe en mensajes del usuario
+            eot = m.get("end_of_turn_delay")
+            if eot is not None and session.userdata.last_llm_metrics is not None:
+                session.userdata.last_llm_metrics["end_of_turn_delay_ms"] = eot
+
+    @session.on("metrics_collected")
+    def _on_metrics(ev):
+        m = ev.metrics
+        if hasattr(m, "completion_tokens"):
+            session.userdata.last_llm_tokens = {
+                "prompt_tokens": m.prompt_tokens,
+                "completion_tokens": m.completion_tokens,
+                "total_tokens": m.total_tokens,
+                "cached_tokens": m.prompt_cached_tokens,
+                "tokens_per_second": m.tokens_per_second,
+            }
 
     @session.on("session_usage_updated")
     def _on_usage(ev):
@@ -270,6 +288,8 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
             # Clear previous turn debug data
             session.userdata.tool_calls.clear()
             session.userdata.last_llm_metrics = None
+            session.userdata.last_llm_tokens = None
+            t_start = time.monotonic()
 
             senal = procesar_turno_usuario(query, session.userdata)
             entrada = query
@@ -284,6 +304,8 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
             except (asyncio.CancelledError, Exception) as exc:
                 logger.warning("run de chat interrumpido o fallido: %s", exc)
 
+            total_ms = int((time.monotonic() - t_start) * 1000)
+
             messages = session.history.messages()
             assistant_msgs = [m for m in messages if m.role == "assistant"]
             reply = (
@@ -295,11 +317,26 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
 
             if debug:
                 tool_calls = list(session.userdata.tool_calls)
-                llm_metrics = session.userdata.last_llm_metrics
+                llm_metrics = session.userdata.last_llm_metrics or {}
+                llm_tokens = session.userdata.last_llm_tokens
                 retriever = _get_retriever()
+
+                # Count searches
+                search_count = sum(1 for tc in tool_calls if tc.get("tool") == "buscar_protocolo")
+
+                # Merge tokens into metrics
+                if llm_tokens:
+                    llm_metrics["prompt_tokens"] = llm_tokens.get("prompt_tokens")
+                    llm_metrics["completion_tokens"] = llm_tokens.get("completion_tokens")
+                    llm_metrics["total_tokens"] = llm_tokens.get("total_tokens")
+                    llm_metrics["cached_tokens"] = llm_tokens.get("cached_tokens")
+                    llm_metrics["tokens_per_second"] = llm_tokens.get("tokens_per_second")
+
                 reply_payload = {
                     "type": "chat_reply_debug",
                     "message": reply,
+                    "total_response_ms": total_ms,
+                    "search_count": search_count,
                     "tool_calls": tool_calls,
                     "llm_metrics": llm_metrics,
                     "config": {

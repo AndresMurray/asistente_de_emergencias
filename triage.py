@@ -130,6 +130,8 @@ class TriageState:
     tool_calls: list[dict] = field(default_factory=list)
     # Debug: métricas del último response del LLM
     last_llm_metrics: dict | None = None
+    # Debug: uso de tokens del LLM
+    last_llm_tokens: dict | None = None
 
     # -- consultas ---------------------------------------------------------
 
