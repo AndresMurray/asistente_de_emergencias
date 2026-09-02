@@ -126,6 +126,11 @@ class TriageState:
     # Lo que dijo la persona, textual.
     dichos: list[str] = field(default_factory=list)
 
+    # Debug: tool calls en el turno actual
+    tool_calls: list[dict] = field(default_factory=list)
+    # Debug: métricas del último response del LLM
+    last_llm_metrics: dict | None = None
+
     # -- consultas ---------------------------------------------------------
 
     def faltantes(self) -> list[str]:
@@ -238,6 +243,17 @@ async def registrar_datos_escena(
     if not guardados:
         return "No me pasaste ningún dato. Preguntale a la persona qué falta."
 
+    context.userdata.tool_calls.append({
+        "tool": "registrar_datos_escena",
+        "args": {
+            k: v for k, v in (
+                ("que_paso", que_paso), ("heridos", heridos), ("riesgos", riesgos),
+                ("consciente", consciente), ("respira", respira), ("caller_seguro", caller_seguro),
+            ) if v is not None
+        },
+        "saved_fields": guardados,
+    })
+
     logger.info("triage | guardado=%s | estado=%s", guardados, st.brief())
 
     if st.critico() and not st.derivado:
@@ -294,6 +310,12 @@ async def derivar_a_emergencias(context: RunContext[TriageState]) -> str:
             )
 
     st.derivado = True
+    context.userdata.tool_calls.append({
+        "tool": "derivar_a_emergencias",
+        "args": {},
+        "was_critical": st.critico(),
+        "triage_brief": st.brief(),
+    })
     logger.info("derivar_a_emergencias | geolocalizado | estado=%s", st.brief())
 
     primero = ""

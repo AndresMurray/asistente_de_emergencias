@@ -34,6 +34,12 @@ class RetrievalResult:
     error: str | None = None
     latency_ms: int = 0
     top_score: float | None = None
+    # Per-phase timing for debug
+    embed_ms: int = 0
+    vector_search_ms: int = 0
+    rerank_ms: int = 0
+    candidate_count: int = 0
+    reranked: bool = False
 
     def para_llm(self) -> str:
         """Formatea los fragmentos como contexto para el modelo."""
@@ -41,6 +47,30 @@ class RetrievalResult:
         for i, frag in enumerate(self.fragments, start=1):
             bloques.append(f"[{i}] {frag.cita()}\n{frag.text}")
         return "\n\n".join(bloques)
+
+    def to_debug_dict(self) -> dict:
+        """Serializa el resultado para el frontend de debug."""
+        return {
+            "status": self.status,
+            "latency_ms": self.latency_ms,
+            "embed_ms": self.embed_ms,
+            "vector_search_ms": self.vector_search_ms,
+            "rerank_ms": self.rerank_ms,
+            "candidate_count": self.candidate_count,
+            "reranked": self.reranked,
+            "top_score": self.top_score,
+            "fragments": [
+                {
+                    "text": f.text[:300],
+                    "score": f.score,
+                    "section": f.section,
+                    "subsection": f.subsection,
+                    "page_start": f.page_start,
+                    "page_end": f.page_end,
+                }
+                for f in self.fragments
+            ],
+        }
 
 
 class Retriever:
@@ -84,6 +114,12 @@ class Retriever:
         elapsed = int((time.monotonic() - started) * 1000)
         top_score = fragments[0].score if fragments else None
 
+        embed_ms = getattr(self, "_last_embed_ms", 0)
+        vector_search_ms = getattr(self, "_last_vector_search_ms", 0)
+        rerank_ms = getattr(self, "_last_rerank_ms", 0)
+        candidate_count = getattr(self, "_last_candidate_count", 0)
+        reranked = getattr(self, "_last_reranked", False)
+
         if not fragments:
             logger.info(
                 "sin match | query='%s' latency_ms=%d top_score=%s", query, elapsed, top_score
@@ -100,19 +136,37 @@ class Retriever:
             len(fragments),
         )
         return RetrievalResult(
-            status="ok", fragments=fragments, latency_ms=elapsed, top_score=top_score
+            status="ok",
+            fragments=fragments,
+            latency_ms=elapsed,
+            top_score=top_score,
+            embed_ms=embed_ms,
+            vector_search_ms=vector_search_ms,
+            rerank_ms=rerank_ms,
+            candidate_count=candidate_count,
+            reranked=reranked,
         )
 
     async def _search_inner(self, query: str) -> list[Fragment]:
         settings = self._settings
+
+        t0 = time.monotonic()
         vector = await embed_query(query, settings)
+        embed_ms = int((time.monotonic() - t0) * 1000)
+
+        t0 = time.monotonic()
         candidatos = await self._store.search(vector, settings.k_vector)
+        vector_search_ms = int((time.monotonic() - t0) * 1000)
+
         if not candidatos:
             return []
 
         rerankeado = False
+        rerank_ms = 0
         if settings.rerank_enabled:
+            t0 = time.monotonic()
             candidatos, rerankeado = await self._rerank(query, candidatos)
+            rerank_ms = int((time.monotonic() - t0) * 1000)
 
         # El piso depende de qué escala tienen los scores. Si el rerank falló y
         # se degradó al coseno, aplicar el piso del reranker (0.08) sobre scores
@@ -121,6 +175,14 @@ class Retriever:
 
         if piso > 0:
             candidatos = [f for f in candidatos if f.score >= piso]
+
+        # Attach per-phase timing to fragments via a wrapper
+        self._last_embed_ms = embed_ms
+        self._last_vector_search_ms = vector_search_ms
+        self._last_rerank_ms = rerank_ms
+        self._last_candidate_count = len(candidatos)
+        self._last_reranked = rerankeado
+
         return candidatos[: settings.top_k]
 
     async def _rerank(

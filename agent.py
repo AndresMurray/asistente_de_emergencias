@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 
 # pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
@@ -60,8 +61,38 @@ async def buscar_protocolo(context: RunContext, query: str) -> str:
     """
     retriever = _get_retriever()
 
+    t0 = time.monotonic()
     async with context.with_filler("Dame un segundo.", delay=0.7, max_steps=1):
         result = await retriever.search(query)
+    elapsed = int((time.monotonic() - t0) * 1000)
+
+    # Store debug data in userdata
+    context.userdata.tool_calls.append({
+        "tool": "buscar_protocolo",
+        "args": {"query": query},
+        "status": result.status,
+        "error": result.error,
+        "chunks_found": len(result.fragments),
+        "top_score": result.top_score,
+        "total_latency_ms": elapsed,
+        "embed_ms": result.embed_ms,
+        "vector_search_ms": result.vector_search_ms,
+        "rerank_ms": result.rerank_ms,
+        "candidate_count": result.candidate_count,
+        "reranked": result.reranked,
+        "fragments": [
+            {
+                "text": f.text[:300],
+                "score": f.score,
+                "section": f.section,
+                "subsection": f.subsection,
+                "page_start": f.page_start,
+                "page_end": f.page_end,
+            }
+            for f in result.fragments
+        ],
+        "context_for_llm": result.para_llm() if result.status == "ok" else None,
+    })
 
     if result.status == "error":
         raise ToolError(
@@ -142,6 +173,13 @@ async def entrypoint(ctx: agents.JobContext):
         m = getattr(item, "metrics", None) or {}
         if not m:
             return
+        # Save metrics for debug mode
+        session.userdata.last_llm_metrics = {
+            "e2e_latency_ms": m.get("e2e_latency"),
+            "llm_ttft_ms": m.get("llm_node_ttft"),
+            "tts_ttfb_ms": m.get("tts_node_ttfb"),
+            "end_of_turn_delay_ms": m.get("end_of_turn_delay"),
+        }
         logger.info(
             "latencia | e2e=%s ttft=%s tts_ttfb=%s fin_turno=%s",
             _ms(m.get("e2e_latency")),
@@ -218,15 +256,21 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
 
         if isinstance(payload, dict):
             query = payload.get("message") or payload.get("text") or payload.get("content")
+            debug = payload.get("debug", False)
         else:
             query = str(payload)
+            debug = False
 
         if not query or not query.strip():
             return
 
-        logger.info("chat recibido: %s", query)
+        logger.info("chat recibido: %s (debug=%s)", query, debug)
 
         async def process_chat():
+            # Clear previous turn debug data
+            session.userdata.tool_calls.clear()
+            session.userdata.last_llm_metrics = None
+
             senal = procesar_turno_usuario(query, session.userdata)
             entrada = query
             if senal:
@@ -248,11 +292,33 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
                 else "No se pudo generar respuesta."
             )
             logger.info("respondiendo chat: %s", reply)
+
+            if debug:
+                tool_calls = list(session.userdata.tool_calls)
+                llm_metrics = session.userdata.last_llm_metrics
+                retriever = _get_retriever()
+                reply_payload = {
+                    "type": "chat_reply_debug",
+                    "message": reply,
+                    "tool_calls": tool_calls,
+                    "llm_metrics": llm_metrics,
+                    "config": {
+                        "llm_model": os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
+                        "embed_model": retriever.settings.embed_model,
+                        "rerank_enabled": retriever.settings.rerank_enabled,
+                        "rerank_model": retriever.settings.rerank_model if retriever.settings.rerank_enabled else None,
+                        "top_k": retriever.settings.top_k,
+                        "k_vector": retriever.settings.k_vector,
+                        "min_score": retriever.settings.min_score,
+                        "rerank_min_score": retriever.settings.min_rerank_score if retriever.settings.rerank_enabled else None,
+                    },
+                }
+            else:
+                reply_payload = {"type": "chat_reply", "message": reply}
+
             try:
                 await ctx.room.local_participant.publish_data(
-                    payload=json.dumps(
-                        {"type": "chat_reply", "message": reply}
-                    ).encode("utf-8"),
+                    payload=json.dumps(reply_payload).encode("utf-8"),
                     topic="test-chat",
                 )
             except Exception as exc:
