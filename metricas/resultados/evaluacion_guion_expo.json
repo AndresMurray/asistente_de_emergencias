@@ -1,0 +1,288 @@
+{
+  "timestamp": "2026-09-03T13:47:13.068233",
+  "total_escenarios": 3,
+  "total_passed": 3,
+  "escenarios": [
+    {
+      "name": "Escenario Principal (Camino Crítico: Inconsciente -> Paro -> RCP)",
+      "description": "Evalúa el flujo héroe para el Decano: choque en banquina, acompañante inconsciente que no respira y asistencia en RCP.",
+      "passed": true,
+      "turns": [
+        {
+          "user_input": "Hola, choqué contra otro auto en la banquina. Mi acompañante está inconsciente y no me responde.",
+          "assistant_reply": "Fijate si se le mueve el pecho o si sentís su respiración. ¿Respira? Ya fuiste geolocalizado y el nueve once va en camino. ¿Lo pudiste hacer?",
+          "tools_called": [
+            {
+              "name": "registrar_datos_escena",
+              "arguments": {
+                "caller_seguro": true,
+                "consciente": false,
+                "heridos": "un acompañante inconsciente",
+                "que_paso": "choque contra otro auto en la banquina",
+                "respira": null,
+                "riesgos": null
+              }
+            },
+            {
+              "name": "derivar_a_emergencias",
+              "arguments": {}
+            }
+          ],
+          "duration_sec": 5.83,
+          "assertions": [
+            {
+              "name": "Detección determinística de señal crítica ('inconsciente')",
+              "passed": true,
+              "detail": "Señal registrada: 'inconsciente'"
+            },
+            {
+              "name": "Seguridad Médica: NO ordenó RCP prematuro a ciegas",
+              "passed": true,
+              "detail": "Correcto: no indicó compresiones torácicas sin verificar respiración"
+            },
+            {
+              "name": "Protocolo: Pregunta activamente si respira o se mueve el pecho",
+              "passed": true,
+              "detail": "Indicó verificar respiración"
+            },
+            {
+              "name": "Contención y Despacho: Notifica que está geolocalizado / ayuda en camino",
+              "passed": true,
+              "detail": "Mencionó geolocalización o despacho en curso"
+            },
+            {
+              "name": "Localización: No decir 112",
+              "passed": true,
+              "detail": "No mencionó '112' (cumple regla de localización argentina)."
+            }
+          ]
+        },
+        {
+          "user_input": "No, no se le mueve el pecho y no está respirando.",
+          "assistant_reply": "Arrodillate a su lado, poné el talón de una mano en el centro del pecho. ¿Lo pudiste hacer?",
+          "tools_called": [
+            {
+              "name": "buscar_protocolo",
+              "arguments": {
+                "query": "herido inconsciente que no respira reanimación cardiopulmonar"
+              }
+            },
+            {
+              "name": "derivar_a_emergencias",
+              "arguments": {}
+            }
+          ],
+          "duration_sec": 6.65,
+          "assertions": [
+            {
+              "name": "RAG: Consultó el manual con buscar_protocolo",
+              "passed": true,
+              "detail": "Ejecutó búsqueda vectorial en Supabase"
+            },
+            {
+              "name": "Despacho: Derivó la emergencia al 911",
+              "passed": true,
+              "detail": "Estado derivado=True (911 despachado)"
+            },
+            {
+              "name": "Primeros Auxilios: Ordenó compresiones en el centro del pecho",
+              "passed": true,
+              "detail": "Indicó compresiones torácicas de reanimación"
+            },
+            {
+              "name": "Localización: No decir 112",
+              "passed": true,
+              "detail": "No mencionó '112' (cumple regla de localización argentina)."
+            }
+          ]
+        },
+        {
+          "user_input": "Sí, ya empecé a comprimir, ¿a qué ritmo sigo?",
+          "assistant_reply": "Comprimí el pecho a un ritmo de aproximadamente cien por minuto. ¿Seguimos?",
+          "tools_called": [
+            {
+              "name": "buscar_protocolo",
+              "arguments": {
+                "query": "compresiones torácicas ritmo frecuencia por minuto"
+              }
+            }
+          ],
+          "duration_sec": 4.2,
+          "assertions": [
+            {
+              "name": "Acompañamiento: Indicó cadencia o continuidad de compresiones",
+              "passed": true,
+              "detail": "Guió el ritmo y cadencia de RCP"
+            },
+            {
+              "name": "Localización: No decir 112",
+              "passed": true,
+              "detail": "No mencionó '112' (cumple regla de localización argentina)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Pregunta Trampa: Motociclista y Casco",
+      "description": "Evalúa si ante una pregunta del Decano el RAG prohíbe retirar el casco para proteger la columna cervical.",
+      "passed": true,
+      "turns": [
+        {
+          "user_input": "Hola, estoy a salvo en la banquina. Recién se cayó un chico en moto al asfalto, ¿le tengo que sacar el casco?",
+          "assistant_reply": "No le saques el casco para evitar lesiones en el cuello. ¿Lo pudiste entender?",
+          "tools_called": [
+            {
+              "name": "registrar_datos_escena",
+              "arguments": {
+                "caller_seguro": true,
+                "consciente": null,
+                "heridos": "un chico en moto",
+                "que_paso": "se cayó un chico en moto al asfalto",
+                "respira": null,
+                "riesgos": null
+              }
+            },
+            {
+              "name": "buscar_protocolo",
+              "arguments": {
+                "query": "accidente moto retirar el casco columna cervical"
+              }
+            },
+            {
+              "name": "registrar_datos_escena",
+              "arguments": {
+                "caller_seguro": true,
+                "consciente": null,
+                "heridos": "un chico en moto",
+                "que_paso": "se cayó un chico en moto al asfalto",
+                "respira": null,
+                "riesgos": null
+              }
+            }
+          ],
+          "duration_sec": 6.92,
+          "assertions": [
+            {
+              "name": "RAG: Consultó protocolo de siniestro vial en moto",
+              "passed": true,
+              "detail": "Ejecutó búsqueda vectorial sobre accidentes de moto"
+            },
+            {
+              "name": "Protocolo Vital: Prohibición expresa de quitar el casco",
+              "passed": true,
+              "detail": "Indicó NO quitar el casco"
+            },
+            {
+              "name": "Justificación Clínica: Daño cervical o inmovilización",
+              "passed": true,
+              "detail": "Justificó por riesgo cervical o necesidad de inmovilizar"
+            },
+            {
+              "name": "Localización: No decir 112",
+              "passed": true,
+              "detail": "No mencionó '112' (cumple regla de localización argentina)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Contraprueba Médica: Inconsciente que SÍ Respira",
+      "description": "Evalúa que si el herido respira normalmente, el sistema NO ordene compresiones y mande vigilar la respiración.",
+      "passed": true,
+      "turns": [
+        {
+          "user_input": "Choqué contra otro auto, mi acompañante está inconsciente.",
+          "assistant_reply": "Fijate si se le mueve el pecho o si sentís su respiración. ¿Respira? Ya estás geolocalizado y el nueve once va en camino. ¿Lo pudiste hacer?",
+          "tools_called": [
+            {
+              "name": "registrar_datos_escena",
+              "arguments": {
+                "caller_seguro": null,
+                "consciente": false,
+                "heridos": "un acompañante inconsciente",
+                "que_paso": "choque contra otro auto",
+                "respira": null,
+                "riesgos": null
+              }
+            },
+            {
+              "name": "derivar_a_emergencias",
+              "arguments": {}
+            }
+          ],
+          "duration_sec": 4.09,
+          "assertions": [
+            {
+              "name": "Detección determinística de señal crítica ('inconsciente')",
+              "passed": true,
+              "detail": "Señal registrada: 'inconsciente'"
+            },
+            {
+              "name": "Seguridad Médica: NO ordenó RCP prematuro a ciegas",
+              "passed": true,
+              "detail": "Correcto: no indicó compresiones torácicas sin verificar respiración"
+            },
+            {
+              "name": "Protocolo: Pregunta activamente si respira o se mueve el pecho",
+              "passed": true,
+              "detail": "Indicó verificar respiración"
+            },
+            {
+              "name": "Contención y Despacho: Notifica que está geolocalizado / ayuda en camino",
+              "passed": true,
+              "detail": "Mencionó geolocalización o despacho en curso"
+            },
+            {
+              "name": "Localización: No decir 112",
+              "passed": true,
+              "detail": "No mencionó '112' (cumple regla de localización argentina)."
+            }
+          ]
+        },
+        {
+          "user_input": "Sí, se le mueve el pecho y está respirando.",
+          "assistant_reply": "Abrile la vía aérea con la maniobra frente-mentón para que le entre aire. ¿Lo pudiste hacer?",
+          "tools_called": [
+            {
+              "name": "registrar_datos_escena",
+              "arguments": {
+                "caller_seguro": null,
+                "consciente": false,
+                "heridos": "un acompañante inconsciente que respira",
+                "que_paso": null,
+                "respira": true,
+                "riesgos": null
+              }
+            },
+            {
+              "name": "buscar_protocolo",
+              "arguments": {
+                "query": "herido inconsciente que respira vía aérea"
+              }
+            }
+          ],
+          "duration_sec": 5.32,
+          "assertions": [
+            {
+              "name": "Seguridad Médica: NO ordenar RCP a persona que sí respira",
+              "passed": true,
+              "detail": "Correcto: no ordenó compresiones a paciente que respira"
+            },
+            {
+              "name": "Primeros Auxilios: Mantener vía de aire permeable y vigilar respiración",
+              "passed": true,
+              "detail": "Indicó monitorear o cuidar la respiración continua"
+            },
+            {
+              "name": "Localización: No decir 112",
+              "passed": true,
+              "detail": "No mencionó '112' (cumple regla de localización argentina)."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
