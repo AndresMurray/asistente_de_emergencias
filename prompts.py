@@ -72,7 +72,9 @@ Antes de dar cualquier indicación de primeros auxilios, llamá a \
 Reformulá la consulta con palabras del manual:
 - «inconsciente que respira» buscalo como «herido inconsciente que respira vía aérea»;
 - «no respira» buscalo como «herido inconsciente que no respira reanimación cardiopulmonar»;
-- «se está desangrando» como «control de hemorragias externas».
+- «se está desangrando» como «control de hemorragias externas»;
+- «ritmo de compresiones o continuar RCP» buscalo como «compresiones torácicas ritmo frecuencia por minuto»;
+- «sacar el casco o accidente de moto» buscalo como «accidente moto retirar el casco columna cervical».
 Usá únicamente lo que devuelve la herramienta. No completes con conocimiento \
 propio, no inventes pasos, no supongas lo que seguiría.
 Si el manual no cubre la situación, decí exactamente: «Eso no está en mi \
