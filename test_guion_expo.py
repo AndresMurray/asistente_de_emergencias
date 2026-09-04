@@ -478,7 +478,7 @@ def imprimir_reporte_escenario(sc: ScenarioResult, index: int) -> None:
     print(f"{Fore.LIGHTBLACK_EX}  [Estado Triage Final] Crítico: {estado.critico()} | Derivado 911: {estado.derivado} | Señal: {estado.senal_critica}{Style.RESET_ALL}")
 
 
-def guardar_resultados_json(resultados: list[ScenarioResult], path: Path) -> None:
+def guardar_resultados_json(resultados: list[ScenarioResult], path: Path, modelo: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     serializable = []
     for sc in resultados:
@@ -503,6 +503,7 @@ def guardar_resultados_json(resultados: list[ScenarioResult], path: Path) -> Non
 
     payload = {
         "timestamp": datetime.now().isoformat(),
+        "modelo": modelo,
         "total_escenarios": len(resultados),
         "total_passed": sum(1 for s in resultados if s.passed),
         "escenarios": serializable,
@@ -528,6 +529,12 @@ async def main() -> int:
         "--modelo",
         default=os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
         help="Modelo de lenguaje a utilizar para la prueba",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("metricas/resultados/evaluacion_guion_expo.json"),
+        help="Archivo JSON de salida (evita pisar corridas de modelos distintos)",
     )
     args = parser.parse_args()
 
@@ -562,8 +569,8 @@ async def main() -> int:
     )
     all_passed = all(sc.passed for sc in resultados)
 
-    out_file = Path("metricas/resultados/evaluacion_guion_expo.json")
-    guardar_resultados_json(resultados, out_file)
+    out_file = args.output
+    guardar_resultados_json(resultados, out_file, args.modelo)
 
     print(f"\n{Fore.WHITE}{Style.BRIGHT}──────────────────────────────────────────────────────────────────────")
     print(f" RESUMEN DE EVALUACIÓN:")

@@ -1,0 +1,145 @@
+{
+  "timestamp": "2026-09-03T23:39:13.820771",
+  "modelo": "openai/gpt-5.4-nano",
+  "total_escenarios": 1,
+  "total_passed": 0,
+  "escenarios": [
+    {
+      "name": "Escenario Principal (Camino Crítico: Inconsciente -> Paro -> RCP)",
+      "description": "Evalúa el flujo héroe para el Decano: choque en banquina, acompañante inconsciente que no respira y asistencia en RCP.",
+      "passed": false,
+      "turns": [
+        {
+          "user_input": "Hola, choqué contra otro auto en la banquina. Mi acompañante está inconsciente y no me responde.",
+          "assistant_reply": "Fijate si se le mueve el pecho o si sentís su respiración. ¿Respira?",
+          "tools_called": [
+            {
+              "name": "buscar_protocolo",
+              "arguments": {
+                "query": "herido inconsciente que respira vía aérea / herido inconsciente que no respira reanimación cardiopulmonar verificar respiración"
+              }
+            },
+            {
+              "name": "registrar_datos_escena",
+              "arguments": {
+                "caller_seguro": null,
+                "consciente": false,
+                "heridos": "dos personas: vos y acompañante",
+                "que_paso": "choqué contra otro auto en la banquina",
+                "respira": null,
+                "riesgos": null
+              }
+            },
+            {
+              "name": "derivar_a_emergencias",
+              "arguments": {}
+            }
+          ],
+          "duration_sec": 8.18,
+          "assertions": [
+            {
+              "name": "Detección determinística de señal crítica ('inconsciente')",
+              "passed": true,
+              "detail": "Señal registrada: 'inconsciente'"
+            },
+            {
+              "name": "Seguridad Médica: NO ordenó RCP prematuro a ciegas",
+              "passed": true,
+              "detail": "Correcto: no indicó compresiones torácicas sin verificar respiración"
+            },
+            {
+              "name": "Protocolo: Pregunta activamente si respira o se mueve el pecho",
+              "passed": true,
+              "detail": "Indicó verificar respiración"
+            },
+            {
+              "name": "Contención y Despacho: Notifica que está geolocalizado / ayuda en camino",
+              "passed": false,
+              "detail": "No tranquilizó sobre la ayuda en camino"
+            },
+            {
+              "name": "Localización: No decir 112",
+              "passed": true,
+              "detail": "No mencionó '112' (cumple regla de localización argentina)."
+            }
+          ]
+        },
+        {
+          "user_input": "No, no se le mueve el pecho y no está respirando.",
+          "assistant_reply": "Empezá compresiones torácicas en el centro del pecho. ¿Lo pudiste hacer?",
+          "tools_called": [
+            {
+              "name": "buscar_protocolo",
+              "arguments": {
+                "query": "herido inconsciente que no respira reanimación cardiopulmonar compresiones torácicas ritmo frecuencia por minuto"
+              }
+            },
+            {
+              "name": "registrar_datos_escena",
+              "arguments": {
+                "caller_seguro": null,
+                "consciente": null,
+                "heridos": "dos personas: vos y acompañante",
+                "que_paso": "choqué contra otro auto en la banquina",
+                "respira": false,
+                "riesgos": null
+              }
+            },
+            {
+              "name": "derivar_a_emergencias",
+              "arguments": {}
+            }
+          ],
+          "duration_sec": 4.18,
+          "assertions": [
+            {
+              "name": "RAG: Consultó el manual con buscar_protocolo",
+              "passed": true,
+              "detail": "Ejecutó búsqueda vectorial en Supabase"
+            },
+            {
+              "name": "Despacho: Derivó la emergencia al 911",
+              "passed": true,
+              "detail": "Estado derivado=True (911 despachado)"
+            },
+            {
+              "name": "Primeros Auxilios: Ordenó compresiones en el centro del pecho",
+              "passed": true,
+              "detail": "Indicó compresiones torácicas de reanimación"
+            },
+            {
+              "name": "Localización: No decir 112",
+              "passed": true,
+              "detail": "No mencionó '112' (cumple regla de localización argentina)."
+            }
+          ]
+        },
+        {
+          "user_input": "Sí, ya empecé a comprimir, ¿a qué ritmo sigo?",
+          "assistant_reply": "A un ritmo de aproximadamente cien compresiones por minuto. ¿Lo pudiste hacer?",
+          "tools_called": [
+            {
+              "name": "buscar_protocolo",
+              "arguments": {
+                "query": "compresiones torácicas ritmo aproximadamente 100 por minuto algo menos de 2 compresiones por segundo"
+              }
+            }
+          ],
+          "duration_sec": 2.91,
+          "assertions": [
+            {
+              "name": "Acompañamiento: Indicó cadencia o continuidad de compresiones",
+              "passed": true,
+              "detail": "Guió el ritmo y cadencia de RCP"
+            },
+            {
+              "name": "Localización: No decir 112",
+              "passed": true,
+              "detail": "No mencionó '112' (cumple regla de localización argentina)."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-09-03T23:38:15.036401",
+  "modelo": "openai/gpt-5.4-nano",
+  "total_escenarios": 1,
+  "total_passed": 1,
+  "escenarios": [
+    {
+      "name": "Pregunta Trampa: Motociclista y Casco",
+      "description": "Evalúa si ante una pregunta del Decano el RAG prohíbe retirar el casco para proteger la columna cervical.",
+      "passed": true,
+      "turns": [
+        {
+          "user_input": "Hola, estoy a salvo en la banquina. Recién se cayó un chico en moto al asfalto, ¿le tengo que sacar el casco?",
+          "assistant_reply": "Decile que NO le saques el casco, evitás moverle el cuello. ¿Lo pudiste hacer?",
+          "tools_called": [
+            {
+              "name": "buscar_protocolo",
+              "arguments": {
+                "query": "accidente moto retirar el casco columna cervical"
+              }
+            }
+          ],
+          "duration_sec": 6.4,
+          "assertions": [
+            {
+              "name": "RAG: Consultó protocolo de siniestro vial en moto",
+              "passed": true,
+              "detail": "Ejecutó búsqueda vectorial sobre accidentes de moto"
+            },
+            {
+              "name": "Protocolo Vital: Prohibición expresa de quitar el casco",
+              "passed": true,
+              "detail": "Indicó NO quitar el casco"
+            },
+            {
+              "name": "Justificación Clínica: Daño cervical o inmovilización",
+              "passed": true,
+              "detail": "Justificó por riesgo cervical o necesidad de inmovilizar"
+            },
+            {
+              "name": "Localización: No decir 112",
+              "passed": true,
+              "detail": "No mencionó '112' (cumple regla de localización argentina)."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

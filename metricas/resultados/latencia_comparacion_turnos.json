@@ -1,0 +1,970 @@
+{
+  "baseline": {
+    "path": "metricas/resultados/latencia_raw/rag_hemorragia.jsonl",
+    "summary": {
+      "events": 117,
+      "groups": {
+        "all": {
+          "transcription_delay_ms": {
+            "n": 3,
+            "min": 28.011,
+            "p50": 244.975,
+            "p90": 294.165,
+            "p95": null,
+            "max": 306.463
+          },
+          "end_of_turn_delay_ms": {
+            "n": 3,
+            "min": 557.381,
+            "p50": 676.36,
+            "p90": 3736.196,
+            "p95": null,
+            "max": 4501.155
+          },
+          "on_user_turn_completed_delay_ms": {
+            "n": 3,
+            "min": 0.011,
+            "p50": 0.011,
+            "p90": 1.564,
+            "p95": null,
+            "max": 1.952
+          },
+          "e2e_latency_ms": {
+            "n": 3,
+            "min": 1551.0,
+            "p50": 2534.566,
+            "p90": 11358.615,
+            "p95": null,
+            "max": 13564.627
+          },
+          "llm_node_ttft_ms": {
+            "n": 3,
+            "min": 982.891,
+            "p50": 1089.818,
+            "p90": 1566.512,
+            "p95": null,
+            "max": 1685.685
+          },
+          "tts_node_ttfb_ms": {
+            "n": 3,
+            "min": 286.562,
+            "p50": 287.908,
+            "p90": 290.473,
+            "p95": null,
+            "max": 291.114
+          },
+          "playback_latency_ms": {
+            "n": 3,
+            "min": 51.005,
+            "p50": 80.739,
+            "p90": 93.892,
+            "p95": null,
+            "max": 97.18
+          }
+        },
+        "rag": {
+          "transcription_delay_ms": {
+            "n": 1,
+            "min": 244.975,
+            "p50": 244.975,
+            "p90": 244.975,
+            "p95": null,
+            "max": 244.975
+          },
+          "end_of_turn_delay_ms": {
+            "n": 1,
+            "min": 4501.155,
+            "p50": 4501.155,
+            "p90": 4501.155,
+            "p95": null,
+            "max": 4501.155
+          },
+          "on_user_turn_completed_delay_ms": {
+            "n": 1,
+            "min": 1.952,
+            "p50": 1.952,
+            "p90": 1.952,
+            "p95": null,
+            "max": 1.952
+          },
+          "e2e_latency_ms": {
+            "n": 1,
+            "min": 13564.627,
+            "p50": 13564.627,
+            "p90": 13564.627,
+            "p95": null,
+            "max": 13564.627
+          },
+          "llm_node_ttft_ms": {
+            "n": 1,
+            "min": 982.891,
+            "p50": 982.891,
+            "p90": 982.891,
+            "p95": null,
+            "max": 982.891
+          },
+          "tts_node_ttfb_ms": {
+            "n": 1,
+            "min": 291.114,
+            "p50": 291.114,
+            "p90": 291.114,
+            "p95": null,
+            "max": 291.114
+          },
+          "playback_latency_ms": {
+            "n": 1,
+            "min": 80.739,
+            "p50": 80.739,
+            "p90": 80.739,
+            "p95": null,
+            "max": 80.739
+          }
+        },
+        "no_rag": {
+          "transcription_delay_ms": {
+            "n": 2,
+            "min": 28.011,
+            "p50": 167.237,
+            "p90": 278.618,
+            "p95": null,
+            "max": 306.463
+          },
+          "end_of_turn_delay_ms": {
+            "n": 2,
+            "min": 557.381,
+            "p50": 616.87,
+            "p90": 664.462,
+            "p95": null,
+            "max": 676.36
+          },
+          "on_user_turn_completed_delay_ms": {
+            "n": 2,
+            "min": 0.011,
+            "p50": 0.011,
+            "p90": 0.011,
+            "p95": null,
+            "max": 0.011
+          },
+          "e2e_latency_ms": {
+            "n": 2,
+            "min": 1551.0,
+            "p50": 2042.783,
+            "p90": 2436.209,
+            "p95": null,
+            "max": 2534.566
+          },
+          "llm_node_ttft_ms": {
+            "n": 2,
+            "min": 1089.818,
+            "p50": 1387.751,
+            "p90": 1626.098,
+            "p95": null,
+            "max": 1685.685
+          },
+          "tts_node_ttfb_ms": {
+            "n": 2,
+            "min": 286.562,
+            "p50": 287.235,
+            "p90": 287.773,
+            "p95": null,
+            "max": 287.908
+          },
+          "playback_latency_ms": {
+            "n": 2,
+            "min": 51.005,
+            "p50": 74.093,
+            "p90": 92.562,
+            "p95": null,
+            "max": 97.18
+          }
+        },
+        "cold": {
+          "transcription_delay_ms": {
+            "n": 1,
+            "min": 244.975,
+            "p50": 244.975,
+            "p90": 244.975,
+            "p95": null,
+            "max": 244.975
+          },
+          "end_of_turn_delay_ms": {
+            "n": 1,
+            "min": 4501.155,
+            "p50": 4501.155,
+            "p90": 4501.155,
+            "p95": null,
+            "max": 4501.155
+          },
+          "on_user_turn_completed_delay_ms": {
+            "n": 1,
+            "min": 1.952,
+            "p50": 1.952,
+            "p90": 1.952,
+            "p95": null,
+            "max": 1.952
+          },
+          "e2e_latency_ms": {
+            "n": 1,
+            "min": 13564.627,
+            "p50": 13564.627,
+            "p90": 13564.627,
+            "p95": null,
+            "max": 13564.627
+          },
+          "llm_node_ttft_ms": {
+            "n": 1,
+            "min": 982.891,
+            "p50": 982.891,
+            "p90": 982.891,
+            "p95": null,
+            "max": 982.891
+          },
+          "tts_node_ttfb_ms": {
+            "n": 1,
+            "min": 291.114,
+            "p50": 291.114,
+            "p90": 291.114,
+            "p95": null,
+            "max": 291.114
+          },
+          "playback_latency_ms": {
+            "n": 1,
+            "min": 80.739,
+            "p50": 80.739,
+            "p90": 80.739,
+            "p95": null,
+            "max": 80.739
+          }
+        },
+        "warm": {
+          "transcription_delay_ms": {
+            "n": 2,
+            "min": 28.011,
+            "p50": 167.237,
+            "p90": 278.618,
+            "p95": null,
+            "max": 306.463
+          },
+          "end_of_turn_delay_ms": {
+            "n": 2,
+            "min": 557.381,
+            "p50": 616.87,
+            "p90": 664.462,
+            "p95": null,
+            "max": 676.36
+          },
+          "on_user_turn_completed_delay_ms": {
+            "n": 2,
+            "min": 0.011,
+            "p50": 0.011,
+            "p90": 0.011,
+            "p95": null,
+            "max": 0.011
+          },
+          "e2e_latency_ms": {
+            "n": 2,
+            "min": 1551.0,
+            "p50": 2042.783,
+            "p90": 2436.209,
+            "p95": null,
+            "max": 2534.566
+          },
+          "llm_node_ttft_ms": {
+            "n": 2,
+            "min": 1089.818,
+            "p50": 1387.751,
+            "p90": 1626.098,
+            "p95": null,
+            "max": 1685.685
+          },
+          "tts_node_ttfb_ms": {
+            "n": 2,
+            "min": 286.562,
+            "p50": 287.235,
+            "p90": 287.773,
+            "p95": null,
+            "max": 287.908
+          },
+          "playback_latency_ms": {
+            "n": 2,
+            "min": 51.005,
+            "p50": 74.093,
+            "p90": 92.562,
+            "p95": null,
+            "max": 97.18
+          }
+        }
+      },
+      "rag": {
+        "total": {
+          "n": 2,
+          "min": 787.0,
+          "p50": 1240.0,
+          "p90": 1602.4,
+          "p95": null,
+          "max": 1693.0
+        },
+        "embedding": {
+          "n": 2,
+          "min": 341.0,
+          "p50": 762.5,
+          "p90": 1099.7,
+          "p95": null,
+          "max": 1184.0
+        },
+        "vector": {
+          "n": 2,
+          "min": 446.0,
+          "p50": 477.0,
+          "p90": 501.8,
+          "p95": null,
+          "max": 508.0
+        },
+        "rerank": {
+          "n": 0,
+          "min": null,
+          "p50": null,
+          "p90": null,
+          "p95": null,
+          "max": null
+        }
+      },
+      "startup": {
+        "greeting_scheduled_ms": {
+          "n": 1,
+          "min": 23.849,
+          "p50": 23.849,
+          "p90": 23.849,
+          "p95": null,
+          "max": 23.849
+        },
+        "first_agent_speaking_ms": {
+          "n": 1,
+          "min": 2111.779,
+          "p50": 2111.779,
+          "p90": 2111.779,
+          "p95": null,
+          "max": 2111.779
+        }
+      },
+      "configs": [
+        {
+          "stt_model": "deepgram/nova-3",
+          "stt_language": "es",
+          "llm_model": "openai/gpt-4.1-mini",
+          "tts_model": "cartesia/sonic-3.6",
+          "endpointing": {
+            "mode": "dynamic",
+            "max_delay": 4.5
+          },
+          "preemptive_tts": false,
+          "rag_prefetch_critical": false
+        }
+      ],
+      "variants": [
+        "actual"
+      ],
+      "scenarios": [
+        "hemorragia"
+      ]
+    }
+  },
+  "candidates": {
+    "metricas/resultados/latencia_raw/turnos_fijo_preemptivo_hemorragia.jsonl": {
+      "summary": {
+        "events": 97,
+        "groups": {
+          "all": {
+            "transcription_delay_ms": {
+              "n": 3,
+              "min": 209.336,
+              "p50": 236.017,
+              "p90": 340.229,
+              "p95": null,
+              "max": 366.282
+            },
+            "end_of_turn_delay_ms": {
+              "n": 3,
+              "min": 300.467,
+              "p50": 631.878,
+              "p90": 1213.547,
+              "p95": null,
+              "max": 1358.964
+            },
+            "on_user_turn_completed_delay_ms": {
+              "n": 3,
+              "min": 0.009,
+              "p50": 0.009,
+              "p90": 2.251,
+              "p95": null,
+              "max": 2.811
+            },
+            "e2e_latency_ms": {
+              "n": 3,
+              "min": 1840.986,
+              "p50": 2155.143,
+              "p90": 7327.828,
+              "p95": null,
+              "max": 8620.999
+            },
+            "llm_node_ttft_ms": {
+              "n": 3,
+              "min": 1152.451,
+              "p50": 1206.545,
+              "p90": 1339.545,
+              "p95": null,
+              "max": 1372.795
+            },
+            "tts_node_ttfb_ms": {
+              "n": 3,
+              "min": 296.087,
+              "p50": 303.5,
+              "p90": 327.197,
+              "p95": null,
+              "max": 333.121
+            },
+            "playback_latency_ms": {
+              "n": 3,
+              "min": 77.202,
+              "p50": 85.318,
+              "p90": 95.742,
+              "p95": null,
+              "max": 98.348
+            }
+          },
+          "rag": {
+            "transcription_delay_ms": {
+              "n": 1,
+              "min": 366.282,
+              "p50": 366.282,
+              "p90": 366.282,
+              "p95": null,
+              "max": 366.282
+            },
+            "end_of_turn_delay_ms": {
+              "n": 1,
+              "min": 631.878,
+              "p50": 631.878,
+              "p90": 631.878,
+              "p95": null,
+              "max": 631.878
+            },
+            "on_user_turn_completed_delay_ms": {
+              "n": 1,
+              "min": 2.811,
+              "p50": 2.811,
+              "p90": 2.811,
+              "p95": null,
+              "max": 2.811
+            },
+            "e2e_latency_ms": {
+              "n": 1,
+              "min": 8620.999,
+              "p50": 8620.999,
+              "p90": 8620.999,
+              "p95": null,
+              "max": 8620.999
+            },
+            "llm_node_ttft_ms": {
+              "n": 1,
+              "min": 1152.451,
+              "p50": 1152.451,
+              "p90": 1152.451,
+              "p95": null,
+              "max": 1152.451
+            },
+            "tts_node_ttfb_ms": {
+              "n": 1,
+              "min": 296.087,
+              "p50": 296.087,
+              "p90": 296.087,
+              "p95": null,
+              "max": 296.087
+            },
+            "playback_latency_ms": {
+              "n": 1,
+              "min": 98.348,
+              "p50": 98.348,
+              "p90": 98.348,
+              "p95": null,
+              "max": 98.348
+            }
+          },
+          "no_rag": {
+            "transcription_delay_ms": {
+              "n": 2,
+              "min": 209.336,
+              "p50": 222.677,
+              "p90": 233.349,
+              "p95": null,
+              "max": 236.017
+            },
+            "end_of_turn_delay_ms": {
+              "n": 2,
+              "min": 300.467,
+              "p50": 829.716,
+              "p90": 1253.114,
+              "p95": null,
+              "max": 1358.964
+            },
+            "on_user_turn_completed_delay_ms": {
+              "n": 2,
+              "min": 0.009,
+              "p50": 0.009,
+              "p90": 0.009,
+              "p95": null,
+              "max": 0.009
+            },
+            "e2e_latency_ms": {
+              "n": 2,
+              "min": 1840.986,
+              "p50": 1998.064,
+              "p90": 2123.727,
+              "p95": null,
+              "max": 2155.143
+            },
+            "llm_node_ttft_ms": {
+              "n": 2,
+              "min": 1206.545,
+              "p50": 1289.67,
+              "p90": 1356.17,
+              "p95": null,
+              "max": 1372.795
+            },
+            "tts_node_ttfb_ms": {
+              "n": 2,
+              "min": 303.5,
+              "p50": 318.31,
+              "p90": 330.159,
+              "p95": null,
+              "max": 333.121
+            },
+            "playback_latency_ms": {
+              "n": 2,
+              "min": 77.202,
+              "p50": 81.26,
+              "p90": 84.506,
+              "p95": null,
+              "max": 85.318
+            }
+          },
+          "cold": {
+            "transcription_delay_ms": {
+              "n": 1,
+              "min": 366.282,
+              "p50": 366.282,
+              "p90": 366.282,
+              "p95": null,
+              "max": 366.282
+            },
+            "end_of_turn_delay_ms": {
+              "n": 1,
+              "min": 631.878,
+              "p50": 631.878,
+              "p90": 631.878,
+              "p95": null,
+              "max": 631.878
+            },
+            "on_user_turn_completed_delay_ms": {
+              "n": 1,
+              "min": 2.811,
+              "p50": 2.811,
+              "p90": 2.811,
+              "p95": null,
+              "max": 2.811
+            },
+            "e2e_latency_ms": {
+              "n": 1,
+              "min": 8620.999,
+              "p50": 8620.999,
+              "p90": 8620.999,
+              "p95": null,
+              "max": 8620.999
+            },
+            "llm_node_ttft_ms": {
+              "n": 1,
+              "min": 1152.451,
+              "p50": 1152.451,
+              "p90": 1152.451,
+              "p95": null,
+              "max": 1152.451
+            },
+            "tts_node_ttfb_ms": {
+              "n": 1,
+              "min": 296.087,
+              "p50": 296.087,
+              "p90": 296.087,
+              "p95": null,
+              "max": 296.087
+            },
+            "playback_latency_ms": {
+              "n": 1,
+              "min": 98.348,
+              "p50": 98.348,
+              "p90": 98.348,
+              "p95": null,
+              "max": 98.348
+            }
+          },
+          "warm": {
+            "transcription_delay_ms": {
+              "n": 2,
+              "min": 209.336,
+              "p50": 222.677,
+              "p90": 233.349,
+              "p95": null,
+              "max": 236.017
+            },
+            "end_of_turn_delay_ms": {
+              "n": 2,
+              "min": 300.467,
+              "p50": 829.716,
+              "p90": 1253.114,
+              "p95": null,
+              "max": 1358.964
+            },
+            "on_user_turn_completed_delay_ms": {
+              "n": 2,
+              "min": 0.009,
+              "p50": 0.009,
+              "p90": 0.009,
+              "p95": null,
+              "max": 0.009
+            },
+            "e2e_latency_ms": {
+              "n": 2,
+              "min": 1840.986,
+              "p50": 1998.064,
+              "p90": 2123.727,
+              "p95": null,
+              "max": 2155.143
+            },
+            "llm_node_ttft_ms": {
+              "n": 2,
+              "min": 1206.545,
+              "p50": 1289.67,
+              "p90": 1356.17,
+              "p95": null,
+              "max": 1372.795
+            },
+            "tts_node_ttfb_ms": {
+              "n": 2,
+              "min": 303.5,
+              "p50": 318.31,
+              "p90": 330.159,
+              "p95": null,
+              "max": 333.121
+            },
+            "playback_latency_ms": {
+              "n": 2,
+              "min": 77.202,
+              "p50": 81.26,
+              "p90": 84.506,
+              "p95": null,
+              "max": 85.318
+            }
+          }
+        },
+        "rag": {
+          "total": {
+            "n": 1,
+            "min": 1745.0,
+            "p50": 1745.0,
+            "p90": 1745.0,
+            "p95": null,
+            "max": 1745.0
+          },
+          "embedding": {
+            "n": 1,
+            "min": 1189.0,
+            "p50": 1189.0,
+            "p90": 1189.0,
+            "p95": null,
+            "max": 1189.0
+          },
+          "vector": {
+            "n": 1,
+            "min": 555.0,
+            "p50": 555.0,
+            "p90": 555.0,
+            "p95": null,
+            "max": 555.0
+          },
+          "rerank": {
+            "n": 0,
+            "min": null,
+            "p50": null,
+            "p90": null,
+            "p95": null,
+            "max": null
+          }
+        },
+        "startup": {
+          "greeting_scheduled_ms": {
+            "n": 1,
+            "min": 30.287,
+            "p50": 30.287,
+            "p90": 30.287,
+            "p95": null,
+            "max": 30.287
+          },
+          "first_agent_speaking_ms": {
+            "n": 1,
+            "min": 2739.886,
+            "p50": 2739.886,
+            "p90": 2739.886,
+            "p95": null,
+            "max": 2739.886
+          }
+        },
+        "configs": [
+          {
+            "stt_model": "deepgram/nova-3",
+            "stt_language": "es",
+            "llm_model": "openai/gpt-4.1-mini",
+            "tts_model": "cartesia/sonic-3.6",
+            "endpointing": {
+              "mode": "fixed",
+              "max_delay": 2.5,
+              "min_delay": 0.3
+            },
+            "preemptive_tts": true,
+            "rag_prefetch_critical": false
+          }
+        ],
+        "variants": [
+          "fijo_preemptivo"
+        ],
+        "scenarios": [
+          "hemorragia"
+        ]
+      },
+      "configuration": [
+        {
+          "stt_model": "deepgram/nova-3",
+          "stt_language": "es",
+          "llm_model": "openai/gpt-4.1-mini",
+          "tts_model": "cartesia/sonic-3.6",
+          "endpointing": {
+            "mode": "fixed",
+            "max_delay": 2.5,
+            "min_delay": 0.3
+          },
+          "preemptive_tts": true,
+          "rag_prefetch_critical": false
+        }
+      ],
+      "p50_by_stage": {
+        "all": {
+          "transcription_delay_ms": {
+            "baseline_p50_ms": 244.975,
+            "candidate_p50_ms": 236.017,
+            "delta_ms": -8.958
+          },
+          "end_of_turn_delay_ms": {
+            "baseline_p50_ms": 676.36,
+            "candidate_p50_ms": 631.878,
+            "delta_ms": -44.482
+          },
+          "on_user_turn_completed_delay_ms": {
+            "baseline_p50_ms": 0.011,
+            "candidate_p50_ms": 0.009,
+            "delta_ms": -0.002
+          },
+          "e2e_latency_ms": {
+            "baseline_p50_ms": 2534.566,
+            "candidate_p50_ms": 2155.143,
+            "delta_ms": -379.423
+          },
+          "llm_node_ttft_ms": {
+            "baseline_p50_ms": 1089.818,
+            "candidate_p50_ms": 1206.545,
+            "delta_ms": 116.727
+          },
+          "tts_node_ttfb_ms": {
+            "baseline_p50_ms": 287.908,
+            "candidate_p50_ms": 303.5,
+            "delta_ms": 15.592
+          },
+          "playback_latency_ms": {
+            "baseline_p50_ms": 80.739,
+            "candidate_p50_ms": 85.318,
+            "delta_ms": 4.579
+          }
+        },
+        "rag": {
+          "transcription_delay_ms": {
+            "baseline_p50_ms": 244.975,
+            "candidate_p50_ms": 366.282,
+            "delta_ms": 121.307
+          },
+          "end_of_turn_delay_ms": {
+            "baseline_p50_ms": 4501.155,
+            "candidate_p50_ms": 631.878,
+            "delta_ms": -3869.277
+          },
+          "on_user_turn_completed_delay_ms": {
+            "baseline_p50_ms": 1.952,
+            "candidate_p50_ms": 2.811,
+            "delta_ms": 0.859
+          },
+          "e2e_latency_ms": {
+            "baseline_p50_ms": 13564.627,
+            "candidate_p50_ms": 8620.999,
+            "delta_ms": -4943.628
+          },
+          "llm_node_ttft_ms": {
+            "baseline_p50_ms": 982.891,
+            "candidate_p50_ms": 1152.451,
+            "delta_ms": 169.56
+          },
+          "tts_node_ttfb_ms": {
+            "baseline_p50_ms": 291.114,
+            "candidate_p50_ms": 296.087,
+            "delta_ms": 4.973
+          },
+          "playback_latency_ms": {
+            "baseline_p50_ms": 80.739,
+            "candidate_p50_ms": 98.348,
+            "delta_ms": 17.609
+          }
+        },
+        "no_rag": {
+          "transcription_delay_ms": {
+            "baseline_p50_ms": 167.237,
+            "candidate_p50_ms": 222.677,
+            "delta_ms": 55.44
+          },
+          "end_of_turn_delay_ms": {
+            "baseline_p50_ms": 616.87,
+            "candidate_p50_ms": 829.716,
+            "delta_ms": 212.846
+          },
+          "on_user_turn_completed_delay_ms": {
+            "baseline_p50_ms": 0.011,
+            "candidate_p50_ms": 0.009,
+            "delta_ms": -0.002
+          },
+          "e2e_latency_ms": {
+            "baseline_p50_ms": 2042.783,
+            "candidate_p50_ms": 1998.064,
+            "delta_ms": -44.719
+          },
+          "llm_node_ttft_ms": {
+            "baseline_p50_ms": 1387.751,
+            "candidate_p50_ms": 1289.67,
+            "delta_ms": -98.081
+          },
+          "tts_node_ttfb_ms": {
+            "baseline_p50_ms": 287.235,
+            "candidate_p50_ms": 318.31,
+            "delta_ms": 31.075
+          },
+          "playback_latency_ms": {
+            "baseline_p50_ms": 74.093,
+            "candidate_p50_ms": 81.26,
+            "delta_ms": 7.167
+          }
+        },
+        "cold": {
+          "transcription_delay_ms": {
+            "baseline_p50_ms": 244.975,
+            "candidate_p50_ms": 366.282,
+            "delta_ms": 121.307
+          },
+          "end_of_turn_delay_ms": {
+            "baseline_p50_ms": 4501.155,
+            "candidate_p50_ms": 631.878,
+            "delta_ms": -3869.277
+          },
+          "on_user_turn_completed_delay_ms": {
+            "baseline_p50_ms": 1.952,
+            "candidate_p50_ms": 2.811,
+            "delta_ms": 0.859
+          },
+          "e2e_latency_ms": {
+            "baseline_p50_ms": 13564.627,
+            "candidate_p50_ms": 8620.999,
+            "delta_ms": -4943.628
+          },
+          "llm_node_ttft_ms": {
+            "baseline_p50_ms": 982.891,
+            "candidate_p50_ms": 1152.451,
+            "delta_ms": 169.56
+          },
+          "tts_node_ttfb_ms": {
+            "baseline_p50_ms": 291.114,
+            "candidate_p50_ms": 296.087,
+            "delta_ms": 4.973
+          },
+          "playback_latency_ms": {
+            "baseline_p50_ms": 80.739,
+            "candidate_p50_ms": 98.348,
+            "delta_ms": 17.609
+          }
+        },
+        "warm": {
+          "transcription_delay_ms": {
+            "baseline_p50_ms": 167.237,
+            "candidate_p50_ms": 222.677,
+            "delta_ms": 55.44
+          },
+          "end_of_turn_delay_ms": {
+            "baseline_p50_ms": 616.87,
+            "candidate_p50_ms": 829.716,
+            "delta_ms": 212.846
+          },
+          "on_user_turn_completed_delay_ms": {
+            "baseline_p50_ms": 0.011,
+            "candidate_p50_ms": 0.009,
+            "delta_ms": -0.002
+          },
+          "e2e_latency_ms": {
+            "baseline_p50_ms": 2042.783,
+            "candidate_p50_ms": 1998.064,
+            "delta_ms": -44.719
+          },
+          "llm_node_ttft_ms": {
+            "baseline_p50_ms": 1387.751,
+            "candidate_p50_ms": 1289.67,
+            "delta_ms": -98.081
+          },
+          "tts_node_ttfb_ms": {
+            "baseline_p50_ms": 287.235,
+            "candidate_p50_ms": 318.31,
+            "delta_ms": 31.075
+          },
+          "playback_latency_ms": {
+            "baseline_p50_ms": 74.093,
+            "candidate_p50_ms": 81.26,
+            "delta_ms": 7.167
+          }
+        },
+        "rag_stages": {
+          "total": {
+            "baseline_p50_ms": 1240.0,
+            "candidate_p50_ms": 1745.0,
+            "delta_ms": 505.0
+          },
+          "embedding": {
+            "baseline_p50_ms": 762.5,
+            "candidate_p50_ms": 1189.0,
+            "delta_ms": 426.5
+          },
+          "vector": {
+            "baseline_p50_ms": 477.0,
+            "candidate_p50_ms": 555.0,
+            "delta_ms": 78.0
+          },
+          "rerank": {
+            "baseline_p50_ms": null,
+            "candidate_p50_ms": null,
+            "delta_ms": null
+          }
+        }
+      },
+      "e2e_p50_delta_ms": -379.423,
+      "e2e_p50_improvement_pct": 14.97
+    }
+  }
+}

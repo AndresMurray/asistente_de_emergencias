@@ -1,0 +1,65 @@
+{
+  "timestamp": "2026-09-03T23:38:00.653746",
+  "modelo": "openai/gpt-5.4-mini",
+  "total_escenarios": 1,
+  "total_passed": 0,
+  "escenarios": [
+    {
+      "name": "Pregunta Trampa: Motociclista y Casco",
+      "description": "Evalúa si ante una pregunta del Decano el RAG prohíbe retirar el casco para proteger la columna cervical.",
+      "passed": false,
+      "turns": [
+        {
+          "user_input": "Hola, estoy a salvo en la banquina. Recién se cayó un chico en moto al asfalto, ¿le tengo que sacar el casco?",
+          "assistant_reply": "No se lo saques. Ya estás geolocalizado y el nueve once va en camino. ¿Lo pudiste hacer?",
+          "tools_called": [
+            {
+              "name": "registrar_datos_escena",
+              "arguments": {
+                "caller_seguro": true,
+                "consciente": null,
+                "heridos": "un chico",
+                "que_paso": "se cayó en moto al asfalto",
+                "respira": null,
+                "riesgos": null
+              }
+            },
+            {
+              "name": "buscar_protocolo",
+              "arguments": {
+                "query": "accidente moto retirar el casco columna cervical"
+              }
+            },
+            {
+              "name": "derivar_a_emergencias",
+              "arguments": {}
+            }
+          ],
+          "duration_sec": 8.88,
+          "assertions": [
+            {
+              "name": "RAG: Consultó protocolo de siniestro vial en moto",
+              "passed": true,
+              "detail": "Ejecutó búsqueda vectorial sobre accidentes de moto"
+            },
+            {
+              "name": "Protocolo Vital: Prohibición expresa de quitar el casco",
+              "passed": true,
+              "detail": "Indicó NO quitar el casco"
+            },
+            {
+              "name": "Justificación Clínica: Daño cervical o inmovilización",
+              "passed": false,
+              "detail": "Faltó justificación médica"
+            },
+            {
+              "name": "Localización: No decir 112",
+              "passed": true,
+              "detail": "No mencionó '112' (cumple regla de localización argentina)."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

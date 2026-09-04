@@ -1,0 +1,129 @@
+INFORME DE MEDICION Y REDUCCION DE LATENCIA
+Asistente de emergencias | STT -> LLM -> TTS + RAG
+4 de septiembre de 2026
+
+RESUMEN EJECUTIVO
+
+Configuracion seleccionada localmente
+  STT: Deepgram Nova-3/es
+  LLM: GPT-4.1-mini
+  TTS: Cartesia Sonic 3.6 (misma voz)
+  Endpointing: fijo, minimo 0.3 s, maximo 2.5 s
+  TTS preemptivo: activado, maximo 10 s
+  Prefetch RAG: desactivado
+
+No se desplego a LiveKit Cloud. El rollback es inmediato con:
+  ENDPOINTING_MODE=dynamic PREEMPTIVE_TTS=false
+
+METODO Y LIMITACIONES
+
+* Corridas manuales locales, con sesiones nuevas por escenario.
+* Se excluyen fillers de los p50 de respuestas utiles.
+* Se registran EOU, STT, TTFT LLM, TTFB TTS, RAG, E2E y saludo.
+* playback_latency es local al pipeline, no mide el viaje de red al usuario.
+* Cada corrida tiene entre 1 y 3 turnos utiles. Las conclusiones son
+  direccionales; no reemplazan Agent Insights ni una validacion Cloud.
+
+OPCIONES DE VOZ EVALUADAS
+
+1) BASELINE DINAMICO - HEMORRAGIA
+   Muestras utiles: 3
+   p50 E2E: 2.535 s | p50 EOU: 676 ms | p50 RAG: 1.240 s
+   Referencia RAG. El turno RAG frio llego a 13.565 s E2E, dominado
+   por un EOU de 4.501 s.
+
+2) ENDPOINTING FIJO + TTS PREEMPTIVO - HEMORRAGIA
+   Muestras utiles: 3
+   p50 E2E: 2.155 s | p50 EOU: 632 ms | p50 RAG: 1.745 s
+   Estado: candidato. Mejoro la respuesta util aun cuando RAG vario.
+
+3) ENDPOINTING FIJO SIN TTS PREEMPTIVO - HEMORRAGIA
+   Muestras utiles: 2, ambas con RAG
+   p50 E2E: 6.982 s | p50 EOU: 1.525 s | p50 RAG: 830 ms
+   Estado: DESCARTADO. Respuestas utiles lentas, mas loops y fillers.
+
+4) DEEPGRAM FLUX + FIJO + PREEMPTIVO - HEMORRAGIA
+   Muestras utiles: 3
+   p50 E2E: 2.744 s | p50 EOU: ~0 ms* | p50 RAG: 1.637 s
+   Estado: DESCARTADO. E2E 27.4% peor que Nova-3 comparable.
+   * Flux emitio transcription_delay y duracion STT en 0; no se toma
+     como transcripcion instantanea sino como metrica no disponible.
+
+5) NOVA-3 + PREFETCH RAG - HEMORRAGIA
+   Muestras utiles: 3
+   p50 E2E: 5.713 s | p50 EOU: 2.501 s | p50 RAG: 863 ms
+   Estado: DESCARTADO. El prefetch coincidente funciono, pero EOU llego
+   repetidamente al maximo y la experiencia percibida fue peor.
+
+6) VALIDACION FINAL - HEMORRAGIA
+   Muestras utiles: 3
+   p50 E2E: 1.731 s | p50 EOU: 819 ms | p50 RAG: 921 ms
+   Estado: MEJOR CORRIDA COMPARABLE.
+
+7) VALIDACION FINAL - INCONSCIENTE / NO RESPIRA
+   Muestras utiles: 3
+   p50 E2E: 5.148 s | p50 EOU: 613 ms | p50 RAG: 858 ms
+   Estado: valido en flujo critico. No hay baseline critico identico,
+   por lo que no se informa una mejora porcentual.
+
+COMPARACION: BASELINE RAG VS VALIDACION FINAL (HEMORRAGIA)
+
+                         Baseline       Final          Diferencia
+p50 E2E global          2.535 s        1.731 s        -804 ms (-31.7%)
+p50 E2E sin RAG         2.043 s        1.352 s        -691 ms
+Turno RAG frio E2E     13.565 s        7.511 s        -6.054 s
+RAG total               1.240 s        921 ms         -319 ms
+TTFT LLM                1.090 s        939 ms         -150 ms
+TTFB TTS                288 ms         273 ms         -15 ms
+
+PREFETCH RAG: ANALISIS
+
+El primer prefetch de hemorragia fue reutilizado correctamente: 929 ms
+frente a 1.745 s del RAG de referencia. Sin embargo, esa ganancia no
+compenso el EOU de aproximadamente 2.5 s. El p50 E2E empeoro de 2.155 s
+a 5.713 s. Ante una consulta posterior de otra categoria (no respira),
+el sistema no reutilizo el contexto de hemorragia: comportamiento seguro,
+pero de beneficio limitado. Por eso queda apagado.
+
+EVALUACION DE LLM POR TEXTO
+
+Modelo               Resultado de gates                         Decision
+GPT-4.1-mini         20/23 asertos; falla casco en esa corrida  Control
+GPT-4.1-nano         20/23; omite RAG/RCP en corrida critica     DESCARTADO
+GPT-4o-mini          18/23; falla casco y contencion            DESCARTADO
+GPT-5-mini           Timeout/retry en primera generacion        DESCARTADO
+GPT-5.4-mini         3/4 en casco; sin razon cervical           DESCARTADO
+GPT-5.4-nano         1/3 escenarios completos; critico 10/11    DESCARTADO
+
+El LLM no se cambio: para la optimizacion de latencia se conserva
+GPT-4.1-mini como control. Un modelo mas rapido no es aceptable si
+degrada instrucciones medicas, tool calling o grounding.
+
+GATES DE SEGURIDAD Y COMPORTAMIENTO
+
+* En la validacion critica, "inconsciente" no disparo RAG de RCP.
+  La busqueda se activo despues de confirmar "no respira".
+* La interrupcion intencional cancelo el LLM en curso sin iniciar TTS.
+  No se observo audio iniciado y cortado.
+* Flux se descarto por latencia y por no permitir validar adecuadamente
+  las metricas de transcripcion/terminos criticos.
+* Suite tecnica: 35 tests aprobados.
+
+RECOMENDACION
+
+Adoptar localmente el perfil seleccionado:
+  ENDPOINTING_MODE=fixed
+  ENDPOINTING_MIN_DELAY=0.3
+  ENDPOINTING_MAX_DELAY=2.5
+  PREEMPTIVE_TTS=true
+  PREEMPTIVE_MAX_SPEECH_DURATION=10
+  RAG_PREFETCH_CRITICAL=false
+
+Antes de desplegar: validar en LiveKit Cloud los escenarios hemorragia y
+critico, contrastar las metricas del agente con Agent Insights y revisar
+grabaciones para confirmar la latencia percibida.
+
+FUENTES
+
+Eventos crudos: metricas/resultados/latencia_raw/*.jsonl
+Reportes: metricas/resultados/latencia_*.json y latencia_*.md

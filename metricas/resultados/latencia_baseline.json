@@ -1,0 +1,379 @@
+{
+  "events": 48,
+  "groups": {
+    "all": {
+      "transcription_delay_ms": {
+        "n": 1,
+        "min": 233.773,
+        "p50": 233.773,
+        "p90": 233.773,
+        "p95": null,
+        "max": 233.773
+      },
+      "end_of_turn_delay_ms": {
+        "n": 1,
+        "min": 4501.186,
+        "p50": 4501.186,
+        "p90": 4501.186,
+        "p95": null,
+        "max": 4501.186
+      },
+      "on_user_turn_completed_delay_ms": {
+        "n": 1,
+        "min": 0.036,
+        "p50": 0.036,
+        "p90": 0.036,
+        "p95": null,
+        "max": 0.036
+      },
+      "e2e_latency_ms": {
+        "n": 1,
+        "min": 6572.276,
+        "p50": 6572.276,
+        "p90": 6572.276,
+        "p95": null,
+        "max": 6572.276
+      },
+      "llm_node_ttft_ms": {
+        "n": 1,
+        "min": 1493.653,
+        "p50": 1493.653,
+        "p90": 1493.653,
+        "p95": null,
+        "max": 1493.653
+      },
+      "tts_node_ttfb_ms": {
+        "n": 2,
+        "min": 237.012,
+        "p50": 453.913,
+        "p90": 627.433,
+        "p95": null,
+        "max": 670.813
+      },
+      "playback_latency_ms": {
+        "n": 2,
+        "min": 71.406,
+        "p50": 76.68,
+        "p90": 80.898,
+        "p95": null,
+        "max": 81.953
+      }
+    },
+    "rag": {
+      "transcription_delay_ms": {
+        "n": 0,
+        "min": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null
+      },
+      "end_of_turn_delay_ms": {
+        "n": 0,
+        "min": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null
+      },
+      "on_user_turn_completed_delay_ms": {
+        "n": 0,
+        "min": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null
+      },
+      "e2e_latency_ms": {
+        "n": 0,
+        "min": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null
+      },
+      "llm_node_ttft_ms": {
+        "n": 0,
+        "min": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null
+      },
+      "tts_node_ttfb_ms": {
+        "n": 0,
+        "min": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null
+      },
+      "playback_latency_ms": {
+        "n": 0,
+        "min": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null
+      }
+    },
+    "no_rag": {
+      "transcription_delay_ms": {
+        "n": 1,
+        "min": 233.773,
+        "p50": 233.773,
+        "p90": 233.773,
+        "p95": null,
+        "max": 233.773
+      },
+      "end_of_turn_delay_ms": {
+        "n": 1,
+        "min": 4501.186,
+        "p50": 4501.186,
+        "p90": 4501.186,
+        "p95": null,
+        "max": 4501.186
+      },
+      "on_user_turn_completed_delay_ms": {
+        "n": 1,
+        "min": 0.036,
+        "p50": 0.036,
+        "p90": 0.036,
+        "p95": null,
+        "max": 0.036
+      },
+      "e2e_latency_ms": {
+        "n": 1,
+        "min": 6572.276,
+        "p50": 6572.276,
+        "p90": 6572.276,
+        "p95": null,
+        "max": 6572.276
+      },
+      "llm_node_ttft_ms": {
+        "n": 1,
+        "min": 1493.653,
+        "p50": 1493.653,
+        "p90": 1493.653,
+        "p95": null,
+        "max": 1493.653
+      },
+      "tts_node_ttfb_ms": {
+        "n": 2,
+        "min": 237.012,
+        "p50": 453.913,
+        "p90": 627.433,
+        "p95": null,
+        "max": 670.813
+      },
+      "playback_latency_ms": {
+        "n": 2,
+        "min": 71.406,
+        "p50": 76.68,
+        "p90": 80.898,
+        "p95": null,
+        "max": 81.953
+      }
+    },
+    "cold": {
+      "transcription_delay_ms": {
+        "n": 1,
+        "min": 233.773,
+        "p50": 233.773,
+        "p90": 233.773,
+        "p95": null,
+        "max": 233.773
+      },
+      "end_of_turn_delay_ms": {
+        "n": 1,
+        "min": 4501.186,
+        "p50": 4501.186,
+        "p90": 4501.186,
+        "p95": null,
+        "max": 4501.186
+      },
+      "on_user_turn_completed_delay_ms": {
+        "n": 1,
+        "min": 0.036,
+        "p50": 0.036,
+        "p90": 0.036,
+        "p95": null,
+        "max": 0.036
+      },
+      "e2e_latency_ms": {
+        "n": 1,
+        "min": 6572.276,
+        "p50": 6572.276,
+        "p90": 6572.276,
+        "p95": null,
+        "max": 6572.276
+      },
+      "llm_node_ttft_ms": {
+        "n": 1,
+        "min": 1493.653,
+        "p50": 1493.653,
+        "p90": 1493.653,
+        "p95": null,
+        "max": 1493.653
+      },
+      "tts_node_ttfb_ms": {
+        "n": 1,
+        "min": 237.012,
+        "p50": 237.012,
+        "p90": 237.012,
+        "p95": null,
+        "max": 237.012
+      },
+      "playback_latency_ms": {
+        "n": 1,
+        "min": 71.406,
+        "p50": 71.406,
+        "p90": 71.406,
+        "p95": null,
+        "max": 71.406
+      }
+    },
+    "warm": {
+      "transcription_delay_ms": {
+        "n": 0,
+        "min": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null
+      },
+      "end_of_turn_delay_ms": {
+        "n": 0,
+        "min": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null
+      },
+      "on_user_turn_completed_delay_ms": {
+        "n": 0,
+        "min": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null
+      },
+      "e2e_latency_ms": {
+        "n": 0,
+        "min": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null
+      },
+      "llm_node_ttft_ms": {
+        "n": 0,
+        "min": null,
+        "p50": null,
+        "p90": null,
+        "p95": null,
+        "max": null
+      },
+      "tts_node_ttfb_ms": {
+        "n": 1,
+        "min": 670.813,
+        "p50": 670.813,
+        "p90": 670.813,
+        "p95": null,
+        "max": 670.813
+      },
+      "playback_latency_ms": {
+        "n": 1,
+        "min": 81.953,
+        "p50": 81.953,
+        "p90": 81.953,
+        "p95": null,
+        "max": 81.953
+      }
+    }
+  },
+  "rag": {
+    "total": {
+      "n": 0,
+      "min": null,
+      "p50": null,
+      "p90": null,
+      "p95": null,
+      "max": null
+    },
+    "embedding": {
+      "n": 0,
+      "min": null,
+      "p50": null,
+      "p90": null,
+      "p95": null,
+      "max": null
+    },
+    "vector": {
+      "n": 0,
+      "min": null,
+      "p50": null,
+      "p90": null,
+      "p95": null,
+      "max": null
+    },
+    "rerank": {
+      "n": 0,
+      "min": null,
+      "p50": null,
+      "p90": null,
+      "p95": null,
+      "max": null
+    }
+  },
+  "startup": {
+    "greeting_scheduled_ms": {
+      "n": 1,
+      "min": 34.012,
+      "p50": 34.012,
+      "p90": 34.012,
+      "p95": null,
+      "max": 34.012
+    },
+    "first_agent_speaking_ms": {
+      "n": 1,
+      "min": 2228.286,
+      "p50": 2228.286,
+      "p90": 2228.286,
+      "p95": null,
+      "max": 2228.286
+    }
+  },
+  "configs": [
+    {
+      "stt_model": "deepgram/nova-3",
+      "stt_language": "es",
+      "llm_model": "openai/gpt-4.1-mini",
+      "tts_model": "cartesia/sonic-3.6",
+      "endpointing": {
+        "mode": "dynamic",
+        "max_delay": 4.5
+      },
+      "preemptive_tts": false,
+      "rag_prefetch_critical": false
+    },
+    {
+      "stt_model": "deepgram/nova-3",
+      "stt_language": "es",
+      "llm_model": "openai/gpt-4.1-mini",
+      "tts_model": "cartesia/sonic-3.6",
+      "endpointing": {
+        "mode": "dynamic",
+        "max_delay": 4.5
+      },
+      "preemptive_tts": false,
+      "rag_prefetch_critical": false
+    }
+  ],
+  "variants": [
+    "actual"
+  ],
+  "scenarios": [
+    "fuera_de_alcance"
+  ]
+}

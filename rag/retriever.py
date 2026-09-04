@@ -34,6 +34,16 @@ class RetrievalResult:
     error: str | None = None
     latency_ms: int = 0
     top_score: float | None = None
+    # Tiempos por etapa para diagnosticar si el cuello está en Google, Supabase
+    # o Cohere. Se conservan aun cuando la búsqueda termina en error/timeout.
+    timings_ms: dict[str, int | None] = field(
+        default_factory=lambda: {
+            "total": None,
+            "embedding": None,
+            "vector": None,
+            "rerank": None,
+        }
+    )
 
     def para_llm(self) -> str:
         """Formatea los fragmentos como contexto para el modelo."""
@@ -64,24 +74,36 @@ class Retriever:
     async def search(self, query: str) -> RetrievalResult:
         """Busca protocolos. Nunca levanta: codifica la falla en status."""
         started = time.monotonic()
+        timings: dict[str, int | None] = {
+            "total": None,
+            "embedding": None,
+            "vector": None,
+            "rerank": None,
+        }
         try:
             fragments = await asyncio.wait_for(
-                self._search_inner(query), timeout=self._settings.timeout_s
+                self._search_inner(query, timings), timeout=self._settings.timeout_s
             )
         except asyncio.TimeoutError:
             elapsed = int((time.monotonic() - started) * 1000)
+            timings["total"] = elapsed
             logger.error("retrieval excedió %.1fs para '%s'", self._settings.timeout_s, query)
             return RetrievalResult(
                 status="error",
                 error=f"la búsqueda tardó más de {self._settings.timeout_s}s",
                 latency_ms=elapsed,
+                timings_ms=timings,
             )
         except RetrievalError as exc:
             elapsed = int((time.monotonic() - started) * 1000)
+            timings["total"] = elapsed
             logger.error("retrieval falló para '%s': %s", query, exc)
-            return RetrievalResult(status="error", error=str(exc), latency_ms=elapsed)
+            return RetrievalResult(
+                status="error", error=str(exc), latency_ms=elapsed, timings_ms=timings
+            )
 
         elapsed = int((time.monotonic() - started) * 1000)
+        timings["total"] = elapsed
         top_score = fragments[0].score if fragments else None
 
         if not fragments:
@@ -89,7 +111,10 @@ class Retriever:
                 "sin match | query='%s' latency_ms=%d top_score=%s", query, elapsed, top_score
             )
             return RetrievalResult(
-                status="no_match", latency_ms=elapsed, top_score=top_score
+                status="no_match",
+                latency_ms=elapsed,
+                top_score=top_score,
+                timings_ms=timings,
             )
 
         logger.info(
@@ -100,19 +125,38 @@ class Retriever:
             len(fragments),
         )
         return RetrievalResult(
-            status="ok", fragments=fragments, latency_ms=elapsed, top_score=top_score
+            status="ok",
+            fragments=fragments,
+            latency_ms=elapsed,
+            top_score=top_score,
+            timings_ms=timings,
         )
 
-    async def _search_inner(self, query: str) -> list[Fragment]:
+    async def _search_inner(
+        self, query: str, timings: dict[str, int | None]
+    ) -> list[Fragment]:
         settings = self._settings
-        vector = await embed_query(query, settings)
-        candidatos = await self._store.search(vector, settings.k_vector)
+        started = time.monotonic()
+        try:
+            vector = await embed_query(query, settings)
+        finally:
+            timings["embedding"] = int((time.monotonic() - started) * 1000)
+
+        started = time.monotonic()
+        try:
+            candidatos = await self._store.search(vector, settings.k_vector)
+        finally:
+            timings["vector"] = int((time.monotonic() - started) * 1000)
         if not candidatos:
             return []
 
         rerankeado = False
         if settings.rerank_enabled:
-            candidatos, rerankeado = await self._rerank(query, candidatos)
+            started = time.monotonic()
+            try:
+                candidatos, rerankeado = await self._rerank(query, candidatos)
+            finally:
+                timings["rerank"] = int((time.monotonic() - started) * 1000)
 
         # El piso depende de qué escala tienen los scores. Si el rerank falló y
         # se degradó al coseno, aplicar el piso del reranker (0.08) sobre scores

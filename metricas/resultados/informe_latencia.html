@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Informe de latencia — Asistente de emergencias</title>
+<style>
+  @page { size: A4; margin: 15mm; }
+  body { color: #1b2430; font: 10pt -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.38; }
+  h1 { color: #0b4f6c; font-size: 22pt; margin: 0 0 3pt; }
+  h2 { border-bottom: 1px solid #b9d5df; color: #0b4f6c; font-size: 14pt; margin: 20pt 0 8pt; padding-bottom: 3pt; }
+  h3 { color: #184e63; font-size: 11pt; margin: 14pt 0 4pt; }
+  .subtle { color: #5b6770; margin-top: 0; }
+  .callout { background: #e9f6f5; border-left: 4px solid #128277; margin: 12pt 0; padding: 8pt 10pt; }
+  .warn { background: #fff7e6; border-left-color: #ca8400; }
+  table { border-collapse: collapse; font-size: 8.5pt; margin: 7pt 0 14pt; width: 100%; }
+  th { background: #0b4f6c; color: white; font-weight: 600; }
+  th, td { border: 1px solid #cbd6da; padding: 5pt; text-align: left; vertical-align: top; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  .accepted { color: #087768; font-weight: 700; }
+  .rejected { color: #a13a25; font-weight: 700; }
+  .provisional { color: #986300; font-weight: 700; }
+  ul { margin-top: 4pt; padding-left: 18pt; }
+  .pagebreak { break-before: page; }
+  footer { color: #68757c; font-size: 8pt; margin-top: 22pt; }
+</style>
+</head>
+<body>
+<h1>Informe de medición y reducción de latencia</h1>
+<p class="subtle">Asistente de emergencias · Pipeline STT → LLM → TTS + RAG · 4 de septiembre de 2026</p>
+
+<div class="callout">
+  <strong>Configuración seleccionada localmente.</strong> Deepgram Nova-3/es, GPT-4.1-mini y Cartesia Sonic 3.6 sin cambios; endpointing fijo de 0.3–2.5 s, TTS preemptivo activado (máximo 10 s) y prefetch RAG desactivado. No se desplegó a LiveKit Cloud.
+</div>
+
+<h2>1. Método y alcance</h2>
+<ul>
+  <li>Medición local manual con el mismo operador, micrófono y red; sesiones nuevas por escenario.</li>
+  <li>Las métricas de usuario/asistente se correlacionan por <code>speech_id</code>. Se excluyen fillers de los p50 de respuestas útiles.</li>
+  <li>Se mide EOU, STT, TTFT LLM, TTFB TTS, RAG, E2E y saludo. <code>playback_latency</code> es local al pipeline, no una medida de red hasta el usuario.</li>
+  <li>Las muestras son pequeñas (1–3 turnos por corrida): los resultados orientan la decisión, no sustituyen una prueba estadística ni Agent Insights en Cloud.</li>
+</ul>
+
+<h2>2. Resumen de opciones de voz</h2>
+<table>
+  <tr><th>Opción</th><th class="num">Muestras útiles</th><th class="num">p50 E2E</th><th class="num">p50 EOU</th><th class="num">p50 RAG</th><th>Resultado</th></tr>
+  <tr><td>Baseline dinámico, hemorragia</td><td class="num">3</td><td class="num">2.535 s</td><td class="num">676 ms</td><td class="num">1.240 s</td><td>Referencia RAG; turno RAG frío: 13.565 s E2E por EOU de 4.501 s.</td></tr>
+  <tr><td>Fijo + preemptivo, hemorragia</td><td class="num">3</td><td class="num">2.155 s</td><td class="num">632 ms</td><td class="num">1.745 s</td><td class="provisional">Candidato</td></tr>
+  <tr><td>Fijo sin preemptivo, hemorragia</td><td class="num">2</td><td class="num">6.982 s</td><td class="num">1.525 s</td><td class="num">830 ms</td><td class="rejected">Descartado: respuestas útiles lentas y más loops/fillers.</td></tr>
+  <tr><td>Flux + fijo + preemptivo</td><td class="num">3</td><td class="num">2.744 s</td><td class="num">~0 ms*</td><td class="num">1.637 s</td><td class="rejected">Descartado: E2E 27.4% peor; métrica STT no utilizable.</td></tr>
+  <tr><td>Nova-3 + prefetch RAG</td><td class="num">3</td><td class="num">5.713 s</td><td class="num">2.501 s</td><td class="num">863 ms</td><td class="rejected">Descartado: EOU máximo recurrente y peor percepción.</td></tr>
+  <tr><td>Final, hemorragia</td><td class="num">3</td><td class="num">1.731 s</td><td class="num">819 ms</td><td class="num">921 ms</td><td class="accepted">Mejor corrida comparable.</td></tr>
+  <tr><td>Final, inconsciente/no respira</td><td class="num">3</td><td class="num">5.148 s</td><td class="num">613 ms</td><td class="num">858 ms</td><td>Sin baseline crítico equivalente; RAG sólo tras confirmar “no respira”.</td></tr>
+</table>
+<p class="subtle">* Flux emitió <code>transcription_delay=0</code> y duración STT 0; se interpreta como métrica no disponible, no como transcripción instantánea.</p>
+
+<h2>3. Comparaciones relevantes</h2>
+<h3>Perfil seleccionado vs baseline RAG (hemorragia)</h3>
+<table>
+  <tr><th>Métrica</th><th class="num">Baseline</th><th class="num">Final</th><th class="num">Δ</th></tr>
+  <tr><td>p50 E2E global</td><td class="num">2.535 s</td><td class="num">1.731 s</td><td class="num">−804 ms (−31.7%)</td></tr>
+  <tr><td>p50 E2E sin RAG</td><td class="num">2.043 s</td><td class="num">1.352 s</td><td class="num">−691 ms</td></tr>
+  <tr><td>Turno RAG frío E2E</td><td class="num">13.565 s</td><td class="num">7.511 s</td><td class="num">−6.054 s</td></tr>
+  <tr><td>RAG total</td><td class="num">1.240 s</td><td class="num">921 ms</td><td class="num">−319 ms</td></tr>
+  <tr><td>TTFT LLM</td><td class="num">1.090 s</td><td class="num">939 ms</td><td class="num">−150 ms</td></tr>
+  <tr><td>TTFB TTS</td><td class="num">288 ms</td><td class="num">273 ms</td><td class="num">−15 ms</td></tr>
+</table>
+
+<h3>Prefetch RAG: por qué no se adopta</h3>
+<p>El prefetch coincidente sí funcionó (929 ms frente a 1.745 s del RAG de referencia), pero no compensó el EOU de ~2.5 s. El p50 E2E pasó de 2.155 s a 5.713 s. Para una consulta posterior de otra categoría (<em>no respira</em>), el sistema no reutilizó el contexto de hemorragia: es seguro, pero confirma que el beneficio es acotado.</p>
+
+<h2>4. Evaluación de LLM por texto</h2>
+<table>
+  <tr><th>Modelo</th><th>Resultado</th><th>Decisión</th></tr>
+  <tr><td>GPT-4.1-mini</td><td>20/23 asertos; falla casco en esta corrida.</td><td>Control conservado: no se cambió el LLM en la optimización de latencia.</td></tr>
+  <tr><td>GPT-4.1-nano</td><td>20/23; omite RAG/compresiones en una corrida crítica.</td><td class="rejected">Descartado.</td></tr>
+  <tr><td>GPT-4o-mini</td><td>18/23; falla casco y contención/despacho.</td><td class="rejected">Descartado.</td></tr>
+  <tr><td>GPT-5-mini</td><td>Timeout/retry en la primera generación.</td><td class="rejected">Descartado para voz.</td></tr>
+  <tr><td>GPT-5.4-mini</td><td>3/4 en casco; no justifica lesión cervical.</td><td class="rejected">Descartado.</td></tr>
+  <tr><td>GPT-5.4-nano</td><td>Casco 4/4, pero 1/3 escenarios completos; camino crítico 10/11.</td><td class="rejected">Descartado.</td></tr>
+</table>
+
+<h2>5. Gates y hallazgos de seguridad</h2>
+<ul>
+  <li>En la pasada final crítica, “inconsciente” no disparó RAG de RCP; la búsqueda se activó después de “no respira”.</li>
+  <li>La interrupción intencional canceló el LLM en curso sin iniciar TTS; no se observó audio iniciado y cortado.</li>
+  <li>El prefetch permanece desactivado. Flux permanece descartado por latencia y falta de métrica/calidad STT verificable.</li>
+  <li>Suite técnica: 35 tests aprobados. La validación final Cloud/Agent Insights y revisión de grabación aún no se ejecutaron.</li>
+</ul>
+
+<h2>6. Recomendación y rollback</h2>
+<div class="callout">
+  <strong>Adoptar localmente:</strong> <code>ENDPOINTING_MODE=fixed</code>, <code>ENDPOINTING_MIN_DELAY=0.3</code>, <code>ENDPOINTING_MAX_DELAY=2.5</code>, <code>PREEMPTIVE_TTS=true</code>, <code>PREEMPTIVE_MAX_SPEECH_DURATION=10</code>, <code>RAG_PREFETCH_CRITICAL=false</code>.
+</div>
+<p>Rollback inmediato: <code>ENDPOINTING_MODE=dynamic PREEMPTIVE_TTS=false</code>. Antes de un despliegue, validar en LiveKit Cloud los escenarios crítico y hemorragia, contrastando métricas del agente con Agent Insights y la latencia percibida.</p>
+
+<footer>Fuentes: JSONL crudos en <code>metricas/resultados/latencia_raw/</code>; resúmenes y comparaciones en <code>metricas/resultados/latencia_*.{json,md}</code>. Generado localmente.</footer>
+</body>
+</html>

@@ -32,3 +32,9 @@ hoja_ruta_quincena.md
 .vscode 
 .pytest_cache
 .__pycache__
+.DS_Store
+
+# Corridas locales de benchmark de voz: pueden contener transcripciones y no
+# son comparables entre máquinas/redes sin el reporte que las acompaña.
+metricas/resultados/latencia_raw/
+console-recordings/

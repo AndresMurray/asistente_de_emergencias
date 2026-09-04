@@ -2,6 +2,10 @@ import asyncio
 import json
 import logging
 import os
+import threading
+import time
+from dataclasses import dataclass
+from typing import Literal
 
 # pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
@@ -15,13 +19,13 @@ from livekit.agents import (  # type: ignore
     ToolError,
     function_tool,
     inference,
-    metrics,
     room_io,
 )
 from livekit.agents.llm import ToolFlag
 
 from prompts import KEYTERMS_ES, SALUDO, SYSTEM_INSTRUCTIONS
 from rag import Retriever
+from metricas.latencia import LatencyRecorder
 from triage import (
     AVISO_CRITICO,
     TriageState,
@@ -39,14 +43,82 @@ logger = logging.getLogger("emergency-agent")
 # Un retriever por proceso: adentro tiene el pool de conexiones y se comparte
 # entre los jobs del proceso.
 _retriever: Retriever | None = None
+_retriever_lock = threading.Lock()
+
+PrefetchCategory = Literal["no_respira", "hemorragia", "fuego", "atrapado"]
+
+
+@dataclass
+class _RagPrefetch:
+    category: PrefetchCategory
+    task: asyncio.Task
+
+
+async def _prefetch_search(query: str):
+    """Obtiene el pool fuera del event loop antes de consultar el RAG."""
+    retriever = await asyncio.to_thread(_get_retriever)
+    return await retriever.search(query)
 
 
 def _get_retriever() -> Retriever:
     global _retriever
-    if _retriever is None:
-        _retriever = Retriever()
-        _retriever.connect()
+    with _retriever_lock:
+        if _retriever is None:
+            _retriever = Retriever()
+            _retriever.connect()
     return _retriever
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _env_float(name: str, default: float | None) -> float | None:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return float(value)
+
+
+def _prefetch_category(text: str) -> PrefetchCategory | None:
+    """Clasifica sólo urgencias inequívocas; inconsciencia sola no habilita RCP."""
+    normalized = text.lower()
+    if any(term in normalized for term in ("no respira", "no está respirando", "no esta respirando", "dejó de respirar", "dejo de respirar")):
+        return "no_respira"
+    if any(term in normalized for term in ("se desangra", "sangra mucho", "mucha sangre", "hemorragia")):
+        return "hemorragia"
+    if any(term in normalized for term in ("fuego", "incendio", "humo", "combustible", "nafta")):
+        return "fuego"
+    if any(term in normalized for term in ("atrapado", "aplastado", "prensado")):
+        return "atrapado"
+    return None
+
+
+def _query_category(query: str) -> PrefetchCategory | None:
+    """Evita usar un contexto prefetched para una maniobra de otra categoría."""
+    return _prefetch_category(query)
+
+
+def _session_prefetch(context: RunContext, query: str) -> tuple[asyncio.Task | None, bool, str | None]:
+    state = context.userdata
+    pending = getattr(state, "_rag_prefetch", None)
+    category = _query_category(query)
+    if not isinstance(pending, _RagPrefetch):
+        return None, False, category
+    if pending.category != category:
+        # No conservar trabajo de otro protocolo: además de evitar una futura
+        # reutilización errónea, ahorra una llamada externa descartada.
+        if not pending.task.done():
+            pending.task.cancel()
+        setattr(state, "_rag_prefetch", None)
+        return None, False, category
+    # Se consume una sola vez: una búsqueda posterior siempre se evalúa contra
+    # el query actual y no reutiliza contexto potencialmente stale.
+    setattr(state, "_rag_prefetch", None)
+    return pending.task, True, category
 
 
 @function_tool(flags=ToolFlag.IGNORE_ON_ENTER, on_duplicate="replace")
@@ -58,10 +130,24 @@ async def buscar_protocolo(context: RunContext, query: str) -> str:
     busca como "herido inconsciente que no respira reanimación cardiopulmonar";
     "se está desangrando" como "control de hemorragias externas".
     """
-    retriever = _get_retriever()
+    prefetched_task, prefetched, category = _session_prefetch(context, query)
 
     async with context.with_filler("Dame un segundo.", delay=0.7, max_steps=1):
-        result = await retriever.search(query)
+        result = (
+            await prefetched_task
+            if prefetched_task is not None
+            else await _prefetch_search(query)
+        )
+
+    recorder = getattr(context.userdata, "_latency_recorder", None)
+    if isinstance(recorder, LatencyRecorder):
+        recorder.record_rag(
+            speech_id=getattr(context.speech_handle, "id", None),
+            status=result.status,
+            timings_ms=result.timings_ms,
+            prefetched=prefetched,
+            query_category=category,
+        )
 
     if result.status == "error":
         raise ToolError(
@@ -87,14 +173,39 @@ class Assistant(Agent):
 
     async def on_user_turn_completed(self, turn_ctx, new_message) -> None:
         """Camino de audio: detecta riesgo de vida sin depender del modelo."""
+        text = new_message.text_content
         senal = procesar_turno_usuario(
-            new_message.text_content, self.session.userdata
+            text, self.session.userdata
         )
         if senal:
             aviso = generar_aviso_critico(senal, self.session.userdata)
             turn_ctx.add_message(
                 role="system", content=aviso
             )
+
+        # El prefetch no modifica el prompt ni espera dentro del callback: se
+        # superpone con el primer LLM. Sólo se habilita para maniobras que no
+        # pueden confundirse con "inconsciente pero respira".
+        if not _env_bool("RAG_PREFETCH_CRITICAL", False):
+            return
+        prior = getattr(self.session.userdata, "_rag_prefetch", None)
+        if isinstance(prior, _RagPrefetch) and not prior.task.done():
+            prior.task.cancel()
+        setattr(self.session.userdata, "_rag_prefetch", None)
+        category = _prefetch_category(text)
+        if category is None:
+            return
+        canonical_queries: dict[PrefetchCategory, str] = {
+            "no_respira": "herido inconsciente que no respira reanimación cardiopulmonar",
+            "hemorragia": "control de hemorragias externas",
+            "fuego": "accidente vial fuego combustible riesgos inmediatos",
+            "atrapado": "persona atrapada accidente vial primeros auxilios",
+        }
+        task = asyncio.create_task(
+            _prefetch_search(canonical_queries[category]),
+            name=f"rag-prefetch-{category}",
+        )
+        setattr(self.session.userdata, "_rag_prefetch", _RagPrefetch(category, task))
 
 
 server = AgentServer()
@@ -108,22 +219,61 @@ async def entrypoint(ctx: agents.JobContext):
 
     await ctx.connect(auto_subscribe=agents.AutoSubscribe.AUDIO_ONLY)
 
+    stt_model = os.getenv("STT_MODEL", "deepgram/nova-3")
+    is_flux = stt_model == "deepgram/flux-general-multi"
+    stt_language = os.getenv("STT_LANGUAGE", "multi" if is_flux else "es")
+    stt_kwargs = {"eager_eot_threshold": 0.4} if is_flux else {}
+    llm_model = os.getenv("LLM_MODEL", "openai/gpt-4.1-mini")
+    # Perfil seleccionado tras las corridas locales: reduce el EOU sin cambiar
+    # STT, LLM ni voz. Todas las variables siguen permitiendo rollback inmediato.
+    endpoint_mode = os.getenv("ENDPOINTING_MODE", "fixed")
+    endpoint_min = _env_float("ENDPOINTING_MIN_DELAY", 0.3)
+    endpoint_max = _env_float("ENDPOINTING_MAX_DELAY", 2.5)
+    preemptive_tts = _env_bool("PREEMPTIVE_TTS", True)
+    max_preemptive_speech = _env_float("PREEMPTIVE_MAX_SPEECH_DURATION", 10.0)
+    endpointing = {"mode": endpoint_mode, "max_delay": endpoint_max}
+    if endpoint_min is not None:
+        endpointing["min_delay"] = endpoint_min
+
+    stt = inference.STT(model=stt_model, language=stt_language, extra_kwargs=stt_kwargs)
+    llm = inference.LLM(
+        model=llm_model,
+        extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True},
+    )
+    tts = inference.TTS(
+        model="cartesia/sonic-3.6",
+        voice=os.getenv("CARTESIA_VOICE_ID", "826111be-ee28-4c28-bc77-4ecdeae8e8b9"),
+        extra_kwargs={"language": "es"},
+    )
+    recorder = LatencyRecorder(
+        room=ctx.room.name,
+        job=ctx.job.id,
+        config={
+            "stt_model": stt_model,
+            "stt_language": stt_language,
+            "llm_model": llm_model,
+            "tts_model": "cartesia/sonic-3.6",
+            "endpointing": endpointing,
+            "preemptive_tts": preemptive_tts,
+            "rag_prefetch_critical": _env_bool("RAG_PREFETCH_CRITICAL", False),
+        },
+    )
+    userdata = TriageState()
+    setattr(userdata, "_latency_recorder", recorder)
+
     session = AgentSession[TriageState](
-        userdata=TriageState(),
-        stt=inference.STT(model="deepgram/nova-3", language="es"),
-        llm=inference.LLM(
-            model=os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
-            extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True,},
-        ),
-        tts=inference.TTS(
-            model="cartesia/sonic-3.6",
-            voice=os.getenv("CARTESIA_VOICE_ID", "826111be-ee28-4c28-bc77-4ecdeae8e8b9"),
-            extra_kwargs={"language": "es"},
-        ),
+        userdata=userdata,
+        stt=stt,
+        llm=llm,
+        tts=tts,
         turn_handling={
-            "endpointing": {"mode": "dynamic", "max_delay": 4.5},
+            **({"turn_detection": "stt"} if is_flux else {}),
+            "endpointing": endpointing,
             "interruption": {"min_duration": 0.4, "min_words": 2},
-            "preemptive_generation": {"preemptive_tts": False, "max_speech_duration": 15.0},
+            "preemptive_generation": {
+                "preemptive_tts": preemptive_tts,
+                "max_speech_duration": max_preemptive_speech,
+            },
         },
         keyterms_options={
             "keyterms": KEYTERMS_ES,
@@ -136,19 +286,15 @@ async def entrypoint(ctx: agents.JobContext):
 
     @session.on("conversation_item_added")
     def _on_item(ev):
-        item = ev.item
-        if getattr(item, "role", None) != "assistant":
-            return
-        m = getattr(item, "metrics", None) or {}
-        if not m:
-            return
-        logger.info(
-            "latencia | e2e=%s ttft=%s tts_ttfb=%s fin_turno=%s",
-            _ms(m.get("e2e_latency")),
-            _ms(m.get("llm_node_ttft")),
-            _ms(m.get("tts_node_ttfb")),
-            _ms(m.get("end_of_turn_delay")),
-        )
+        recorder.record_conversation_item(ev.item)
+
+    # En 1.6.5, EOUMetrics sólo se publica en la sesión y es el evento que
+    # entrega el speech_id que correlaciona LLM/TTS/RAG. El evento está marcado
+    # deprecado para uso agregado, pero sigue siendo la única API de esta
+    # versión que expone estas métricas por componente y por turno.
+    @session.on("metrics_collected")
+    def _on_metrics(ev):
+        recorder.record_component(ev.metrics)
 
     @session.on("session_usage_updated")
     def _on_usage(ev):
@@ -158,6 +304,10 @@ async def entrypoint(ctx: agents.JobContext):
     def _on_user_state(ev):
         if ev.new_state == "away" and not session.userdata.derivado:
             session.say("Seguí, te escucho. ¿Cómo va?")
+
+    @session.on("agent_state_changed")
+    def _on_agent_state(ev):
+        recorder.record_agent_state(ev)
 
     await session.start(
         room=ctx.room,
@@ -172,10 +322,18 @@ async def entrypoint(ctx: agents.JobContext):
     participant = await ctx.wait_for_participant()
     logger.info("participante conectado: %s", participant.identity)
 
-    retriever = _get_retriever()
+    # DB/schema warmup no debe bloquear el primer audio de la llamada. Durante
+    # el saludo, el trabajo bloqueante vive en otro thread y el primer RAG ya
+    # llega con pool y conexiones preparados.
+    warm_retriever = asyncio.create_task(asyncio.to_thread(_get_retriever))
+    session.say(SALUDO, allow_interruptions=True)
+    recorder.record_startup(time.time())
+    retriever = await warm_retriever
     logger.info(
-        "config | llm=%s stt=deepgram/nova-3(es) keyterms=%d rerank=%s piso=%s",
-        os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
+        "config | llm=%s stt=%s(%s) keyterms=%d rerank=%s piso=%s",
+        llm_model,
+        stt_model,
+        stt_language,
         len(KEYTERMS_ES),
         retriever.settings.rerank_model if retriever.settings.rerank_enabled else "off",
         retriever.settings.min_rerank_score
@@ -183,7 +341,6 @@ async def entrypoint(ctx: agents.JobContext):
         else retriever.settings.min_score,
     )
 
-    session.say(SALUDO, allow_interruptions=True)
     try:
         asyncio.create_task(
             ctx.room.local_participant.publish_data(
@@ -196,9 +353,13 @@ async def entrypoint(ctx: agents.JobContext):
 
     logger.info("agente activo en la sala %s", ctx.room.name)
 
+    async def _close_latency() -> None:
+        pending = getattr(session.userdata, "_rag_prefetch", None)
+        if isinstance(pending, _RagPrefetch) and not pending.task.done():
+            pending.task.cancel()
+        recorder.close()
 
-def _ms(valor: float | None) -> str:
-    return "—" if valor is None else f"{valor * 1000:.0f}ms"
+    ctx.add_shutdown_callback(_close_latency)
 
 
 def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> None:
@@ -263,4 +424,3 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
 
 if __name__ == "__main__":
     agents.cli.run_app(server)
-
