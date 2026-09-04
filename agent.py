@@ -113,11 +113,11 @@ async def entrypoint(ctx: agents.JobContext):
         stt=inference.STT(model="deepgram/nova-3", language="es"),
         llm=inference.LLM(
             model=os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
-            extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True},
+            extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True,},
         ),
         tts=inference.TTS(
-            model="cartesia/sonic-3",
-            voice=os.getenv("CARTESIA_VOICE_ID", "b4b8e2af-6139-466e-a93a-30c20d2e1fc5"),
+            model="cartesia/sonic-3.6",
+            voice=os.getenv("CARTESIA_VOICE_ID", "826111be-ee28-4c28-bc77-4ecdeae8e8b9"),
             extra_kwargs={"language": "es"},
         ),
         turn_handling={
