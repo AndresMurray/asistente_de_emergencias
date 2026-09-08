@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 
 # pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
@@ -60,8 +61,38 @@ async def buscar_protocolo(context: RunContext, query: str) -> str:
     """
     retriever = _get_retriever()
 
+    t0 = time.monotonic()
     async with context.with_filler("Dame un segundo.", delay=0.7, max_steps=1):
         result = await retriever.search(query)
+    elapsed = int((time.monotonic() - t0) * 1000)
+
+    # Store debug data in userdata
+    context.userdata.tool_calls.append({
+        "tool": "buscar_protocolo",
+        "args": {"query": query},
+        "status": result.status,
+        "error": result.error,
+        "chunks_found": len(result.fragments),
+        "top_score": result.top_score,
+        "total_latency_ms": elapsed,
+        "embed_ms": result.embed_ms,
+        "vector_search_ms": result.vector_search_ms,
+        "rerank_ms": result.rerank_ms,
+        "candidate_count": result.candidate_count,
+        "reranked": result.reranked,
+        "fragments": [
+            {
+                "text": f.text[:300],
+                "score": f.score,
+                "section": f.section,
+                "subsection": f.subsection,
+                "page_start": f.page_start,
+                "page_end": f.page_end,
+            }
+            for f in result.fragments
+        ],
+        "context_for_llm": result.para_llm() if result.status == "ok" else None,
+    })
 
     if result.status == "error":
         raise ToolError(
@@ -137,18 +168,43 @@ async def entrypoint(ctx: agents.JobContext):
     @session.on("conversation_item_added")
     def _on_item(ev):
         item = ev.item
-        if getattr(item, "role", None) != "assistant":
-            return
+        role = getattr(item, "role", None)
         m = getattr(item, "metrics", None) or {}
         if not m:
             return
-        logger.info(
-            "latencia | e2e=%s ttft=%s tts_ttfb=%s fin_turno=%s",
-            _ms(m.get("e2e_latency")),
-            _ms(m.get("llm_node_ttft")),
-            _ms(m.get("tts_node_ttfb")),
-            _ms(m.get("end_of_turn_delay")),
-        )
+
+        if role == "assistant":
+            # Save metrics for debug mode
+            session.userdata.last_llm_metrics = {
+                "e2e_latency_ms": m.get("e2e_latency"),
+                "llm_ttft_ms": m.get("llm_node_ttft"),
+                "tts_ttfb_ms": m.get("tts_node_ttfb"),
+                "playback_latency_ms": m.get("playback_latency"),
+            }
+            logger.info(
+                "latencia | e2e=%s ttft=%s tts_ttfb=%s playback=%s",
+                _ms(m.get("e2e_latency")),
+                _ms(m.get("llm_node_ttft")),
+                _ms(m.get("tts_node_ttfb")),
+                _ms(m.get("playback_latency")),
+            )
+        elif role == "user":
+            # end_of_turn_delay solo existe en mensajes del usuario
+            eot = m.get("end_of_turn_delay")
+            if eot is not None and session.userdata.last_llm_metrics is not None:
+                session.userdata.last_llm_metrics["end_of_turn_delay_ms"] = eot
+
+    @session.on("metrics_collected")
+    def _on_metrics(ev):
+        m = ev.metrics
+        if hasattr(m, "completion_tokens"):
+            session.userdata.last_llm_tokens = {
+                "prompt_tokens": m.prompt_tokens,
+                "completion_tokens": m.completion_tokens,
+                "total_tokens": m.total_tokens,
+                "cached_tokens": m.prompt_cached_tokens,
+                "tokens_per_second": m.tokens_per_second,
+            }
 
     @session.on("session_usage_updated")
     def _on_usage(ev):
@@ -218,15 +274,23 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
 
         if isinstance(payload, dict):
             query = payload.get("message") or payload.get("text") or payload.get("content")
+            debug = payload.get("debug", False)
         else:
             query = str(payload)
+            debug = False
 
         if not query or not query.strip():
             return
 
-        logger.info("chat recibido: %s", query)
+        logger.info("chat recibido: %s (debug=%s)", query, debug)
 
         async def process_chat():
+            # Clear previous turn debug data
+            session.userdata.tool_calls.clear()
+            session.userdata.last_llm_metrics = None
+            session.userdata.last_llm_tokens = None
+            t_start = time.monotonic()
+
             senal = procesar_turno_usuario(query, session.userdata)
             entrada = query
             if senal:
@@ -240,6 +304,8 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
             except (asyncio.CancelledError, Exception) as exc:
                 logger.warning("run de chat interrumpido o fallido: %s", exc)
 
+            total_ms = int((time.monotonic() - t_start) * 1000)
+
             messages = session.history.messages()
             assistant_msgs = [m for m in messages if m.role == "assistant"]
             reply = (
@@ -248,11 +314,48 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
                 else "No se pudo generar respuesta."
             )
             logger.info("respondiendo chat: %s", reply)
+
+            if debug:
+                tool_calls = list(session.userdata.tool_calls)
+                llm_metrics = session.userdata.last_llm_metrics or {}
+                llm_tokens = session.userdata.last_llm_tokens
+                retriever = _get_retriever()
+
+                # Count searches
+                search_count = sum(1 for tc in tool_calls if tc.get("tool") == "buscar_protocolo")
+
+                # Merge tokens into metrics
+                if llm_tokens:
+                    llm_metrics["prompt_tokens"] = llm_tokens.get("prompt_tokens")
+                    llm_metrics["completion_tokens"] = llm_tokens.get("completion_tokens")
+                    llm_metrics["total_tokens"] = llm_tokens.get("total_tokens")
+                    llm_metrics["cached_tokens"] = llm_tokens.get("cached_tokens")
+                    llm_metrics["tokens_per_second"] = llm_tokens.get("tokens_per_second")
+
+                reply_payload = {
+                    "type": "chat_reply_debug",
+                    "message": reply,
+                    "total_response_ms": total_ms,
+                    "search_count": search_count,
+                    "tool_calls": tool_calls,
+                    "llm_metrics": llm_metrics,
+                    "config": {
+                        "llm_model": os.getenv("LLM_MODEL", "google/gemma-4-31b-it"),
+                        "embed_model": retriever.settings.embed_model,
+                        "rerank_enabled": retriever.settings.rerank_enabled,
+                        "rerank_model": retriever.settings.rerank_model if retriever.settings.rerank_enabled else None,
+                        "top_k": retriever.settings.top_k,
+                        "k_vector": retriever.settings.k_vector,
+                        "min_score": retriever.settings.min_score,
+                        "rerank_min_score": retriever.settings.min_rerank_score if retriever.settings.rerank_enabled else None,
+                    },
+                }
+            else:
+                reply_payload = {"type": "chat_reply", "message": reply}
+
             try:
                 await ctx.room.local_participant.publish_data(
-                    payload=json.dumps(
-                        {"type": "chat_reply", "message": reply}
-                    ).encode("utf-8"),
+                    payload=json.dumps(reply_payload).encode("utf-8"),
                     topic="test-chat",
                 )
             except Exception as exc:
