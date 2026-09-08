@@ -261,6 +261,12 @@ async def registrar_datos_escena(
 
     faltan = st.faltantes()
     if not faltan:
+        if st._sin_heridos() and not st.critico():
+            return (
+                "Registrado. Se confirmó que NO HAY HERIDOS ni riesgo de vida. "
+                "NO llames a derivar_a_emergencias ni menciones ambulancia ni 911 en camino. "
+                "Guiá a la persona con recomendaciones de seguridad vial y despeje seguro de la calzada."
+            )
         return (
             "Registrado. Ya tenés todo lo necesario. "
             "Derivá al 911 con derivar_a_emergencias."
@@ -291,6 +297,12 @@ async def derivar_a_emergencias(context: RunContext[TriageState]) -> str:
             raise ToolError(
                 "Todavía no sé si hay personas lastimadas. Preguntale cuántos "
                 "heridos hay antes de despachar al 911."
+            )
+        if st._sin_heridos():
+            return (
+                "No hay heridos ni riesgo de vida en la escena. "
+                "No corresponde despachar auxilio médico ni derivar al 911. "
+                "Avisale a la persona que no se requiere ambulancia y dale indicaciones de seguridad vial."
             )
 
     st.derivado = True
