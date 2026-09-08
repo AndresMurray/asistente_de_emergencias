@@ -66,7 +66,7 @@ lk agent deploy
 
 `.env.local` (gitignored) with: `DATABASE_URL`, `GEMINI_API_KEY` (or `COHERE_API_KEY`), `LIVEKIT_URL/API_KEY/API_SECRET`, `CARTESIA_VOICE_ID` (optional). See `.env.example` for template.
 
-`LLM_MODEL` env var defaults to `openai/gpt-4.1-mini`. Can be overridden for testing.
+`LLM_MODEL` env var defaults to `google/gemma-4-31b-it`. Can be overridden for testing.
 
 ## Deployment
 

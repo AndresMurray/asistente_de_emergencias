@@ -43,7 +43,7 @@ def _extract_text(chat_item) -> str:
 async def ask(question: str, prelude: list[str] | None = None) -> str:
     # Configurar la sesión con el mismo LLM que usa el agente en producción
     # (se puede sobreescribir con la variable de entorno LLM_MODEL)
-    llm_model = os.environ.get("LLM_MODEL", "openai/gpt-4.1-mini")
+    llm_model = os.environ.get("LLM_MODEL", "google/gemma-4-31b-it")
     session = AgentSession(
         userdata=TriageState(),
         llm=inference.LLM(model=llm_model),

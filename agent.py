@@ -112,7 +112,7 @@ async def entrypoint(ctx: agents.JobContext):
         userdata=TriageState(),
         stt=inference.STT(model="deepgram/nova-3", language="es"),
         llm=inference.LLM(
-            model=os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
+            model=os.getenv("LLM_MODEL", "google/gemma-4-31b-it"),
             extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True,},
         ),
         tts=inference.TTS(
@@ -175,7 +175,7 @@ async def entrypoint(ctx: agents.JobContext):
     retriever = _get_retriever()
     logger.info(
         "config | llm=%s stt=deepgram/nova-3(es) keyterms=%d rerank=%s piso=%s",
-        os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
+        os.getenv("LLM_MODEL", "google/gemma-4-31b-it"),
         len(KEYTERMS_ES),
         retriever.settings.rerank_model if retriever.settings.rerank_enabled else "off",
         retriever.settings.min_rerank_score

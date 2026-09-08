@@ -526,7 +526,7 @@ async def main() -> int:
     )
     parser.add_argument(
         "--modelo",
-        default=os.getenv("LLM_MODEL", "openai/gpt-4.1-mini"),
+        default=os.getenv("LLM_MODEL", "google/gemma-4-31b-it"),
         help="Modelo de lenguaje a utilizar para la prueba",
     )
     args = parser.parse_args()

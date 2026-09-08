@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import os
 import sys
 import threading
 
@@ -194,7 +195,11 @@ async def main() -> None:
     p.add_argument("--escenario", help="nombre de un escenario puntual")
     p.add_argument("--interactivo", action="store_true", help="escribir a mano")
     p.add_argument("--listar", action="store_true", help="listar escenarios")
-    p.add_argument("--modelo", default="openai/gpt-4.1-mini", help="modelo del gateway")
+    p.add_argument(
+        "--modelo",
+        default=os.getenv("LLM_MODEL", "google/gemma-4-31b-it"),
+        help="modelo del gateway",
+    )
     p.add_argument("--verboso", action="store_true", help="mostrar logs internos")
     args = p.parse_args()
 
