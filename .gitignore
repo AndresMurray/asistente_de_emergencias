@@ -1,7 +1,13 @@
 # Python virtual environments
 venv/
 .venv/
-.env.local 
+
+# Environment variables
+.env
+.env.local
+.env.*
+!.env.example
+
 
 INSTRUCCIONES_EQUIPO.md
 # Python cache
@@ -10,8 +16,6 @@ INSTRUCCIONES_EQUIPO.md
 *.pyo
 *.pyd
 
-# Environment variables
-.env
 
 # Docker env files con credenciales (no commitear passwords reales)
 # docker-env/ se incluye en el repo con valores por defecto para la PoC

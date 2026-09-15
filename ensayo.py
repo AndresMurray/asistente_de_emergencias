@@ -35,7 +35,7 @@ load_dotenv(".env.local")
 from livekit.agents import AgentSession, inference  # noqa: E402
 from livekit.agents.utils import http_context  # noqa: E402
 
-from agent import Assistant  # noqa: E402
+from agent import Assistant, create_llm  # noqa: E402
 from triage import (
     AVISO_CRITICO,
     TriageState,
@@ -88,10 +88,7 @@ async def correr(nombre: str, turnos: list[str], modelo: str) -> None:
 
     session = AgentSession[TriageState](
         userdata=TriageState(),
-        llm=inference.LLM(
-            model=modelo,
-            extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True},
-        ),
+        llm=create_llm(modelo),
         max_tool_steps=5,
     )
     await session.start(Assistant())
@@ -164,10 +161,7 @@ async def interactivo(modelo: str) -> None:
     print("Escribí como si fueras quien llama. Ctrl-C, Ctrl-D o 'salir' para terminar.\n")
     session = AgentSession[TriageState](
         userdata=TriageState(),
-        llm=inference.LLM(
-            model=modelo,
-            extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True},
-        ),
+        llm=create_llm(modelo),
         max_tool_steps=5,
     )
     await session.start(Assistant())
@@ -197,8 +191,8 @@ async def main() -> None:
     p.add_argument("--listar", action="store_true", help="listar escenarios")
     p.add_argument(
         "--modelo",
-        default=os.getenv("LLM_MODEL", "google/gemma-4-31b-it"),
-        help="modelo del gateway",
+        default=os.getenv("LLM_MODEL", "gemini-3.6-flash"),
+        help="modelo del LLM",
     )
     p.add_argument("--verboso", action="store_true", help="mostrar logs internos")
     args = p.parse_args()

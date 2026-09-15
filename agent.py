@@ -20,6 +20,7 @@ from livekit.agents import (  # type: ignore
     room_io,
 )
 from livekit.agents.llm import ToolFlag
+from livekit.plugins import cartesia, deepgram, google
 
 from prompts import KEYTERMS_ES, SALUDO, SYSTEM_INSTRUCTIONS
 from rag import Retriever
@@ -48,6 +49,47 @@ def _get_retriever() -> Retriever:
         _retriever = Retriever()
         _retriever.connect()
     return _retriever
+
+
+def create_llm(model: str | None = None):
+    """Crea el LLM: usa el plugin oficial de Google si hay GEMINI_API_KEY o GOOGLE_API_KEY, sino gateway."""
+    gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    modelo = model or os.getenv("LLM_MODEL", "gemini-3.6-flash")
+
+    if gemini_key:
+        mod = modelo
+        if "gemma" in mod or mod.startswith("google/") or mod == "gemini-2.5-flash":
+            mod = "gemini-3.6-flash"
+        logger.info("usando livekit.plugins.google.LLM (modelo=%s)", mod)
+        return google.LLM(model=mod, api_key=gemini_key, temperature=0.2)
+
+    return inference.LLM(
+        model=modelo,
+        extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True},
+    )
+
+
+def create_stt():
+    """Crea el STT: usa Deepgram con clave propia si existe, sino gateway."""
+    deepgram_key = os.getenv("DEEPGRAM_API_KEY")
+    if deepgram_key:
+        logger.info("usando livekit.plugins.deepgram.STT directo con clave propia")
+        return deepgram.STT(model="nova-3", language="es", api_key=deepgram_key)
+    return inference.STT(model="deepgram/nova-3", language="es")
+
+
+def create_tts():
+    """Crea el TTS: usa Cartesia con clave propia si existe, sino gateway."""
+    cartesia_key = os.getenv("CARTESIA_API_KEY")
+    voice_id = os.getenv("CARTESIA_VOICE_ID", "b4b8e2af-6139-466e-a93a-30c20d2e1fc5")
+    if cartesia_key:
+        logger.info("usando livekit.plugins.cartesia.TTS directo con clave propia")
+        return cartesia.TTS(model="sonic-3", voice=voice_id, language="es", api_key=cartesia_key)
+    return inference.TTS(
+        model="cartesia/sonic-3.6",
+        voice=voice_id,
+        extra_kwargs={"language": "es"},
+    )
 
 
 @function_tool(flags=ToolFlag.IGNORE_ON_ENTER, on_duplicate="replace")
@@ -141,16 +183,9 @@ async def entrypoint(ctx: agents.JobContext):
 
     session = AgentSession[TriageState](
         userdata=TriageState(),
-        stt=inference.STT(model="deepgram/nova-3", language="es"),
-        llm=inference.LLM(
-            model=os.getenv("LLM_MODEL", "google/gemma-4-31b-it"),
-            extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True,},
-        ),
-        tts=inference.TTS(
-            model="cartesia/sonic-3.6",
-            voice=os.getenv("CARTESIA_VOICE_ID", "826111be-ee28-4c28-bc77-4ecdeae8e8b9"),
-            extra_kwargs={"language": "es"},
-        ),
+        stt=create_stt(),
+        llm=create_llm(),
+        tts=create_tts(),
         turn_handling={
             "endpointing": {"mode": "dynamic", "max_delay": 4.5},
             "interruption": {"min_duration": 0.4, "min_words": 2},
