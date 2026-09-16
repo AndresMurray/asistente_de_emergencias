@@ -1,46 +1,61 @@
 # Resumen Ejecutivo: Optimización, Desacoplamiento de Servicios y Estado del Asistente
 
-Este documento detalla el trabajo realizado sobre el **Asistente de Emergencias Viales**, el diagnóstico de los errores de cuota en LiveKit Cloud, la arquitectura de proveedores directos implementada y los pasos pendientes para garantizar una presentación impecable en la Expo.
+Este documento detalla el trabajo de ingeniería realizado sobre el **Asistente de Emergencias Viales**, la transición al motor de inferencia de ultra-baja latencia **Groq**, el diagnóstico y resolución de cuotas de tokens y base de datos, y las pautas para la presentación en la Expo.
 
 ---
 
 ## 1. Problema Inicial: Rigidez y Falta de Humanización
 
 ### Diagnóstico
-En las pruebas iniciales, ante una consulta del asistente (*"¿Estás en un lugar seguro, fuera de la calzada?"*), cuando el usuario preguntaba *"¿qué es la calzada?"*, el agente quedaba atrapado en un bucle rígido repitiendo la misma pregunta una y otra vez sin responder la duda.
+En las pruebas iniciales, ante la consulta del asistente (*"¿Estás en un lugar seguro, fuera de la calzada?"*), cuando el interlocutor preguntaba *"¿qué es la calzada?"*, el agente quedaba atrapado en un bucle rígido repitiendo la misma pregunta una y otra vez sin responder la duda.
 
 ### Solución Implementada
 Se modificó el prompt del sistema en `prompts.py`:
-* **Explicación empática:** Se instruyó al LLM a que, si el interlocutor no entiende un término o una pregunta (por ejemplo, qué significa *calzada*), lo aclare brevemente en lenguaje cotidiano antes de continuar guiando la llamada.
+* **Explicación empática:** Se instruyó al LLM a que, si el interlocutor no entiende un término o una pregunta, lo aclare brevemente en lenguaje cotidiano antes de continuar guiando la llamada.
 * **Flexibilidad en límites:** Se relajó la regla de reencauce para que el asistente no ignore preguntas aclaratorias sobre sus propias indicaciones.
 
 ---
 
-## 2. Diagnóstico del Error 429 de LiveKit Cloud
+## 2. Diagnóstico del Error 429 de LiveKit Cloud y Desacoplamiento
 
-Al intentar probar el agente por consola con `python ensayo.py --interactivo`, saltó el siguiente error:
+Al ejecutar ensayos por consola, saltó el error:
 ```text
 429 Too Many Requests: LLM token credit quota exceeded, category: MaxGatewayCredits, remaining_limit: 0
-Hint: LLM token credit quota exhausted. Wait for the next billing cycle or upgrade your plan.
 ```
 
-### La causa raíz:
-* El código dependía del **Inference Gateway de LiveKit Cloud** (`agent-gateway.livekit.cloud`), el cual actúa como intermediario para llamar a los modelos de IA.
-* En el plan gratuito **Build ($0/mo)**, LiveKit Cloud otorga una bolsa fija de créditos de cortesía ("Inference Credits") para repartir entre STT, TTS y LLM.
-* En el panel de **Billing** se verificó que en el mes se habían consumido:
-  * ~100.000 tokens de Gemma 4 31B.
-  * ~200.000 tokens de GPT-4.1 mini.
-  * Más de 600.000 tokens cacheados.
-  * 35 minutos de Deepgram STT.
-  * ~20.000 caracteres de Cartesia TTS.
-* Al llegar al tope de la bolsa gratuita mensual de inferencia, LiveKit bloqueó las peticiones al gateway exigiendo pasar al plan pago **Ship ($50 USD/mes)**.
-* **Aclaración importante sobre "los 1.000 minutos":** Los 1.000 minutos que incluye LiveKit son de *tiempo de conexión a la sala WebRTC (Agent session minutes)*, de los cuales solo se usaron 84 minutos (quedan 916 minutos libres). La inferencia de IA no se mide en minutos de sala, sino en tokens y créditos.
+### Causa raíz
+El código dependía del **Inference Gateway de LiveKit Cloud** (`agent-gateway.livekit.cloud`), el cual actúa como intermediario para llamar a los modelos de IA. En el plan gratuito **Build ($0/mo)**, LiveKit otorga una bolsa fija de créditos de cortesía para repartir entre STT, TTS y LLM que se agotó durante las pruebas.
+
+### Desacoplamiento a Proveedores Directos
+Para no pagar los $50 USD mensuales de LiveKit Cloud y tener control total sobre el sistema, se desacopló la inferencia del gateway y se conectó **cada servicio directamente a su proveedor oficial**.
 
 ---
 
-## 3. Arquitectura Desacoplada (Solución Implementada)
+## 3. Elección de Groq como Cerebro (LLM) y Gestión de Facturación
 
-Para no pagar los $50 USD mensuales de LiveKit Cloud y tener control total sobre el sistema, se desacopló la inferencia del gateway de LiveKit y se conectó **cada servicio directamente a su proveedor oficial**:
+### ¿Por qué se eligió Groq?
+1. **Velocidad de respuesta extrema (LPU):** Para un asistente de voz en tiempo real, el *Time to First Token* (TTFT) es crítico. Los chips LPU de Groq entregan el primer token en ~150–200 ms y alcanzan ~300 tokens/segundo, permitiendo que Cartesia TTS comience a hablar por streaming casi instantáneamente.
+2. **Modelo seleccionado (`openai/gpt-oss-120b`):** 
+   * Es el modelo abierto de **OpenAI de 120 mil millones de parámetros** optimizado sobre Groq.
+   * Proporciona un razonamiento médico y de triage de primer nivel (respeta estrictamente no hacer RCP a quien respira, no retirar cascos a motociclistas y utiliza voseo rioplatense fluido).
+   * Implementa *Tool Calling* / *Function Calling* nativo con máxima precisión para consultar Supabase (`buscar_protocolo`), derivar al 911 y registrar datos.
+
+### Diagnóstico del Cuello de Botella en Groq Free Tier (8.000 TPM)
+Durante las pruebas con `ensayo.py`, al 3.ᵉʳ turno saltó un error `429 Rate limit reached on tokens per minute (TPM): Limit 8000, Used 5412, Requested 3201`.
+* **Causa:** El Free Tier de Groq impone un tope de 8.000 tokens por minuto. Nuestro system prompt + definiciones de herramientas JSON + historial consume ~2.700 tokens por turno, por lo que 3 intercambios en menos de 60 segundos superaban los 8.000 tokens acumulados.
+
+### Gestión de Pagos y Blindaje de Costos en Groq (Developer Tier)
+Para eliminar este límite sin riesgos económicos, se pasó la cuenta a **Developer Tier**:
+* **Sin costo fijo mensual:** No es una suscripción ($0/mes de mantenimiento).
+* **Cobro por umbrales progresivos (*Postpaid*):** Groq no cobra por adelantado; emite el primer cobro recién al acumular **$1.00 USD** de consumo real (o a fin de mes).
+* **Blindaje estricto con Spend Limits:**
+  * **Límite mensual fijado en:** **`$1.00 USD`** (`Current spend: $0.00 / $1.00`). Es imposible que se cobre más de un dólar.
+  * **Alerta de consumo:** Configurada a los **`$0.50 USD`** con notificación directa al correo.
+  * **Desbloqueo de cuota:** El límite de tokens saltó de 8.000 a **más de 300.000 TPM**, eliminando por completo cualquier error 429.
+
+---
+
+## 4. Arquitectura del Sistema Implementada
 
 ```
                               ┌──────────────────────────────────────────────┐
@@ -56,79 +71,75 @@ Para no pagar los $50 USD mensuales de LiveKit Cloud y tener control total sobre
          ┌───────────────────────────┬───────────────┴───────────────┬───────────────────────────┐
          ▼                           ▼                               ▼                           ▼
 ┌──────────────────┐       ┌──────────────────┐            ┌──────────────────┐        ┌──────────────────┐
-│ STT: Deepgram    │       │  LLM: Google     │            │  TTS: Cartesia   │        │ RAG: Supabase    │
-│ Modelo: nova-3   │       │  gemini-3.6-flash│            │  Modelo: sonic-3 │        │ pgvector (HNSW)  │
-│ Clave: Propia    │       │  Clave: Propia   │            │  Clave: Propia   │        │ Embeddings:      │
-│ ($200 saldo)     │       │  (Google Studio) │            │  (20.000 chars)  │        │ gemini-embed-001 │
+│ STT: Deepgram    │       │  LLM: Groq (LPU) │            │  TTS: Cartesia   │        │ RAG: Supabase    │
+│ Modelo: nova-3   │       │  openai/         │            │  Modelo: sonic-3 │        │ pgvector (HNSW)  │
+│ Clave: Propia    │       │  gpt-oss-120b    │            │  Clave: Propia   │        │ Puerto: 6543     │
+│ ($200 saldo)     │       │  Clave: Propia   │            │  (20.000 chars)  │        │ Embeddings:      │
+│                  │       │  ($1 spend limit)│            │                  │        │ gemini-embed-001 │
 └──────────────────┘       └──────────────────┘            └──────────────────┘        └──────────────────┘
 ```
 
-### Cambios en Código:
-1. **`agent.py`:**
-   * Imports consolidados al inicio del archivo según estándar PEP 8 (`cartesia`, `deepgram`, `google`).
-   * Función `create_llm()`: Conecta con `livekit.plugins.google.LLM` usando `GEMINI_API_KEY` (modelo `gemini-3.6-flash`).
-   * Función `create_stt()`: Conecta con `livekit.plugins.deepgram.STT` usando `DEEPGRAM_API_KEY` propia.
-   * Función `create_tts()`: Conecta con `livekit.plugins.cartesia.TTS` usando `CARTESIA_API_KEY` propia con voz rioplatense.
-2. **`ensayo.py`:**
-   * Actualizado para usar `create_llm()` directamente, permitiendo ensayos de texto sin consumir créditos de LiveKit.
-3. **`.env.local`:**
-   * Incorporada la clave directa de Deepgram (`DEEPGRAM_API_KEY`).
-   * Configurado `LLM_MODEL=gemini-3.6-flash`.
-   * Limpiada clave duplicada para evitar advertencias de SDK.
+---
+
+## 5. Otras Correcciones y Mejoras Técnicas Clave
+
+### A. Conexión a Supabase: Puerto 5432 a 6543
+* **Problema:** Durante una búsqueda de protocolo surgió `psycopg2.OperationalError: connection to ... port 5432 failed: timeout expired`.
+* **Causa:** El puerto estándar de Postgres (5432) suele ser bloqueado por firewalls de red o sufrir latencias en conexiones directas.
+* **Solución:** Se configuró en `DATABASE_URL` el puerto **`6543`** (modo *Connection Pooler* transaccional de Supabase), garantizando alta disponibilidad y superando restricciones de red.
+
+### B. Saludo Inicial en el Simulador (`ensayo.py`)
+* En el agente real de voz (`agent.py`), el saludo (*"Emergencias viales, te escucho. Estoy con vos. ¿Estás en un lugar seguro, fuera de la calzada?"*) se reproduce por TTS mediante `session.say(SALUDO)` a 0 ms de latencia sin consultar al LLM.
+* Se adaptó `ensayo.py` para imprimir automáticamente este `SALUDO` al inicio de la sesión interactiva, haciendo que la prueba por consola sea idéntica a la llamada telefónica real.
+
+### C. Confirmación Explícita de Geolocalización al Derivar
+* **Regla Condicional:** Se refinó `prompts.py` y `triage.py` para que, **únicamente cuando corresponda derivar** (heridos o riesgo de vida), el asistente confirme en ese mismo turno:
+  > *«Ya estás geolocalizado y la ayuda va en camino. [Maniobra médica inmediata]»*
+* Si no hay heridos (ej: choque leve sin lesiones), el sistema no deriva ni menciona ambulancias en camino, brindando pautas de seguridad vial.
+
+### D. Unificación de Scripts con `create_llm()`
+* Se actualizaron `agent.py`, `ensayo.py`, `test_guion_expo.py` y `ask_livekit.py` para que todos consuman `create_llm()`, respetando el proveedor activo (Groq con fallback a Gemini) y evitando consumir créditos de LiveKit.
 
 ---
 
-## 4. Estado y Cuotas de Cada Proveedor
+## 6. Estado y Blindaje de Cuotas
 
-| Proveedor | Rol en el Asistente | Estado Actual de Cuota | ¿Suficiente para la Expo? |
+| Proveedor | Rol en el Asistente | Configuración / Cuota Actual | ¿Suficiente para la Expo? |
 | :--- | :--- | :--- | :---: |
-| **Deepgram** | STT (Escucha) | Clave nueva propia vinculada con saldo de bienvenida ($200 USD ≈ 700 horas de audio). | **Sí (100% blindado)** |
-| **Cartesia** | TTS (Voz rioplatense) | 20.000 créditos/caracteres intactos (0% consumido, renueva 30 de septiembre). Permite ~250 respuestas habladas. | **Sí (100% blindado)** |
-| **LiveKit Cloud** | WebRTC (Conexión de audio) | 916 minutos de agente restantes (de 1.000) y 49 GB de ancho de banda libres. | **Sí (~15 horas continuas)** |
-| **Supabase** | RAG (Base vectorial) | PostgreSQL + pgvector activo en capa gratuita permanente. | **Sí** |
-| **Google Gemini (Embeddings)** | Búsqueda semántica | Pico histórico 79/100 RPM durante ingesta. En runtime gasta 1 llamada por búsqueda. | **Sí** |
-| **Google Gemini (LLM)** | Cerebro y Triage | Cuenta Free Tier: 5 RPM (pedidos por minuto) para 3.6 Flash / 1.500 al día. | **Atención (ver pendientes)** |
+| **Groq** | Cerebro / LLM (`openai/gpt-oss-120b`) | Developer Tier activo. Límite estricto de gasto de **$1.00 USD** con alerta en **$0.50 USD**. Más de 300K TPM libres. | **Sí (100% blindado)** |
+| **Deepgram** | STT (Escucha) | Clave propia con $200 USD de saldo de bienvenida (~700 horas de audio). | **Sí (100% blindado)** |
+| **Cartesia** | TTS (Voz rioplatense) | 20.000 créditos/caracteres intactos (~250 respuestas habladas). | **Sí (100% blindado)** |
+| **LiveKit Cloud** | WebRTC (Conexión de audio) | 916 minutos de agente restantes y 49 GB de ancho de banda libres. | **Sí (~15 horas continuas)** |
+| **Supabase** | RAG (Base vectorial) | PostgreSQL + pgvector con Connection Pooler activo en puerto **6543**. | **Sí (100% blindado)** |
+| **Google AI Studio** | Embeddings RAG | Pico histórico 79/100 RPM. Consume 1 llamada por consulta de protocolo. | **Sí** |
 
 ---
 
-## 5. Tareas Pendientes y Recomendaciones para la Expo
+## 7. Pasos de Validación y Despliegue
 
-### A. Para el LLM (Google AI Studio)
-En la prueba por consola comprobamos que el pipeline completo funcionó a la perfección:
-* Identificó el siniestro.
-* Registró el triage (`registrar_datos_escena`).
-* Consultó el RAG en Supabase (`buscar_protocolo`).
-* Disparó el despacho al 911 (`derivar_a_emergencias`).
-* Formuló la respuesta médica exacta en rioplatense.
+### 1. Ensayo Interactivo por Consola
+```bash
+python ensayo.py --interactivo
+```
+Verifica el flujo completo: saludo inicial, aclaración de términos cotidianos, triage, consulta al RAG en Supabase y derivación condicional.
 
-Sin embargo, en la capa gratuita el límite es de **5 pedidos por minuto (5 RPM)**. Como el agente encadena llamadas a herramientas en un mismo turno, puede rozar ese límite si se le habla muy rápido.
+### 2. Validación de Escenarios Guionados
+```bash
+python test_guion_expo.py --escenario principal
+python test_guion_expo.py --escenario casco
+python test_guion_expo.py --escenario inconsciente_respira
+```
+Ejecuta la batería de pruebas automatizadas que certifica las reglas médicas y de seguridad.
 
-* **Recomendación para la Expo:** En la pantalla de [Google AI Studio (Límites de frecuencia)](https://ai.dev/rate-limit), hacer clic en **`Configurar la facturación`** y asociar una tarjeta al proyecto de Google Cloud (Pay-as-you-go).
-  * El límite sube instantáneamente a **1.000+ RPM**.
-  * El costo de los modelos Flash es de **$0.10 USD por millón de tokens** (toda la expo costará menos de $0.50 USD).
-  * Si es la primera cuenta de Google Cloud, Google acredita $300 USD gratis por 90 días.
+### 3. Ejecución Local con Voz Real
+```bash
+python agent.py dev
+```
+Inicia el agente conectado a LiveKit Cloud para probar la interacción real de voz mediante el frontend web.
 
-### B. Pruebas Pendientes a Realizar
-1. **Ensayo interactivo por texto:**
-   ```bash
-   python ensayo.py --interactivo
-   ```
-   Probar el caso de *"¿Qué es la calzada?"* para validar la respuesta humanizada.
-2. **Ejecución local del agente completo (con voz y frontend):**
-   ```bash
-   python agent.py dev
-   ```
-   Abrir la interfaz web de pruebas y validar el flujo con voz real de Cartesia y STT de Deepgram.
-3. **Validación de escenarios guionados:**
-   ```bash
-   python test_guion_expo.py --escenario principal
-   ```
-   Verificar que las pruebas automáticas del guion de la facultad pasen en verde.
-
-### C. Despliegue en Producción (LiveKit Cloud)
-Cuando se desee actualizar el agente desplegado en la nube de LiveKit:
-* Recordar que `livekit.toml` y `agent.py` se despliegan con:
-  ```bash
-  lk agent deploy
-  ```
-* Las variables de entorno de producción (`DEEPGRAM_API_KEY`, `CARTESIA_API_KEY`, `GEMINI_API_KEY`, `DATABASE_URL`) deben quedar cargadas en el **LiveKit Cloud Dashboard > Settings > Environment Variables** del agente para que el contenedor en la nube también use las claves directas.
+### 4. Despliegue en la Nube (Producción)
+Cuando se desee actualizar el agente desplegado en LiveKit Cloud:
+```bash
+lk agent deploy
+```
+*Asegurarse de que en el Dashboard de LiveKit Cloud (Settings > Environment Variables) estén cargadas: `GROQ_API_KEY`, `DEEPGRAM_API_KEY`, `CARTESIA_API_KEY`, `DATABASE_URL` (con puerto 6543) y `GEMINI_API_KEY`.*

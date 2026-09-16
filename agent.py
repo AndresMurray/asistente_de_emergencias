@@ -20,7 +20,7 @@ from livekit.agents import (  # type: ignore
     room_io,
 )
 from livekit.agents.llm import ToolFlag
-from livekit.plugins import cartesia, deepgram, google
+from livekit.plugins import cartesia, deepgram, google, openai
 
 from prompts import KEYTERMS_ES, SALUDO, SYSTEM_INSTRUCTIONS
 from rag import Retriever
@@ -52,19 +52,43 @@ def _get_retriever() -> Retriever:
 
 
 def create_llm(model: str | None = None):
-    """Crea el LLM: usa el plugin oficial de Google si hay GEMINI_API_KEY o GOOGLE_API_KEY, sino gateway."""
+    """Crea el LLM: prioriza Groq si está configurado (vía openai plugin),
+    o Google Gemini directo con clave propia, o gateway de LiveKit como fallback."""
+    groq_key = os.getenv("GROQ_API_KEY") or os.getenv("GROQ")
     gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    modelo = model or os.getenv("LLM_MODEL", "gemini-3.6-flash")
+    provider = os.getenv("LLM_PROVIDER", "").lower()
+    modelo = model or os.getenv("LLM_MODEL", "")
+
+    # Determinar si usar Groq:
+    use_groq = bool(groq_key) and (
+        provider == "groq"
+        or "llama" in modelo.lower()
+        or "groq" in modelo.lower()
+        or "gpt-oss" in modelo.lower()
+        or "qwen" in modelo.lower()
+        or (provider != "google" and provider != "gemini" and "gemini" not in modelo.lower())
+    )
+
+    if use_groq:
+        mod = modelo or "openai/gpt-oss-120b"
+        logger.info("usando Groq vía livekit.plugins.openai.LLM (modelo=%s)", mod)
+        return openai.LLM(
+            model=mod,
+            api_key=groq_key,
+            base_url="https://api.groq.com/openai/v1",
+            temperature=0.2,
+            _strict_tool_schema=False,
+        )
 
     if gemini_key:
-        mod = modelo
-        if "gemma" in mod or mod.startswith("google/") or mod == "gemini-2.5-flash":
-            mod = "gemini-3.6-flash"
+        mod = modelo or "gemini-2.5-flash"
+        if "gemma" in mod or mod.startswith("google/") or "llama" in mod or "oss" in mod:
+            mod = "gemini-2.5-flash"
         logger.info("usando livekit.plugins.google.LLM (modelo=%s)", mod)
         return google.LLM(model=mod, api_key=gemini_key, temperature=0.2)
 
     return inference.LLM(
-        model=modelo,
+        model=modelo or "google/gemma-4-31b-it",
         extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True},
     )
 

@@ -47,7 +47,7 @@ load_dotenv(".env.local")
 from livekit.agents import AgentSession, inference  # noqa: E402
 from livekit.agents.utils import http_context  # noqa: E402
 
-from agent import Assistant  # noqa: E402
+from agent import Assistant, create_llm  # noqa: E402
 from triage import (  # noqa: E402
     TriageState,
     generar_aviso_critico,
@@ -325,10 +325,7 @@ async def correr_escenario_principal(modelo: str) -> ScenarioResult:
 
     session = AgentSession[TriageState](
         userdata=TriageState(),
-        llm=inference.LLM(
-            model=modelo,
-            extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True},
-        ),
+        llm=create_llm(modelo),
         max_tool_steps=5,
     )
     await session.start(Assistant())
@@ -377,10 +374,7 @@ async def correr_escenario_casco(modelo: str) -> ScenarioResult:
 
     session = AgentSession[TriageState](
         userdata=TriageState(),
-        llm=inference.LLM(
-            model=modelo,
-            extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True},
-        ),
+        llm=create_llm(modelo),
         max_tool_steps=5,
     )
     await session.start(Assistant())
@@ -410,10 +404,7 @@ async def correr_escenario_inconsciente_respira(modelo: str) -> ScenarioResult:
 
     session = AgentSession[TriageState](
         userdata=TriageState(),
-        llm=inference.LLM(
-            model=modelo,
-            extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True},
-        ),
+        llm=create_llm(modelo),
         max_tool_steps=5,
     )
     await session.start(Assistant())

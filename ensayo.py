@@ -36,6 +36,7 @@ from livekit.agents import AgentSession, inference  # noqa: E402
 from livekit.agents.utils import http_context  # noqa: E402
 
 from agent import Assistant, create_llm  # noqa: E402
+from prompts import SALUDO  # noqa: E402
 from triage import (
     AVISO_CRITICO,
     TriageState,
@@ -165,6 +166,7 @@ async def interactivo(modelo: str) -> None:
         max_tool_steps=5,
     )
     await session.start(Assistant())
+    print(f"<<< {SALUDO}\n")
     try:
         while True:
             texto = await _leer("\n>>> ")

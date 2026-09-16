@@ -332,17 +332,16 @@ async def derivar_a_emergencias(context: RunContext[TriageState]) -> str:
     })
     logger.info("derivar_a_emergencias | geolocalizado | estado=%s", st.brief())
 
-    primero = ""
     if st.critico():
-        primero = (
-            "PRIMERO: si todavía no le diste la maniobra que salva la vida, "
-            "dásela ahora en una frase corta y directa. "
+        return (
+            "La llamada fue GEOLOCALIZADA automáticamente y se dio aviso inmediato al 911 (auxilio despachado en camino). "
+            "En tu respuesta confirmale explícitamente: «Ya estás geolocalizado y la ayuda va en camino.» "
+            "e integralo con la maniobra inmediata que salva la vida. "
+            "Continuá asistiéndola paso a paso."
         )
 
     return (
-        f"{primero}La llamada fue GEOLOCALIZADA automáticamente con éxito y se dio aviso "
-        "inmediato al 911 (servicios de emergencia y auxilio despachados en camino). "
-        "Decile en una frase corta, calma y tranquilizadora a la persona que ya fue "
-        "geolocalizada y que el 911 / la ambulancia va en camino. "
-        "Continuá asistiéndola con las indicaciones de primeros auxilios y contención."
+        "La llamada fue GEOLOCALIZADA automáticamente y se dio aviso inmediato al 911 (auxilio despachado en camino). "
+        "Confirmale a la persona: «Ya estás geolocalizado y la ayuda va en camino.» "
+        "y continuá asistiéndola con las indicaciones paso a paso."
     )

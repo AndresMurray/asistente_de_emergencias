@@ -14,7 +14,7 @@ from livekit.agents import AgentSession, inference
 load_dotenv(Path(__file__).parent / ".env.local", override=True)
 
 # Importar el agente del proyecto
-from agent import Assistant
+from agent import Assistant, create_llm
 from triage import TriageState
 
 logging.basicConfig(
@@ -41,12 +41,10 @@ def _extract_text(chat_item) -> str:
 
 
 async def ask(question: str, prelude: list[str] | None = None) -> str:
-    # Configurar la sesión con el mismo LLM que usa el agente en producción
-    # (se puede sobreescribir con la variable de entorno LLM_MODEL)
-    llm_model = os.environ.get("LLM_MODEL", "google/gemma-4-31b-it")
+    # Configurar la sesión con el LLM del proyecto (Groq, Gemini directo o gateway)
     session = AgentSession(
         userdata=TriageState(),
-        llm=inference.LLM(model=llm_model),
+        llm=create_llm(),
     )
 
     try:
