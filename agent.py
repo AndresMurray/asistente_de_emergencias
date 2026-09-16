@@ -120,11 +120,23 @@ def create_tts():
 async def buscar_protocolo(context: RunContext, query: str) -> str:
     """Busca en el manual de primeros auxilios los fragmentos relevantes.
 
-    Llamala SIEMPRE antes de dar cualquier indicación de primeros auxilios.
+    Llamala cuando necesites una maniobra de primeros auxilios.
     Reformulá lo que dijo la persona con palabras del manual: "no respira" se
     busca como "herido inconsciente que no respira reanimación cardiopulmonar";
     "se está desangrando" como "control de hemorragias externas".
+    NUNCA la llames más de una vez en el mismo turno ni repitas la misma consulta.
+    Una vez obtenidos los fragmentos, respondé a la persona con esa información.
     """
+    q_norm = query.strip().lower()
+    last_query = getattr(context.userdata, "_last_search_query", None)
+    if last_query and last_query == q_norm:
+        logger.warning("buscar_protocolo: consulta duplicada en el mismo turno: '%s'", query)
+        return (
+            f"Ya consultaste el manual para «{query}» y los fragmentos están disponibles arriba. "
+            "NO vuelvas a buscar lo mismo en este turno. Formulá tu respuesta ahora para quien llama."
+        )
+    setattr(context.userdata, "_last_search_query", q_norm)
+
     retriever = _get_retriever()
 
     t0 = time.monotonic()

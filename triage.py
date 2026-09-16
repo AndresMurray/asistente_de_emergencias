@@ -30,7 +30,12 @@ logger = logging.getLogger("triage")
 # Se usan para detectar el caso crítico de forma DETERMINÍSTICA, sin depender de
 # que el modelo se acuerde de llamar una tool.
 SENALES_INCONSCIENCIA = (
-    "inconsciente", "desmayado", "desvanecido", "no reacciona", "no responde", "no se mueve",
+    "inconsciente", "inconscientes",
+    "desmayado", "desmayada", "desmayados", "desmayadas",
+    "desvanecido", "desvanecida", "desvanecidos", "desvanecidas",
+    "no reacciona", "no reaccionan",
+    "no responde", "no responden",
+    "no se mueve", "no se mueven",
 )
 
 SENALES_PARO_RESPIRATORIO = (
@@ -38,11 +43,21 @@ SENALES_PARO_RESPIRATORIO = (
     "dejo de respirar", "no tiene pulso", "se está muriendo", "se esta muriendo",
 )
 
+SENALES_ATRAPAMIENTO = (
+    "atrapado", "atrapada", "atrapados", "atrapadas", "atrapad",
+    "aplastado", "aplastada", "aplastados", "aplastadas", "aplastad",
+    "prensado", "prensada", "prensados", "prensadas", "prensad",
+    "aprisionado", "aprisionada", "aprisionados", "aprisionadas", "aprisionad",
+    "encerrado", "encerrada", "encerrados", "encerradas", "encerrad",
+    "no puede salir", "no pueden salir", "no logra salir",
+    "trabado", "trabada", "trabados", "trabadas", "trabad",
+)
+
 SENALES_CRITICAS = (
     *SENALES_PARO_RESPIRATORIO,
     *SENALES_INCONSCIENCIA,
+    *SENALES_ATRAPAMIENTO,
     "se desangra", "sangra mucho", "mucha sangre", "hemorragia",
-    "atrapado", "aplastado", "prensado",
     "fuego", "se prendió", "se prendio", "incendio", "humo", "combustible",
     "nafta", "convulsion", "convulsión",
 )
@@ -65,6 +80,16 @@ AVISO_CRITICO = (
 def generar_aviso_critico(senal: str, st: TriageState) -> str:
     """Genera la instrucción específica según el tipo de riesgo de vida detectado."""
     senal_baja = senal.lower()
+
+    if any(s in senal_baja for s in SENALES_ATRAPAMIENTO):
+        return (
+            f"PERSONA ATRAPADA («{senal}»): Riesgo crítico por atrapamiento en vehículo. "
+            "1. Llamá de inmediato a derivar_a_emergencias. "
+            "2. Sé RESOLUTIVO: en tu primera frase confirmale con firmeza: «Ya estás geolocalizado y la ayuda va en camino.» "
+            "3. Indicá tajantemente NO mover a la persona ni forzar el auto (riesgo de lesión medular irreversible; los bomberos tienen las herramientas). "
+            "4. Verificá desde afuera sin tocarla ni meterse al auto si responde o respira."
+        )
+
     es_inconsciencia = any(s in senal_baja for s in SENALES_INCONSCIENCIA)
 
     if es_inconsciencia and st.respira is None:
@@ -119,6 +144,7 @@ class TriageState:
     consciente: bool | None = None
     respira: bool | None = None
     caller_seguro: bool | None = None
+    atrapado: bool | None = None
 
     derivado: bool = False
     # Lo levanta el detector determinístico de on_user_turn_completed, no el LLM.
@@ -165,7 +191,7 @@ class TriageState:
 
     def critico(self) -> bool:
         """Riesgo de vida inmediato: saltea el orden del triage y deriva ya."""
-        if self.respira is False or self.consciente is False:
+        if self.respira is False or self.consciente is False or self.atrapado is True:
             return True
         if self.senal_critica:
             return True
@@ -195,6 +221,8 @@ class TriageState:
             f"Consciente: {sino(self.consciente)}. "
             f"Respira: {sino(self.respira)}."
         )
+        if self.atrapado:
+            brief += " Persona atrapada: sí."
         if self.senal_critica:
             brief += f" SEÑAL CRÍTICA detectada: «{self.senal_critica}»."
         if self.dichos and self.que_paso is None and self.heridos is None:
@@ -212,6 +240,7 @@ async def registrar_datos_escena(
     consciente: bool | None = None,
     respira: bool | None = None,
     caller_seguro: bool | None = None,
+    atrapado: bool | None = None,
 ) -> str:
     """Guarda datos de la escena a medida que la persona los va diciendo.
 
@@ -227,8 +256,15 @@ async def registrar_datos_escena(
     consciente: si el herido está despierto y reacciona.
     respira: si el herido respira.
     caller_seguro: si quien llama está fuera de la calzada, a salvo.
+    atrapado: si hay alguna persona atrapada, aprisionada o encerrada en un vehículo.
     """
     st = context.userdata
+
+    if atrapado is None:
+        texto_in = f"{heridos or ''} {que_paso or ''}".lower()
+        if any(s in texto_in for s in SENALES_ATRAPAMIENTO):
+            atrapado = True
+
     guardados = []
     for nombre, valor in (
         ("que_paso", que_paso),
@@ -237,13 +273,23 @@ async def registrar_datos_escena(
         ("consciente", consciente),
         ("respira", respira),
         ("caller_seguro", caller_seguro),
+        ("atrapado", atrapado),
     ):
         if valor is not None:
             setattr(st, nombre, valor)
             guardados.append(nombre)
 
     if not guardados:
-        return "No me pasaste ningún dato. Preguntale a la persona qué falta."
+        if st.critico() and not st.derivado:
+            return (
+                "No hay nuevos datos. Hay riesgo de vida pendiente: "
+                "derivá de inmediato con derivar_a_emergencias avisando que ya está geolocalizado "
+                "y la ayuda va en camino, y continuá asistiendo con indicaciones seguras."
+            )
+        faltan = st.faltantes()
+        if faltan:
+            return f"No se registraron nuevos datos. Falta saber: {', '.join(faltan)}."
+        return "No se registraron nuevos datos. Continuá asistiendo a la persona."
 
     context.userdata.tool_calls.append({
         "tool": "registrar_datos_escena",
@@ -251,6 +297,7 @@ async def registrar_datos_escena(
             k: v for k, v in (
                 ("que_paso", que_paso), ("heridos", heridos), ("riesgos", riesgos),
                 ("consciente", consciente), ("respira", respira), ("caller_seguro", caller_seguro),
+                ("atrapado", atrapado),
             ) if v is not None
         },
         "saved_fields": guardados,
@@ -259,6 +306,21 @@ async def registrar_datos_escena(
     logger.info("triage | guardado=%s | estado=%s", guardados, st.brief())
 
     if st.critico() and not st.derivado:
+        es_atrapado = (
+            st.atrapado is True
+            or any(s in (st.heridos or "").lower() for s in SENALES_ATRAPAMIENTO)
+            or any(s in (st.que_paso or "").lower() for s in SENALES_ATRAPAMIENTO)
+            or any(s in (st.senal_critica or "").lower() for s in SENALES_ATRAPAMIENTO)
+        )
+        if es_atrapado:
+            return (
+                "Registrado. HAY PERSONA ATRAPADA (riesgo crítico): dejá de juntar datos. "
+                "Llamá de inmediato a derivar_a_emergencias. "
+                "En tu respuesta sé RESOLUTIVO: confirmale primero «Ya estás geolocalizado y la ayuda va en camino.» "
+                "Indicá tajantemente NO mover a la persona ni forzar el vehículo (peligro severo de daño medular), "
+                "y verificá desde afuera sin tocarla ni meterse al auto si reacciona o respira."
+            )
+
         if st.consciente is False and st.respira is None:
             return (
                 "Registrado. HAY RIESGO DE VIDA (persona inconsciente): dejá de juntar datos. "
@@ -268,7 +330,8 @@ async def registrar_datos_escena(
         if st.consciente is False and st.respira is True:
             return (
                 "Registrado. La persona está inconsciente pero RESPIRA. "
-                "NO hagas RCP ni compresiones. Indicá mantener la vía aérea abierta y vigilar, "
+                "NO hagas RCP ni compresiones. Si está en el suelo o accesible, indicá mantener la vía aérea abierta. "
+                "Si está atrapada dentro de un auto o no la ve, NO intentes moverla; indicá vigilarla desde la ventanilla, "
                 "y derivá con derivar_a_emergencias."
             )
         return (

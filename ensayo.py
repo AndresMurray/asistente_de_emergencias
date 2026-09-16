@@ -81,6 +81,11 @@ ESCENARIOS: dict[str, list[str]] = {
         "No hay nadie herido pero sale humo y olor a combustible del motor",
         "¿Qué hacemos?",
     ],
+    "atrapado": [
+        "hola, si estoy fuera de la calzada chocaron dos autos",
+        "hay una persona atrapada en auto las demas estan bien",
+        "no veo si reacciona",
+    ],
 }
 
 
