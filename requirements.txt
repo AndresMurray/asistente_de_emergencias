@@ -8,10 +8,11 @@
 # de voz y las mediciones dejan de ser comparables.
 livekit-agents==1.6.5
 
-# STT/LLM/TTS salen todos por el gateway de inference (livekit.agents.inference),
-# autenticado con LIVEKIT_API_KEY. Por eso NO hacen falta los plugins de
-# deepgram/cartesia/openai/google, que estaban acá sin usarse. El de google
-# arrastraba google-cloud-speech, google-cloud-texttospeech y grpc de yapa.
+# Plugins de proveedores directos (desacoplados del gateway)
+livekit-plugins-cartesia~=1.6
+livekit-plugins-deepgram~=1.6
+livekit-plugins-google~=1.6
+livekit-plugins-openai~=1.6
 
 psycopg2-binary==2.9.12
 pgvector==0.5.0
