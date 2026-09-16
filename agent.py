@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import random
 import time
 
 # pyrefly: ignore [missing-import]
@@ -116,6 +117,27 @@ def create_tts():
     )
 
 
+# Frases de espera profesionales, serias y empáticas para emergencias viales.
+# Transmiten control, acompañan y evitan sonar informales o repetitivas.
+FRASES_ESPERA_EMERGENCIA = [
+    "Dame un segundo, estoy con vos.",
+    "Un momento, ya te confirmo el paso exacto.",
+    "Un instante, estoy verificando el protocolo.",
+    "Dame un segundo, ya te indico cómo seguir.",
+    "Un momento, quedate conmigo.",
+]
+
+
+def _elegir_frase_espera(userdata: TriageState | None = None) -> str:
+    """Elige una frase de espera profesional evitando repetir la última usada."""
+    last_idx = getattr(userdata, "_last_filler_idx", -1) if userdata else -1
+    candidatos = [i for i in range(len(FRASES_ESPERA_EMERGENCIA)) if i != last_idx]
+    idx = random.choice(candidatos)
+    if userdata:
+        setattr(userdata, "_last_filler_idx", idx)
+    return FRASES_ESPERA_EMERGENCIA[idx]
+
+
 @function_tool(flags=ToolFlag.IGNORE_ON_ENTER, on_duplicate="replace")
 async def buscar_protocolo(context: RunContext, query: str) -> str:
     """Busca en el manual de primeros auxilios los fragmentos relevantes.
@@ -138,9 +160,10 @@ async def buscar_protocolo(context: RunContext, query: str) -> str:
     setattr(context.userdata, "_last_search_query", q_norm)
 
     retriever = _get_retriever()
+    frase_espera = _elegir_frase_espera(context.userdata)
 
     t0 = time.monotonic()
-    async with context.with_filler("Dame un segundo.", delay=0.7, max_steps=1):
+    async with context.with_filler(frase_espera, delay=0.6, max_steps=1):
         result = await retriever.search(query)
     elapsed = int((time.monotonic() - t0) * 1000)
 
@@ -223,7 +246,7 @@ async def entrypoint(ctx: agents.JobContext):
         llm=create_llm(),
         tts=create_tts(),
         turn_handling={
-            "endpointing": {"mode": "dynamic", "max_delay": 4.5},
+            "endpointing": {"mode": "dynamic", "min_delay": 0.6, "max_delay": 2.0},
             "interruption": {"min_duration": 0.4, "min_words": 2},
             "preemptive_generation": {"preemptive_tts": False, "max_speech_duration": 15.0},
         },
@@ -361,6 +384,18 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
             session.userdata.last_llm_metrics = None
             session.userdata.last_llm_tokens = None
             t_start = time.monotonic()
+
+            try:
+                await ctx.room.local_participant.publish_data(
+                    payload=json.dumps({
+                        "type": "chat_status",
+                        "status": "thinking",
+                        "message": "Asistente analizando la situación...",
+                    }).encode("utf-8"),
+                    topic="test-chat",
+                )
+            except Exception:
+                pass
 
             senal = procesar_turno_usuario(query, session.userdata)
             entrada = query
