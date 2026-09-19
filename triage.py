@@ -314,7 +314,20 @@ async def registrar_datos_escena(
 
     logger.info("triage | guardado=%s | estado=%s", guardados, st.brief())
 
-    if st.critico() and not st.derivado:
+    # Auto-derivación inmediata: si hay heridos confirmados o riesgo crítico,
+    # el sistema activa el despacho al 911 sin requerir un roundtrip extra al LLM.
+    if not st.derivado:
+        if st.critico() or (st.heridos and not st._sin_heridos()):
+            st.derivado = True
+            context.userdata.tool_calls.append({
+                "tool": "derivar_a_emergencias",
+                "args": {"auto": True},
+                "was_critical": st.critico(),
+                "triage_brief": st.brief(),
+            })
+            logger.info("derivar_a_emergencias (auto) | geolocalizado | estado=%s", st.brief())
+
+    if st.critico():
         es_atrapado = (
             st.atrapado is True
             or any(s in (st.heridos or "").lower() for s in SENALES_ATRAPAMIENTO)
@@ -324,7 +337,7 @@ async def registrar_datos_escena(
         if es_atrapado:
             return (
                 "Registrado. HAY PERSONA ATRAPADA (riesgo crítico): dejá de juntar datos. "
-                "Llamá de inmediato a derivar_a_emergencias. "
+                "Ya se dio aviso al 911 y está GEOLOCALIZADO. "
                 "En tu respuesta sé RESOLUTIVO: confirmale primero «Ya estás geolocalizado y la ayuda va en camino.» "
                 "Indicá tajantemente NO mover a la persona ni forzar el vehículo (peligro severo de daño medular), "
                 "y verificá desde afuera sin tocarla ni meterse al auto si reacciona o respira."
@@ -333,26 +346,27 @@ async def registrar_datos_escena(
         if st.consciente is False and st.respira is None:
             return (
                 "Registrado. HAY RIESGO DE VIDA (persona inconsciente): dejá de juntar datos. "
+                "Ya se dio aviso al 911 y está GEOLOCALIZADO. "
                 "NO indiques RCP sin saber si respira: pedile de inmediato verificar si "
-                "respira (si se le mueve el pecho) y derivá con derivar_a_emergencias."
+                "respira (si se le mueve el pecho)."
             )
         if st.consciente is False and st.respira is True:
             return (
                 "Registrado. La persona está inconsciente pero RESPIRA. "
+                "Ya se dio aviso al 911 y está GEOLOCALIZADO. "
                 "NO hagas RCP ni compresiones. Si está en el suelo o accesible, indicá mantener la vía aérea abierta. "
-                "Si está atrapada dentro de un auto o no la ve, NO intentes moverla; indicá vigilarla desde la ventanilla, "
-                "y derivá con derivar_a_emergencias."
+                "Si está atrapada dentro de un auto o no la ve, NO intentes moverla; indicá vigilarla desde la ventanilla."
             )
         if st.respira is False:
             return (
-                "Registrado. PARO RESPIRATORIO (NO RESPIRA): llamá de inmediato a derivar_a_emergencias en este mismo turno. "
+                "Registrado. PARO RESPIRATORIO (NO RESPIRA): ya se dio aviso al 911 y está GEOLOCALIZADO. "
                 "Confirmale «Ya estás geolocalizado y la ayuda va en camino.» e indicá apoyar el talón de la mano "
                 "en el centro del pecho y comprimir fuerte y rápido."
             )
         return (
             "Registrado. HAY RIESGO DE VIDA: dejá de juntar datos. "
-            "Dale primero la indicación que salva la vida (buscala con "
-            "buscar_protocolo) y derivá con derivar_a_emergencias."
+            "Ya se dio aviso al 911 y está GEOLOCALIZADO. "
+            "Dale la indicación que salva la vida con la información del manual."
         )
 
     faltan = st.faltantes()
@@ -360,12 +374,12 @@ async def registrar_datos_escena(
         if st._sin_heridos() and not st.critico():
             return (
                 "Registrado. Se confirmó que NO HAY HERIDOS ni riesgo de vida. "
-                "NO llames a derivar_a_emergencias ni menciones ambulancia ni 911 en camino. "
+                "NO menciones ambulancia ni 911 en camino. "
                 "Guiá a la persona con recomendaciones de seguridad vial y despeje seguro de la calzada."
             )
         return (
-            "Registrado. Ya tenés todo lo necesario. "
-            "Derivá al 911 con derivar_a_emergencias."
+            "Registrado. Ya se dio aviso al 911 y la llamada está GEOLOCALIZADA. "
+            "Continuá asistiendo a la persona con indicaciones paso a paso."
         )
     return f"Registrado. Todavía falta, en este orden: {', '.join(faltan)}."
 
