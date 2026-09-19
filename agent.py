@@ -77,7 +77,8 @@ def create_llm(model: str | None = None):
             model=mod,
             api_key=groq_key,
             base_url="https://api.groq.com/openai/v1",
-            temperature=0.2,
+            temperature=0.1,
+            parallel_tool_calls=True,
             _strict_tool_schema=False,
         )
 
@@ -86,11 +87,11 @@ def create_llm(model: str | None = None):
         if "gemma" in mod or mod.startswith("google/") or "llama" in mod or "oss" in mod:
             mod = "gemini-2.5-flash"
         logger.info("usando livekit.plugins.google.LLM (modelo=%s)", mod)
-        return google.LLM(model=mod, api_key=gemini_key, temperature=0.2)
+        return google.LLM(model=mod, api_key=gemini_key, temperature=0.1)
 
     return inference.LLM(
         model=modelo or "google/gemma-4-31b-it",
-        extra_kwargs={"temperature": 0.2, "parallel_tool_calls": True},
+        extra_kwargs={"temperature": 0.1, "parallel_tool_calls": True},
     )
 
 
@@ -246,7 +247,7 @@ async def entrypoint(ctx: agents.JobContext):
         llm=create_llm(),
         tts=create_tts(),
         turn_handling={
-            "endpointing": {"mode": "dynamic", "min_delay": 0.6, "max_delay": 2.0},
+            "endpointing": {"mode": "dynamic", "min_delay": 0.5, "max_delay": 3.0},
             "interruption": {"min_duration": 0.4, "min_words": 2},
             "preemptive_generation": {"preemptive_tts": False, "max_speech_duration": 15.0},
         },
@@ -254,7 +255,7 @@ async def entrypoint(ctx: agents.JobContext):
             "keyterms": KEYTERMS_ES,
             "keyterm_detection": {"enabled": True, "turn_interval": 2},
         },
-        max_tool_steps=5,
+        max_tool_steps=4,
         user_away_timeout=20.0,
         aec_warmup_duration=1.0,
     )

@@ -174,7 +174,9 @@ class TriageState:
         if self.heridos and not self._sin_heridos():
             if self.consciente is None:
                 pendientes.append("si está despierto")
-            if self.respira is None:
+            # Si está consciente, respira seguro — no preguntar lo obvio.
+            # Solo preguntar respiración si está inconsciente o no se sabe.
+            if self.respira is None and self.consciente is not True:
                 pendientes.append("si respira")
         return pendientes
 
@@ -279,6 +281,13 @@ async def registrar_datos_escena(
             setattr(st, nombre, valor)
             guardados.append(nombre)
 
+    # Si está consciente, respira seguro — inferirlo evita una pregunta
+    # mecánica e innecesaria que suena robótica.
+    if st.consciente is True and st.respira is None:
+        st.respira = True
+        if "respira" not in guardados:
+            guardados.append("respira")
+
     if not guardados:
         if st.critico() and not st.derivado:
             return (
@@ -333,6 +342,12 @@ async def registrar_datos_escena(
                 "NO hagas RCP ni compresiones. Si está en el suelo o accesible, indicá mantener la vía aérea abierta. "
                 "Si está atrapada dentro de un auto o no la ve, NO intentes moverla; indicá vigilarla desde la ventanilla, "
                 "y derivá con derivar_a_emergencias."
+            )
+        if st.respira is False:
+            return (
+                "Registrado. PARO RESPIRATORIO (NO RESPIRA): llamá de inmediato a derivar_a_emergencias en este mismo turno. "
+                "Confirmale «Ya estás geolocalizado y la ayuda va en camino.» e indicá apoyar el talón de la mano "
+                "en el centro del pecho y comprimir fuerte y rápido."
             )
         return (
             "Registrado. HAY RIESGO DE VIDA: dejá de juntar datos. "

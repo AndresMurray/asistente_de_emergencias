@@ -95,7 +95,7 @@ async def correr(nombre: str, turnos: list[str], modelo: str) -> None:
     session = AgentSession[TriageState](
         userdata=TriageState(),
         llm=create_llm(modelo),
-        max_tool_steps=5,
+        max_tool_steps=4,
     )
     await session.start(Assistant())
 
@@ -168,7 +168,7 @@ async def interactivo(modelo: str) -> None:
     session = AgentSession[TriageState](
         userdata=TriageState(),
         llm=create_llm(modelo),
-        max_tool_steps=5,
+        max_tool_steps=4,
     )
     await session.start(Assistant())
     print(f"<<< {SALUDO}\n")
@@ -198,7 +198,7 @@ async def main() -> None:
     p.add_argument("--listar", action="store_true", help="listar escenarios")
     p.add_argument(
         "--modelo",
-        default=os.getenv("LLM_MODEL", "gemini-3.6-flash"),
+        default=os.getenv("LLM_MODEL", ""),
         help="modelo del LLM",
     )
     p.add_argument("--verboso", action="store_true", help="mostrar logs internos")

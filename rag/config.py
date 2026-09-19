@@ -46,7 +46,7 @@ class RagSettings:
     rerank_top_n: int = 5
     rerank_timeout_s: float = 2.0
     cohere_rerank_url: str = "https://api.cohere.ai/v1/rerank"
-    min_rerank_score: float = 0.08
+    min_rerank_score: float = 0.10
 
 
 def load_settings() -> RagSettings:
@@ -68,6 +68,14 @@ def load_settings() -> RagSettings:
         raw = os.getenv(name)
         return cast(raw) if raw else defaults[field]
 
+    # El reranker se activa automáticamente si hay COHERE_API_KEY,
+    # salvo que RAG_RERANK esté explícitamente en "0" o "false".
+    rerank_env = os.getenv("RAG_RERANK")
+    if rerank_env is not None:
+        rerank_on = rerank_env not in ("0", "false")
+    else:
+        rerank_on = bool(cohere_api_key)
+
     return RagSettings(
         database_url=database_url,
         gemini_api_key=gemini_api_key,
@@ -78,7 +86,7 @@ def load_settings() -> RagSettings:
         timeout_s=_env("RAG_TIMEOUT_S", "timeout_s", float),
         embed_timeout_s=_env("RAG_EMBED_TIMEOUT_S", "embed_timeout_s", float),
         min_score=_env("RAG_MIN_SCORE", "min_score", float),
-        rerank_enabled=_env("RAG_RERANK", "rerank_enabled", lambda v: v not in ("0", "false")),
+        rerank_enabled=rerank_on,
         rerank_model=_env("RAG_RERANK_MODEL", "rerank_model", str),
         rerank_top_n=_env("RAG_RERANK_TOP_N", "rerank_top_n", int),
         min_rerank_score=_env("RAG_MIN_RERANK_SCORE", "min_rerank_score", float),
