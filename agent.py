@@ -4,6 +4,7 @@ import logging
 import os
 import random
 import re
+import threading
 import time
 
 # pyrefly: ignore [missing-import]
@@ -30,13 +31,14 @@ from livekit.plugins import cartesia, deepgram, google, openai
 from habla import NormalizadorStream, aplicar_aviso_911
 from prompts import KEYTERMS_ES, SALUDO, SYSTEM_INSTRUCTIONS
 from protocolos import TEMAS, detectar_temas, respira_positivo, tema_de_consulta
-from rag import Retriever
+from rag import RetrievalResult, Retriever, load_settings
 from triage import (
     TriageState,
     confirma_heridos,
     derivar_automatico,
     generar_aviso_critico,
     hay_herido,
+    niega_heridos,
     procesar_turno_usuario,
     registrar_datos_escena,
     sin_acceso_al_herido,
@@ -49,28 +51,55 @@ logger = logging.getLogger("emergency-agent")
 
 # Un retriever por proceso: adentro tiene el pool de conexiones, el índice en
 # memoria y el caché de consultas, y se comparte entre los jobs del proceso.
+#
+# Se carga en un hilo y NUNCA dentro de un turno: si Supabase está lento (se
+# vio una carga del índice colgada más de 25 s), el proceso igual arranca y
+# atiende con los textos de respaldo de protocolos.py hasta que el índice esté.
 _retriever: Retriever | None = None
+_carga: threading.Thread | None = None
+_carga_lock = threading.Lock()
+_PREWARM_ESPERA_S = 15.0
+
+
+class RetrieverNoListo(RuntimeError):
+    """El índice todavía se está cargando (o la base no respondió)."""
+
+
+def _cargar_retriever() -> None:
+    global _retriever
+    try:
+        r = Retriever()
+        r.connect()
+        _retriever = r  # se publica recién cuando está listo
+    except Exception:
+        logger.exception("no pude cargar el retriever; sigo con los textos de respaldo")
+
+
+def _iniciar_carga() -> threading.Thread:
+    global _carga
+    with _carga_lock:
+        if _carga is None or not _carga.is_alive():
+            _carga = threading.Thread(target=_cargar_retriever, name="carga-retriever", daemon=True)
+            _carga.start()
+        return _carga
 
 
 def _get_retriever() -> Retriever:
-    global _retriever
+    """El retriever si ya está cargado. Si no, dispara la carga en segundo plano
+    y levanta RetrieverNoListo: quien llama usa el texto de respaldo en lugar
+    de dejar a la persona esperando."""
+    if _retriever is not None:
+        return _retriever
+    _iniciar_carga()
+    raise RetrieverNoListo("el índice del manual todavía se está cargando")
+
+
+def prewarm(proc: JobProcess | None) -> None:
+    """Carga base, índice y caché ANTES de que entre una llamada, con un tope de
+    espera para no trabar el arranque del proceso (LiveKit lo corta a los 30 s)."""
+    _iniciar_carga().join(timeout=_PREWARM_ESPERA_S)
     if _retriever is None:
-        _retriever = Retriever()
-        _retriever.connect()
-    return _retriever
-
-
-def prewarm(proc: JobProcess) -> None:
-    """Conecta la base y carga índice + caché ANTES de que entre una llamada.
-
-    Antes la conexión se hacía en la primera búsqueda, dentro del turno: ~2 s
-    de pool + detección de esquema justo cuando alguien pedía una maniobra."""
-    try:
-        _get_retriever()
-    except Exception:
-        # Si la base no responde al arrancar, el agente igual atiende: los
-        # protocolos críticos tienen texto de respaldo.
-        logger.exception("prewarm: no pude conectar el retriever")
+        logger.warning("prewarm: el índice sigue cargando; mientras tanto, textos de respaldo")
 
 
 def create_llm(model: str | None = None):
@@ -196,7 +225,10 @@ async def buscar_protocolo(context: RunContext, query: str) -> str:
 
     t0 = time.monotonic()
     async with context.with_filler(_elegir_frase_espera(st), delay=0.6, max_steps=1):
-        result = await _get_retriever().search(consulta)
+        try:
+            result = await _get_retriever().search(consulta)
+        except RetrieverNoListo as exc:
+            result = RetrievalResult(status="error", error=str(exc))
     elapsed = int((time.monotonic() - t0) * 1000)
 
     usa_respaldo = result.status != "ok" and tema is not None
@@ -245,7 +277,23 @@ _PREGUNTA = re.compile(
 )
 
 
-async def contexto_del_turno(texto: str, st: TriageState) -> str | None:
+def ultima_respuesta_de(chat_ctx) -> str:
+    """Lo último que el agente le DIJO a la persona, según el historial.
+
+    Sale del historial confirmado y no de lo que genera el LLM: por voz,
+    LiveKit genera la respuesta por adelantado (preemptive generation) antes
+    de que termine el turno, y ese borrador puede descartarse. Guardarlo desde
+    llm_node hizo que en producción un «Sí» a «¿Estás en un lugar seguro?» se
+    tomara como respuesta a un «¿Hay alguien herido?» que nunca se dijo."""
+    for item in reversed(chat_ctx.items):
+        if getattr(item, "type", None) == "message" and item.role == "assistant":
+            return item.text_content or ""
+    return ""
+
+
+async def contexto_del_turno(
+    texto: str, st: TriageState, ultima_respuesta: str | None = None
+) -> str | None:
     """Lo que el sistema le agrega al turno ANTES de llamar al LLM.
 
     Es el mismo para voz, chat y los scripts de prueba. Hace tres cosas sin
@@ -258,25 +306,34 @@ async def contexto_del_turno(texto: str, st: TriageState) -> str | None:
        sin saber si respira).
     """
     st.ultima_consulta = None
+    if ultima_respuesta is not None:
+        st.ultima_respuesta = ultima_respuesta
     st.pregunta_pendiente = bool(_PREGUNTA.search(texto))
     partes: list[str] = []
 
     senal = procesar_turno_usuario(texto, st)
+    herido_nuevo = False
     if not senal and not st.derivado and hay_herido(texto):
         # Herido sin riesgo de vida explícito: igual se deriva (y el sistema le
         # dice a la persona que la ayuda va en camino).
         if st.heridos is None:
             st.heridos = texto
         derivar_automatico(st, motivo="herido")
+        herido_nuevo = True
     elif not senal and not st.derivado and confirma_heridos(texto, st.ultima_respuesta):
         # «sí, una persona» a «¿Hay alguien herido?»: no dice «herido», pero lo
         # confirma. Antes dependía de que el modelo llamara a la tool, y en
         # producción no la llamó: no derivaba y preguntaba «¿cuántos heridos?».
         st.heridos = texto
         derivar_automatico(st, motivo="heridos confirmados")
+        herido_nuevo = True
+    elif st.heridos is None and niega_heridos(texto):
+        st.heridos = texto
+    if herido_nuevo:
         partes.append(
-            f"Ya está confirmado que hay heridos («{texto}»): no vuelvas a preguntar si hay "
-            "heridos ni cuántos. Seguí con lo siguiente (por ejemplo, si el herido está despierto)."
+            f"Ya está confirmado que hay un herido («{texto}»): no vuelvas a preguntar si hay "
+            "heridos ni cuántos. Lo próximo es saber si el herido está despierto y responde "
+            "(salvo que la persona te haya preguntado algo: eso primero)."
         )
     if senal:
         partes.append(generar_aviso_critico(senal, st))
@@ -356,6 +413,8 @@ async def contexto_del_turno(texto: str, st: TriageState) -> str | None:
             res = await _get_retriever().search(tema.consulta)
             if res.status == "ok":
                 fragmentos = res.para_llm()
+        except RetrieverNoListo:
+            logger.warning("prefetch de «%s»: índice cargando, uso solo el resumen", clave)
         except Exception:
             logger.exception("prefetch de «%s» falló, uso solo el resumen", clave)
         elapsed = int((time.monotonic() - t0) * 1000)
@@ -381,6 +440,14 @@ async def contexto_del_turno(texto: str, st: TriageState) -> str | None:
             **debug,
         })
 
+    if not partes and st.heridos is None and not st.derivado:
+        # Al principio de la llamada el modelo juntaba dos preguntas («¿Qué pasó
+        # y cuántas personas resultaron heridas?»). Lo que importa primero es
+        # si hay heridos: una sola pregunta.
+        partes.append(
+            "Todavía no se sabe si hay heridos: preguntá solo eso, con una sola pregunta "
+            "corta («¿Hay alguien lastimado?»)."
+        )
     if not partes:
         return None
     # Con el protocolo completo a mano el modelo tendía a recitarlo entero
@@ -402,7 +469,9 @@ class Assistant(Agent):
         Se agrega al mensaje del usuario (no a turn_ctx): lo que se agrega a
         turn_ctx vale solo para este turno, y el aviso de riesgo o el protocolo
         desaparecían en el turno siguiente."""
-        extra = await contexto_del_turno(new_message.text_content or "", self.session.userdata)
+        extra = await contexto_del_turno(
+            new_message.text_content or "", self.session.userdata, ultima_respuesta_de(turn_ctx)
+        )
         if extra:
             new_message.content.append(extra)
 
@@ -413,13 +482,8 @@ class Assistant(Agent):
         st: TriageState = self.session.userdata
         norm = NormalizadorStream()
 
-        dicho: list[str] = []
-
         def salida(texto: str) -> str:
-            texto = aplicar_aviso_911(texto, st) if texto else texto
-            if texto:
-                dicho.append(texto)
-            return texto
+            return aplicar_aviso_911(texto, st) if texto else texto
 
         async for chunk in Agent.default.llm_node(self, chat_ctx, tools, model_settings):
             if isinstance(chunk, str):
@@ -436,16 +500,14 @@ class Assistant(Agent):
                 yield chunk
         if resto := salida(norm.flush()):
             yield resto
-        # Se guarda para entender la próxima respuesta corta («sí», «una»).
-        # Los pasos que solo llaman tools no dicen nada y no pisan lo anterior.
-        if dicho:
-            st.ultima_respuesta = "".join(dicho)
 
 
 server = AgentServer(setup_fnc=prewarm, initialize_process_timeout=30.0)
 
 
-@server.rtc_session(agent_name="asistente-emergencias")
+# AGENT_NAME permite levantar una copia de prueba (p. ej. con agent.py dev)
+# sin competir con el agente desplegado por los despachos de producción.
+@server.rtc_session(agent_name=os.getenv("AGENT_NAME", "asistente-emergencias"))
 async def entrypoint(ctx: agents.JobContext):
     # Todas las líneas de log del job quedan correlacionables por sala.
     ctx.log_context_fields = {"room": ctx.room.name, "job": ctx.job.id}
@@ -459,9 +521,12 @@ async def entrypoint(ctx: agents.JobContext):
         llm=create_llm(),
         tts=create_tts(),
         turn_handling={
-            # max_delay 3.0 -> 2.0: alguien asustado deja pausas cortas y
-            # esperar tres segundos de silencio se siente como que nadie atiende.
-            "endpointing": {"mode": "dynamic", "min_delay": 0.5, "max_delay": 2.0},
+            # max_delay 3.0 -> 1.2: con respuestas cortas («Sí.») el detector de
+            # fin de turno duda y espera el máximo; medido por voz, eso eran 2 s
+            # de silencio antes de cada respuesta. Alguien asustado habla en
+            # frases cortas; si hace una pausa y sigue, interrumpe al agente y
+            # el turno se retoma.
+            "endpointing": {"mode": "dynamic", "min_delay": 0.5, "max_delay": 1.2},
             "interruption": {"min_duration": 0.4, "min_words": 2},
             "preemptive_generation": {"preemptive_tts": False, "max_speech_duration": 15.0},
         },
@@ -537,17 +602,20 @@ async def entrypoint(ctx: agents.JobContext):
     participant = await ctx.wait_for_participant()
     logger.info("participante conectado: %s", participant.identity)
 
-    retriever = _get_retriever()
-    logger.info(
-        "config | llm=%s stt=deepgram/nova-3(es) keyterms=%d rerank=%s piso=%s indice=%s",
-        os.getenv("LLM_MODEL", "google/gemma-4-31b-it"),
-        len(KEYTERMS_ES),
-        retriever.settings.rerank_model if retriever.settings.rerank_enabled else "off",
-        retriever.settings.min_rerank_score
-        if retriever.settings.rerank_enabled
-        else retriever.settings.min_score,
-        len(retriever.index) if retriever.index else "NO (búsqueda contra la base)",
-    )
+    retriever = _retriever
+    if retriever is None:
+        logger.warning("config | índice del manual todavía cargando: se usan textos de respaldo")
+    else:
+        logger.info(
+            "config | llm=%s stt=deepgram/nova-3(es) keyterms=%d rerank=%s piso=%s indice=%s",
+            os.getenv("LLM_MODEL", "google/gemma-4-31b-it"),
+            len(KEYTERMS_ES),
+            retriever.settings.rerank_model if retriever.settings.rerank_enabled else "off",
+            retriever.settings.min_rerank_score
+            if retriever.settings.rerank_enabled
+            else retriever.settings.min_score,
+            len(retriever.index) if retriever.index else "NO (búsqueda contra la base)",
+        )
 
     session.say(SALUDO, allow_interruptions=True)
     try:
@@ -620,7 +688,7 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
             except Exception:
                 pass
 
-            extra = await contexto_del_turno(query, session.userdata)
+            extra = await contexto_del_turno(query, session.userdata, ultima_respuesta_de(session.history))
             entrada = f"{query}\n\n{extra}" if extra else query
 
             try:
@@ -649,7 +717,9 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
                 tool_calls = list(session.userdata.tool_calls)
                 llm_metrics = session.userdata.last_llm_metrics or {}
                 llm_tokens = session.userdata.last_llm_tokens
-                retriever = _get_retriever()
+                # La config sale de variables de entorno: no hace falta que el
+                # índice esté cargado para mostrarla.
+                ajustes = _retriever.settings if _retriever is not None else load_settings()
 
                 # Count searches
                 search_count = sum(
@@ -673,13 +743,14 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
                     "llm_metrics": llm_metrics,
                     "config": {
                         "llm_model": os.getenv("LLM_MODEL", "google/gemma-4-31b-it"),
-                        "embed_model": retriever.settings.embed_model,
-                        "rerank_enabled": retriever.settings.rerank_enabled,
-                        "rerank_model": retriever.settings.rerank_model if retriever.settings.rerank_enabled else None,
-                        "top_k": retriever.settings.top_k,
-                        "k_vector": retriever.settings.k_vector,
-                        "min_score": retriever.settings.min_score,
-                        "rerank_min_score": retriever.settings.min_rerank_score if retriever.settings.rerank_enabled else None,
+                        "embed_model": ajustes.embed_model,
+                        "rerank_enabled": ajustes.rerank_enabled,
+                        "rerank_model": ajustes.rerank_model if ajustes.rerank_enabled else None,
+                        "top_k": ajustes.top_k,
+                        "k_vector": ajustes.k_vector,
+                        "min_score": ajustes.min_score,
+                        "rerank_min_score": ajustes.min_rerank_score if ajustes.rerank_enabled else None,
+                        "indice_cargado": _retriever is not None,
                     },
                 }
             else:

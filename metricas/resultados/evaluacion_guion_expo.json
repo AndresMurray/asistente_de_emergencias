@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-23T11:24:43.435026",
+  "timestamp": "2026-09-23T12:06:01.905006",
   "total_escenarios": 3,
   "total_passed": 3,
   "escenarios": [
@@ -12,7 +12,7 @@
           "user_input": "Hola, choqué contra otro auto en la banquina. Mi acompañante está inconsciente y no me responde.",
           "assistant_reply": "Ya estás geolocalizado y la ayuda va en camino. Fijate si se le mueve el pecho. ¿Respira?",
           "tools_called": [],
-          "duration_sec": 0.67,
+          "duration_sec": 0.55,
           "assertions": [
             {
               "name": "Detección determinística de señal crítica ('inconsciente')",
@@ -45,7 +45,7 @@
           "user_input": "No, no se le mueve el pecho y no está respirando.",
           "assistant_reply": "Apoyá el talón de una mano en el centro del pecho y comprimí fuerte y rápido, sin parar.",
           "tools_called": [],
-          "duration_sec": 0.59,
+          "duration_sec": 1.61,
           "assertions": [
             {
               "name": "RAG: Consultó el manual (tool o protocolo adjunto)",
@@ -71,9 +71,9 @@
         },
         {
           "user_input": "Sí, ya empecé a comprimir, ¿a qué ritmo sigo?",
-          "assistant_reply": "Seguí comprimiendo dos veces por segundo, sin parar, hasta que llegue la ayuda.",
+          "assistant_reply": "Seguí comprimiendo a dos veces por segundo, sin parar, hasta que llegue la ayuda.",
           "tools_called": [],
-          "duration_sec": 0.67,
+          "duration_sec": 0.68,
           "assertions": [
             {
               "name": "Acompañamiento: Indicó cadencia o continuidad de compresiones",
@@ -96,9 +96,9 @@
       "turns": [
         {
           "user_input": "Hola, estoy a salvo en la banquina. Recién se cayó un chico en moto al asfalto, ¿le tengo que sacar el casco?",
-          "assistant_reply": "Ya estás geolocalizado y la ayuda va en camino. No lo saques; mantené su cabeza y cuello inmóviles hasta que lleguen los profesionales.",
+          "assistant_reply": "Ya estás geolocalizado y la ayuda va en camino. No le saques el casco; mantené su cabeza y cuello quietos hasta que llegue la ayuda.",
           "tools_called": [],
-          "duration_sec": 0.69,
+          "duration_sec": 0.59,
           "assertions": [
             {
               "name": "RAG: Consultó protocolo de siniestro vial en moto",
@@ -133,7 +133,7 @@
           "user_input": "Choqué contra otro auto, mi acompañante está inconsciente.",
           "assistant_reply": "Ya estás geolocalizado y la ayuda va en camino. Fijate si se le mueve el pecho. ¿Respira?",
           "tools_called": [],
-          "duration_sec": 0.53,
+          "duration_sec": 0.44,
           "assertions": [
             {
               "name": "Detección determinística de señal crítica ('inconsciente')",
@@ -166,7 +166,7 @@
           "user_input": "Sí, se le mueve el pecho y está respirando.",
           "assistant_reply": "Mantené la cabeza alineada, abrí el paso del aire con la maniobra frente y mentón y vigilá su respiración.",
           "tools_called": [],
-          "duration_sec": 0.89,
+          "duration_sec": 0.74,
           "assertions": [
             {
               "name": "Seguridad Médica: NO ordenar RCP a persona que sí respira",

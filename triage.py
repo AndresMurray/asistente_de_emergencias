@@ -136,6 +136,11 @@ _NIEGA = re.compile(r"\b(no|nadie|ning[uú]n[oa]?)\b", re.IGNORECASE)
 _PREGUNTA_HERIDOS = re.compile(r"herid|lastimad|lesionad|cu[aá]ntas personas", re.IGNORECASE)
 
 
+def niega_heridos(texto: str) -> bool:
+    """«Nadie está lastimado», «no hay heridos»."""
+    return bool(_SIN_HERIDOS.search(texto))
+
+
 def confirma_heridos(texto: str, ultima_respuesta: str) -> bool:
     """«sí, una persona» como respuesta a «¿Hay alguien herido…?»."""
     return (
@@ -320,16 +325,18 @@ class TriageState:
             pendientes.append("qué pasó")
         if self.heridos is None:
             pendientes.append("cuántos lastimados")
-        if self.riesgos is None:
-            pendientes.append("riesgos (fuego, combustible, tránsito)")
-        # Solo se pregunta por conciencia y respiración si hay alguien lastimado.
+        # Con alguien lastimado, primero cómo está el herido y después los
+        # riesgos: por voz, ante «hay una persona tirada en el piso», el agente
+        # preguntaba por fuego y tránsito antes que si respondía.
         if self.heridos and not self._sin_heridos():
             if self.consciente is None:
-                pendientes.append("si está despierto")
+                pendientes.append("si el herido está despierto y responde")
             # Si está consciente, respira seguro — no preguntar lo obvio.
             # Solo preguntar respiración si está inconsciente o no se sabe.
             if self.respira is None and self.consciente is not True:
                 pendientes.append("si respira")
+        if self.riesgos is None:
+            pendientes.append("riesgos (fuego, combustible, tránsito)")
         return pendientes
 
     def _sin_heridos(self) -> bool:

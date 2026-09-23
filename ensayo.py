@@ -36,7 +36,7 @@ load_dotenv(".env.local")
 from livekit.agents import AgentSession, inference  # noqa: E402
 from livekit.agents.utils import http_context  # noqa: E402
 
-from agent import Assistant, contexto_del_turno, create_llm, prewarm  # noqa: E402
+from agent import Assistant, contexto_del_turno, create_llm, prewarm, ultima_respuesta_de  # noqa: E402
 from prompts import SALUDO  # noqa: E402
 from triage import TriageState  # noqa: E402
 
@@ -131,7 +131,7 @@ async def un_turno(session: AgentSession, texto: str) -> None:
     # session.run() no pasa por Agent.on_user_turn_completed, así que el
     # contexto determinístico (riesgo de vida + protocolo) se agrega acá.
     t0 = time.perf_counter()
-    extra = await contexto_del_turno(texto, session.userdata)
+    extra = await contexto_del_turno(texto, session.userdata, ultima_respuesta_de(session.history))
     entrada = f"{texto}\n\n{extra}" if extra else texto
 
     print(f"\n>>> {texto}")

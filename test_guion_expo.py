@@ -47,7 +47,7 @@ load_dotenv(".env.local")
 from livekit.agents import AgentSession, inference  # noqa: E402
 from livekit.agents.utils import http_context  # noqa: E402
 
-from agent import Assistant, contexto_del_turno, create_llm, prewarm  # noqa: E402
+from agent import Assistant, contexto_del_turno, create_llm, prewarm, ultima_respuesta_de  # noqa: E402
 from triage import TriageState  # noqa: E402
 
 
@@ -274,7 +274,7 @@ async def simular_turno(
     t0 = time.perf_counter()
 
     # 1. Contexto determinístico (idéntico al camino de audio y chat)
-    aviso = await contexto_del_turno(user_text, session.userdata) or ""
+    aviso = await contexto_del_turno(user_text, session.userdata, ultima_respuesta_de(session.history)) or ""
     entrada = f"{user_text}\n\n{aviso}" if aviso else user_text
 
     # 2. Inferencia y herramientas
