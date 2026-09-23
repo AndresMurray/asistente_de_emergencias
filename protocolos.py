@@ -102,7 +102,11 @@ _tema(
     "accidente moto retirar el casco columna cervical",
     ("casco",),
     (
-        'Motociclista: como norma general no se le debe quitar el casco ni permitir que alguien se lo quite, para no agravar una lesión en el cuello. Solo se retira si hace falta para atender la respiración y con ayuda especializada. Mantener quieta la zona del cuello.'
+        # El manual admite retirarlo «con una técnica específica» si hace falta
+        # para atender la respiración. Dicho a una persona común («solo
+        # retiralo si no respira») casi invita a sacarlo: eso lo hacen los
+        # médicos. Por eso acá va sin la excepción.
+        'Motociclista: no hay que sacarle el casco ni dejar que nadie se lo saque, porque puede agravar una lesión en el cuello. Si hiciera falta sacarlo, lo hacen los médicos cuando llegan. Mantener quietos la cabeza y el cuello.'
     ),
 )
 _tema(

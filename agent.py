@@ -33,7 +33,9 @@ from protocolos import TEMAS, detectar_temas, respira_positivo, tema_de_consulta
 from rag import Retriever
 from triage import (
     TriageState,
+    derivar_automatico,
     generar_aviso_critico,
+    hay_herido,
     procesar_turno_usuario,
     registrar_datos_escena,
     sin_acceso_al_herido,
@@ -259,6 +261,12 @@ async def contexto_del_turno(texto: str, st: TriageState) -> str | None:
     partes: list[str] = []
 
     senal = procesar_turno_usuario(texto, st)
+    if not senal and not st.derivado and hay_herido(texto):
+        # Herido sin riesgo de vida explícito: igual se deriva (y el sistema le
+        # dice a la persona que la ayuda va en camino).
+        if st.heridos is None:
+            st.heridos = texto
+        derivar_automatico(st, motivo="herido")
     if senal:
         partes.append(generar_aviso_critico(senal, st))
         # Lo esencial (no respira, inconsciente, atrapado) ya quedó registrado y
@@ -284,6 +292,16 @@ async def contexto_del_turno(texto: str, st: TriageState) -> str | None:
         )
 
     temas = detectar_temas(texto)
+    repetidos = [t for t in temas if t in st.temas_inyectados]
+    if repetidos:
+        # «le scao el casco» (con error de tipeo, sin signo de pregunta) después
+        # de haber hablado del casco: es una pregunta aunque no lo parezca, y el
+        # agente respondía repitiendo su pregunta anterior.
+        st.pregunta_pendiente = True
+        partes.append(
+            f"La persona vuelve a preguntar por {', '.join(repetidos)}: respondé eso directo, "
+            "con el protocolo que ya tenés, antes que cualquier otra cosa."
+        )
     if st.respira is False:
         temas.insert(0, "rcp")
     elif "rcp" in temas:
@@ -557,6 +575,13 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
         logger.info("chat recibido: %s (debug=%s)", query, debug)
 
         async def process_chat():
+            # La pestaña Test del frontend no reproduce audio, pero el agente
+            # igual sintetizaba voz con Cartesia y session.run() esperaba a que
+            # terminara de "sonar": ~6 s por respuesta y caracteres gastados.
+            if session.output.audio_enabled:
+                session.output.set_audio_enabled(False)
+                logger.info("chat de texto: salida de audio desactivada para esta sesión")
+
             # Clear previous turn debug data
             session.userdata.tool_calls.clear()
             session.userdata.last_llm_metrics = None

@@ -70,9 +70,17 @@ def _voseo(m: re.Match[str]) -> str:
     return m.group(1) + nueva
 
 
+# Imperativo de vos con pronombre pegado lleva la tilde afuera: «quedate»,
+# «alejate», «dejalo». El modelo a veces escribe «Quedáte» y Cartesia lo
+# acentúa raro. En español no hay palabras comunes terminadas en «áte»/«élo».
+_TILDE_ENCLITICO = re.compile(r"\b([a-zñ]{2,})([áéí])(te|lo|la|le|los|las|me)\b", re.IGNORECASE)
+_SIN_TILDE = str.maketrans("áéíÁÉÍ", "aeiAEI")
+
+
 def normalizar_habla(texto: str) -> str:
     for patron, reemplazo in _JERGA:
         texto = patron.sub(reemplazo, texto)
+    texto = _TILDE_ENCLITICO.sub(lambda m: m.group(1) + m.group(2).translate(_SIN_TILDE) + m.group(3), texto)
     return _VOSEO_RE.sub(_voseo, texto)
 
 
@@ -94,16 +102,28 @@ _QUITAR_911 = [
 ]
 
 
+# Sin derivación (nadie herido, sin riesgo) tampoco puede sonar que «llega la
+# ayuda»: en las pruebas, ante un roce sin heridos, el modelo dijo «esperá a
+# que llegue la ayuda».
+_LLEGA_AYUDA = r"(la ayuda|la ambulancia|los servicios|los bomberos|los médicos)"
+_AYUDA_SIN_DERIVAR: list[tuple[re.Pattern[str], str]] = [(p, "") for p in _QUITAR_911] + [
+    (re.compile(r"\b(y )?esper[aá] (a )?que llegue(n)? " + _LLEGA_AYUDA, re.I), r"\1mantené la calma"),
+    (re.compile(r"\s*hasta que llegue(n)? " + _LLEGA_AYUDA, re.I), ""),
+]
+
+
 def menciona_aviso_911(texto: str) -> bool:
     return bool(_MENCION_911.search(texto))
 
 
-def quitar_aviso_911(texto: str) -> str:
+def quitar_aviso_911(
+    texto: str, patrones: list[tuple[re.Pattern[str], str]] | None = None
+) -> str:
     """Saca «ya estás geolocalizado / la ayuda va en camino» si el modelo lo
     repite: la frase ya la dijo el sistema y repetirla en cada turno cansa."""
     limpio = texto
-    for patron in _QUITAR_911:
-        limpio = patron.sub("", limpio)
+    for patron, reemplazo in patrones or [(p, "") for p in _QUITAR_911]:
+        limpio = patron.sub(reemplazo, limpio)
     if limpio == texto:
         return texto
     limpio = limpio.lstrip(" ,;.")
@@ -128,6 +148,8 @@ def aplicar_aviso_911(texto: str, st) -> str:
         return f"{FRASE_911} {texto.lstrip()}"
     if st.aviso_911_dicho:
         return quitar_aviso_911(texto)
+    if not st.derivado:
+        return quitar_aviso_911(texto, _AYUDA_SIN_DERIVAR)
     return texto
 
 

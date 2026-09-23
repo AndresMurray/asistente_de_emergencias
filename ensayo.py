@@ -86,6 +86,13 @@ ESCENARIOS: dict[str, list[str]] = {
         "Hola, estoy a salvo en la banquina. Se cayó un chico en moto, ¿le saco el casco?",
         "Está despierto y se queja del cuello",
     ],
+    # Conversación real de la pestaña Test en producción (con el error de tipeo).
+    "moto_produccion": [
+        "choco una moto",
+        "si esta tirado en el piso con el casco",
+        "le scao el casco",
+        "le saco el casco?",
+    ],
     "pregunta_directa": [
         "Choqué de atrás a otro auto en la avenida",
         "No, nadie lastimado. ¿Tengo que mover el auto o lo dejo?",

@@ -19,6 +19,7 @@ del hecho, riesgos inmediatos y estado de los heridos.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 
 from livekit.agents import RunContext, function_tool
@@ -98,6 +99,28 @@ def _categoria_de(senal: str) -> str | None:
         if senal in senales:
             return categoria
     return None
+
+
+# Alguien lastimado, dicho como lo dice una persona común. No es riesgo de vida
+# por sí solo, pero alcanza para derivar al 911. En producción, «está tirado en
+# el piso con el casco» no disparaba nada y el agente terminaba diciendo
+# «llamá ayuda».
+_HERIDO = re.compile(
+    r"\b(herid[oa]s?|lastimad[oa]s?|golpead[oa]s?|lesionad[oa]s?|atropellad[oa]s?|"
+    r"tirad[oa]s? (en|sobre|al)|en el (piso|suelo|asfalto)|no se (puede )?levanta|"
+    r"se cay[oó]|sangra|le duele|se queja)",
+    re.IGNORECASE,
+)
+_SIN_HERIDOS = re.compile(
+    r"\b(nadie|ning[uú]n[oa]?|no hay|sin|estamos bien|todos bien|ninguno)\b[^.?!]{0,25}"
+    r"(herid|lastimad|lesionad|golpead)",
+    re.IGNORECASE,
+)
+
+
+def hay_herido(texto: str) -> bool:
+    """«Está tirado en el piso», «hay un herido». Descarta «nadie está herido»."""
+    return bool(_HERIDO.search(texto)) and not _SIN_HERIDOS.search(texto)
 
 
 def sin_acceso_al_herido(texto: str) -> bool:

@@ -18,7 +18,7 @@ from protocolos import TEMAS, consultas_canonicas, detectar_temas, respira_posit
 from rag import ratelimit
 from rag.index import MemoryIndex, tokenizar
 from rag.store import Fragment
-from triage import TriageState, procesar_turno_usuario, sin_acceso_al_herido
+from triage import TriageState, hay_herido, procesar_turno_usuario, sin_acceso_al_herido
 
 
 # --- triage ----------------------------------------------------------------------
@@ -48,6 +48,17 @@ def test_sin_senal_no_deriva():
     st = TriageState()
     assert procesar_turno_usuario("tuve un roce con otro auto", st) is None
     assert not st.derivado
+
+
+@pytest.mark.parametrize("texto,esperado", [
+    ("si esta tirado en el piso con el casco", True),
+    ("hay un herido en la ruta", True),
+    ("nadie está lastimado", False),
+    ("no hay heridos, solo el auto roto", False),
+    ("tuve un roce con otro auto", False),
+])
+def test_hay_herido(texto, esperado):
+    assert hay_herido(texto) is esperado
 
 
 @pytest.mark.parametrize("texto", ["no veo si reacciona", "No llego hasta el auto", "no puedo ver nada"])
@@ -136,6 +147,31 @@ def test_sin_derivacion_no_hay_aviso_911():
     st = TriageState()
     procesar_turno_usuario("tuve un roce, nadie lastimado", st)
     assert aplicar_aviso_911("Encendé las balizas.", st) == "Encendé las balizas."
+
+
+def test_sin_derivacion_no_promete_ayuda():
+    st = TriageState()
+    procesar_turno_usuario("tuve un roce, nadie lastimado", st)
+    texto = "Alejate del tráfico y esperá a que llegue la ayuda."
+    assert aplicar_aviso_911(texto, st) == "Alejate del tráfico y mantené la calma."
+    assert aplicar_aviso_911("No muevas el auto hasta que lleguen los servicios.", st) == "No muevas el auto."
+
+
+def test_con_derivacion_se_mantiene_hasta_que_llegue_la_ayuda():
+    st = TriageState()
+    procesar_turno_usuario("no respira", st)
+    aplicar_aviso_911("Comprimí fuerte.", st)  # primera respuesta: lleva el aviso
+    assert aplicar_aviso_911("Seguí hasta que llegue la ayuda.", st) == "Seguí hasta que llegue la ayuda."
+
+
+@pytest.mark.parametrize("entrada,salida", [
+    ("Quedáte donde estás.", "Quedate donde estás."),
+    ("Alejáte del tráfico.", "Alejate del tráfico."),
+    ("Dejálo quieto.", "Dejalo quieto."),
+    ("La guía está acá.", "La guía está acá."),
+])
+def test_tilde_en_imperativo_con_pronombre(entrada, salida):
+    assert normalizar_habla(entrada) == salida
 
 
 def test_normalizador_stream_corta_en_puntuacion():
