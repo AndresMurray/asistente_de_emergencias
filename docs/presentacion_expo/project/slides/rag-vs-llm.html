@@ -1,0 +1,31 @@
+<section id="rag-vs-llm" data-transition="fade" style="background:#F6F3EC; color:#3E4A55; font-family:'Nunito Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:44px">
+  <div style="display:flex; flex-direction:column; gap:16px">
+    <h2 style="font-family:'Rubik', Arial, sans-serif; font-size:72px; font-weight:600; line-height:1.1; color:#14202B">¿Por qué no alcanza con un chatbot?</h2>
+    <p style="font-size:36px; line-height:1.3; color:#3E4A55">Es la diferencia entre un examen a <b>libro cerrado</b> y uno a <b>libro abierto</b>.</p>
+  </div>
+  <div style="display:flex; flex-direction:row; gap:48px; flex:1">
+    <div style="flex:1; background:#FFFDF8; border:2px solid #E2DCD0; border-radius:28px; padding:48px; display:flex; flex-direction:column; gap:20px">
+      <p style="font-size:24px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#B42318">A libro cerrado</p>
+      <h3 style="font-family:'Rubik', Arial, sans-serif; font-size:44px; font-weight:600; color:#14202B">Un modelo de lenguaje solo</h3>
+      <p style="font-size:26px; line-height:1.4; color:#5B6772">Un LLM es una IA entrenada con muchísimo texto que aprendió a predecir cómo sigue una frase.</p>
+      <ul style="font-size:28px; line-height:1.45; color:#3E4A55">
+        <li>Responde de memoria.</li>
+        <li>Puede inventar un paso que suena bien pero está mal.</li>
+        <li>No se sabe de dónde sacó la respuesta.</li>
+        <li>Puede dar el número de emergencias de otro país.</li>
+      </ul>
+    </div>
+    <div style="flex:1; background:#FFFDF8; border:3px solid #047857; border-radius:28px; padding:48px; display:flex; flex-direction:column; gap:20px">
+      <p style="font-size:24px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#047857">A libro abierto</p>
+      <h3 style="font-family:'Rubik', Arial, sans-serif; font-size:44px; font-weight:600; color:#14202B">Un RAG, como este asistente</h3>
+      <p style="font-size:26px; line-height:1.4; color:#5B6772">RAG: primero busca en una fuente confiable y después responde con lo que encontró.</p>
+      <ul style="font-size:28px; line-height:1.45; color:#3E4A55">
+        <li>Busca en un manual de primeros auxilios.</li>
+        <li>Responde solo con lo que dice el manual; si no está, lo dice.</li>
+        <li>Cada indicación se puede rastrear hasta su página.</li>
+        <li>Suma reglas fijas: nunca RCP sin confirmar que no respira.</li>
+      </ul>
+    </div>
+  </div>
+  <aside>Esta es la idea central del proyecto. Un modelo de lenguaje como los chatbots que todos conocen responde de memoria: como un alumno en un examen a libro cerrado, a veces acierta y a veces inventa algo que suena convincente. En una emergencia médica eso es peligroso. RAG significa generación aumentada por recuperación: antes de responder, el sistema busca en un manual de primeros auxilios y le pasa al modelo solo esos fragmentos. Es un examen a libro abierto. Además le agregamos reglas que no dependen de la IA: por ejemplo, nunca indica compresiones si todavía no se confirmó que la persona no respira, porque hacerle RCP a alguien que respira le hace daño.</aside>
+</section>

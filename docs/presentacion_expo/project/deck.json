@@ -1,0 +1,17 @@
+{
+  "v": 4,
+  "createdOnFiles": {"v": 1, "at": "2026-09-23T15:40:00Z"},
+  "title": "Asistente de Emergencias Viales",
+  "cover": "portada",
+  "order": ["portada", "para-que-sirve", "rag-vs-llm", "como-funciona"],
+  "sections": {
+    "s1": {"description": "Qué es el asistente y para qué sirve", "start": "portada"},
+    "s2": {"description": "Por qué un RAG y no solo un modelo de lenguaje", "start": "rag-vs-llm"},
+    "s3": {"description": "Cómo funciona por dentro y qué tan rápido responde", "start": "como-funciona"}
+  },
+  "faces": {
+    "rubik": {"family": "Rubik", "href": "https://fonts.googleapis.com/css2?family=Rubik:wght@400..700&display=swap"},
+    "nunito-sans": {"family": "Nunito Sans", "href": "https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&display=swap"}
+  },
+  "designSystems": []
+}
