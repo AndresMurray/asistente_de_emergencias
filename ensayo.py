@@ -22,6 +22,7 @@ import logging
 import os
 import sys
 import threading
+import time
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -35,14 +36,9 @@ load_dotenv(".env.local")
 from livekit.agents import AgentSession, inference  # noqa: E402
 from livekit.agents.utils import http_context  # noqa: E402
 
-from agent import Assistant, create_llm  # noqa: E402
+from agent import Assistant, contexto_del_turno, create_llm, prewarm  # noqa: E402
 from prompts import SALUDO  # noqa: E402
-from triage import (
-    AVISO_CRITICO,
-    TriageState,
-    generar_aviso_critico,
-    procesar_turno_usuario,
-)  # noqa: E402
+from triage import TriageState  # noqa: E402
 
 # Escenarios pensados para ejercitar los caminos que importan, incluidos los que
 # tienen que fallar de forma segura.
@@ -86,6 +82,14 @@ ESCENARIOS: dict[str, list[str]] = {
         "hay una persona atrapada en auto las demas estan bien",
         "no veo si reacciona",
     ],
+    "casco": [
+        "Hola, estoy a salvo en la banquina. Se cayó un chico en moto, ¿le saco el casco?",
+        "Está despierto y se queja del cuello",
+    ],
+    "pregunta_directa": [
+        "Choqué de atrás a otro auto en la avenida",
+        "No, nadie lastimado. ¿Tengo que mover el auto o lo dejo?",
+    ],
 }
 
 
@@ -109,15 +113,17 @@ async def correr(nombre: str, turnos: list[str], modelo: str) -> None:
 
 async def un_turno(session: AgentSession, texto: str) -> None:
     # Se replica el camino de texto tal como está en el back-channel de chat:
-    # session.run() no pasa por Agent.on_user_turn_completed, así que la
-    # detección determinística de riesgo de vida hay que invocarla acá.
-    senal = procesar_turno_usuario(texto, session.userdata)
-    aviso = generar_aviso_critico(senal, session.userdata) if senal else ""
-    entrada = texto if not senal else f"{texto}\n\n[{aviso}]"
+    # session.run() no pasa por Agent.on_user_turn_completed, así que el
+    # contexto determinístico (riesgo de vida + protocolo) se agrega acá.
+    t0 = time.perf_counter()
+    extra = await contexto_del_turno(texto, session.userdata)
+    entrada = f"{texto}\n\n{extra}" if extra else texto
 
     print(f"\n>>> {texto}")
-    if senal:
-        print(f"    ⚠  señal crítica: «{senal}»")
+    if extra:
+        temas = [tc["args"]["tema"] for tc in session.userdata.tool_calls if tc["tool"] == "prefetch_protocolo"]
+        print(f"    ⚠  contexto inyectado (temas: {', '.join(temas) or '—'})")
+    session.userdata.tool_calls.clear()
 
     resultado = await session.run(user_input=entrada)
     for ev in resultado.events:
@@ -129,7 +135,7 @@ async def un_turno(session: AgentSession, texto: str) -> None:
 
     respuestas = [m for m in session.history.messages() if m.role == "assistant"]
     if respuestas:
-        print(f"<<< {respuestas[-1].text_content}")
+        print(f"<<< {respuestas[-1].text_content}   ({time.perf_counter() - t0:.2f}s)")
 
 
 def resumen(st: TriageState) -> None:
@@ -213,6 +219,7 @@ async def main() -> None:
     print(f"· modelo: {args.modelo}")
 
     async with http_context.open():
+        prewarm(None)  # índice y caché cargados antes del primer turno, como en el agente
         if args.interactivo:
             await interactivo(args.modelo)
         elif args.escenario:

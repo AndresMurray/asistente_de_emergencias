@@ -50,7 +50,7 @@ Este es el **escenario principal de demostración** porque exhibe el mayor rigor
   > *"No, no se le mueve el pecho y no está respirando."*
 * **Qué hace el sistema por detrás:**
   * El asistente dispara la tool `buscar_protocolo("herido inconsciente que no respira reanimación cardiopulmonar")` contra Supabase pgvector.
-  * Ejecuta `derivar_a_emergencias`, despachando el aviso al 911.
+  * El sistema despacha automáticamente el aviso al 911 (derivación determinística, sin tool).
 * **Respuesta esperada del Asistente:**
   > *"Colocá tus manos en el centro de su pecho y hacé compresiones fuertes y rápidas. ¿Lo pudiste hacer?"*
 

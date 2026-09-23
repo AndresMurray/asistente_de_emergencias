@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
-from livekit.agents import RunContext, ToolError, function_tool
+from livekit.agents import RunContext, function_tool
 from livekit.agents.llm import ToolFlag
 
 logger = logging.getLogger("triage")
@@ -53,13 +53,38 @@ SENALES_ATRAPAMIENTO = (
     "trabado", "trabada", "trabados", "trabadas", "trabad",
 )
 
-SENALES_CRITICAS = (
-    *SENALES_PARO_RESPIRATORIO,
-    *SENALES_INCONSCIENCIA,
-    *SENALES_ATRAPAMIENTO,
-    "se desangra", "sangra mucho", "mucha sangre", "hemorragia",
-    "fuego", "se prendió", "se prendio", "incendio", "humo", "combustible",
-    "nafta", "convulsion", "convulsión",
+SENALES_HEMORRAGIA = (
+    "se desangra", "desangrando", "sangra mucho", "mucha sangre", "hemorragia",
+    "no para de sangrar",
+)
+
+SENALES_FUEGO = (
+    "fuego", "se prendió", "se prendio", "incendio", "humo", "llamas",
+    "combustible", "nafta",
+)
+
+SENALES_CONVULSION = ("convulsion", "convulsión", "convulsiona", "convulsionando")
+
+# Categoría -> señales. El orden es la prioridad cuando en una misma frase
+# aparece más de una («no respira y sale humo» es primero un paro).
+CATEGORIAS: dict[str, tuple[str, ...]] = {
+    "paro": SENALES_PARO_RESPIRATORIO,
+    "atrapamiento": SENALES_ATRAPAMIENTO,
+    "inconsciencia": SENALES_INCONSCIENCIA,
+    "hemorragia": SENALES_HEMORRAGIA,
+    "fuego": SENALES_FUEGO,
+    "convulsion": SENALES_CONVULSION,
+}
+
+SENALES_CRITICAS = tuple(s for senales in CATEGORIAS.values() for s in senales)
+
+# Quien llama no puede ver ni llegar al herido: no hay que pedirle que revise
+# nada del herido (en las pruebas, ante «no veo si reacciona», el agente
+# preguntaba «¿está despierto?»).
+SENALES_SIN_ACCESO = (
+    "no lo veo", "no la veo", "no los veo", "no veo si", "no veo bien",
+    "no llego", "no puedo llegar", "no alcanzo", "no me puedo acercar",
+    "no puedo acercarme", "no puedo ver", "no se ve",
 )
 
 
@@ -68,70 +93,137 @@ def _tiene_senal_critica(texto: str) -> bool:
     return any(s in bajo for s in SENALES_CRITICAS)
 
 
-# Instrucción que se le inyecta al modelo cuando salta una señal crítica.
+def _categoria_de(senal: str) -> str | None:
+    for categoria, senales in CATEGORIAS.items():
+        if senal in senales:
+            return categoria
+    return None
+
+
+def sin_acceso_al_herido(texto: str) -> bool:
+    bajo = texto.lower()
+    return any(s in bajo for s in SENALES_SIN_ACCESO)
+
+
+_AVISO_911 = (
+    "Ya se dio aviso al 911 y la llamada está geolocalizada (eso se lo dice el sistema "
+    "a la persona automáticamente: vos no lo digas)."
+)
+
+# Instrucción genérica, para categorías sin aviso específico.
 AVISO_CRITICO = (
-    "RIESGO DE VIDA detectado en lo que dijo la persona («{senal}»). "
-    "Dejá de juntar datos. Buscá con buscar_protocolo la maniobra que "
-    "corresponde, dala en un paso, y derivá con derivar_a_emergencias "
-    "avisando que ya fue geolocalizada y el 911 va en camino."
+    "RIESGO DE VIDA («{senal}»). " + _AVISO_911 + " Dejá de juntar datos y dale "
+    "la indicación que salva la vida, con el protocolo del manual."
 )
 
 
 def generar_aviso_critico(senal: str, st: TriageState) -> str:
-    """Genera la instrucción específica según el tipo de riesgo de vida detectado."""
-    senal_baja = senal.lower()
+    """Instrucción específica según el tipo de riesgo de vida detectado.
 
-    if any(s in senal_baja for s in SENALES_ATRAPAMIENTO):
-        return (
-            f"PERSONA ATRAPADA («{senal}»): Riesgo crítico por atrapamiento en vehículo. "
-            "1. Llamá de inmediato a derivar_a_emergencias. "
-            "2. Sé RESOLUTIVO: en tu primera frase confirmale con firmeza: «Ya estás geolocalizado y la ayuda va en camino.» "
-            "3. Indicá tajantemente NO mover a la persona ni forzar el auto (riesgo de lesión medular irreversible; los bomberos tienen las herramientas). "
-            "4. Verificá desde afuera sin tocarla ni meterse al auto si responde o respira."
-        )
+    El aviso al 911 ya está hecho cuando esto se inyecta (lo hace
+    procesar_turno_usuario), así que el modelo solo tiene que comunicarlo UNA
+    vez, integrado con la maniobra."""
+    categoria = _categoria_de(senal)
 
-    es_inconsciencia = any(s in senal_baja for s in SENALES_INCONSCIENCIA)
-
-    if es_inconsciencia and st.respira is None:
+    if categoria == "atrapamiento":
         return (
-            f"PERSONA INCONSCIENTE («{senal}»): Aún NO se confirmó si respira. "
-            "PROHIBIDO ordenar RCP o masaje cardíaco a ciegas sin saber si respira. "
-            "Tu primer paso es pedir de inmediato que verifique si respira "
-            "(«Fijate si se le mueve el pecho o si sentís su respiración. ¿Respira?»), "
-            "y derivar con derivar_a_emergencias."
+            f"PERSONA ATRAPADA («{senal}»). {_AVISO_911} "
+            "Decile con firmeza que NO la saque ni la mueva ni fuerce el auto: los bomberos tienen las "
+            "herramientas. Que le hable desde afuera, sin meterse al auto."
         )
-    if es_inconsciencia and st.respira is True:
+    if categoria == "paro" or st.respira is False:
         return (
-            f"PERSONA INCONSCIENTE QUE RESPIRA («{senal}»): Respira normalmente. "
-            "NO hagas compresiones torácicas ni RCP. Indicá mantener la vía aérea permeable "
-            "y vigilar la respiración continua hasta que llegue la ayuda, y derivá con derivar_a_emergencias."
+            f"NO RESPIRA («{senal}»). {_AVISO_911} "
+            "Indicá YA las compresiones en el centro del pecho, fuertes y rápidas, sin parar, "
+            "según el protocolo del manual. En este turno no hagas preguntas de datos."
         )
-    if any(s in senal_baja for s in SENALES_PARO_RESPIRATORIO) or st.respira is False:
+    if categoria == "inconsciencia":
+        if st.respira is True:
+            return (
+                f"INCONSCIENTE QUE RESPIRA («{senal}»). {_AVISO_911} "
+                "NO indiques compresiones. Seguí el protocolo del manual para el herido "
+                "inconsciente que respira y que vigile que siga respirando."
+            )
         return (
-            f"PARO / NO RESPIRA («{senal}»): La persona no respira. "
-            "Buscá RCP con buscar_protocolo, indicá iniciar compresiones torácicas en el "
-            "centro del pecho de inmediato y derivá con derivar_a_emergencias."
+            f"INCONSCIENTE («{senal}»). {_AVISO_911} "
+            "Todavía NO se sabe si respira: PROHIBIDO indicar compresiones. "
+            "Respondé exactamente con esta idea: «Fijate si se le mueve el pecho. ¿Respira?»."
+        )
+    if categoria == "hemorragia":
+        return (
+            f"SANGRADO GRAVE («{senal}»). {_AVISO_911} "
+            "Indicá apretar fuerte y sin soltar sobre la herida, según el protocolo del manual."
+        )
+    if categoria == "fuego":
+        return (
+            f"RIESGO DE FUEGO («{senal}»). {_AVISO_911} "
+            "Lo primero es que todos se alejen del vehículo y de la calzada. Dalo como "
+            "indicación concreta en este turno, no solo el aviso."
+        )
+    if categoria == "convulsion":
+        return (
+            f"CONVULSIÓN («{senal}»). {_AVISO_911} "
+            "El manual no tiene un protocolo de convulsiones: no inventes maniobras. "
+            "Pedile que te avise si deja de respirar."
         )
     return AVISO_CRITICO.format(senal=senal)
 
 
 def procesar_turno_usuario(texto: str, st: TriageState) -> str | None:
-    """Registra lo que dijo la persona y detecta riesgo de vida determinísticamente."""
+    """Registra lo que dijo la persona y detecta riesgo de vida determinísticamente.
+
+    Devuelve la señal crítica de ESTE turno si es de una categoría que todavía
+    no se avisó. Antes solo se detectaba la primera señal de la llamada: si
+    alguien decía «inconsciente» y en el turno siguiente «no respira», el paro
+    pasaba sin aviso.
+
+    También actualiza el estado que no conviene dejar librado al modelo (que no
+    respira, que hay alguien atrapado) y deriva al 911 sin esperar una tool.
+    """
     if not texto:
         return None
 
     st.dichos.append(texto)
-
-    if st.senal_critica is not None:
-        return None
-
     bajo = texto.lower()
-    for senal in SENALES_CRITICAS:
-        if senal in bajo:
+
+    for categoria, senales in CATEGORIAS.items():
+        senal = next((s for s in senales if s in bajo), None)
+        if senal is None:
+            continue
+
+        if categoria == "paro":
+            st.respira = False
+            st.consciente = False
+        elif categoria == "inconsciencia":
+            st.consciente = False
+        elif categoria == "atrapamiento":
+            st.atrapado = True
+
+        if st.senal_critica is None:
             st.senal_critica = senal
-            logger.warning("señal crítica detectada: '%s' | dicho: %s", senal, texto)
-            return senal
+        if categoria in st.alertas:
+            return None
+        st.alertas.add(categoria)
+        logger.warning("señal crítica detectada: '%s' (%s) | dicho: %s", senal, categoria, texto)
+        derivar_automatico(st, motivo=senal)
+        return senal
     return None
+
+
+def derivar_automatico(st: TriageState, motivo: str) -> None:
+    """Despacho al 911. Lo hace el sistema, no el modelo: antes existía la tool
+    derivar_a_emergencias y el modelo la seguía llamando aunque ya fuera
+    automática, lo que costaba una vuelta extra al LLM por turno."""
+    if st.derivado:
+        return
+    st.derivado = True
+    st.tool_calls.append({
+        "tool": "derivar_a_emergencias",
+        "args": {"auto": True, "motivo": motivo},
+        "was_critical": True,
+        "triage_brief": st.brief(),
+    })
+    logger.info("derivar_a_emergencias (auto) | geolocalizado | estado=%s", st.brief())
 
 
 @dataclass
@@ -147,10 +239,23 @@ class TriageState:
     atrapado: bool | None = None
 
     derivado: bool = False
+    # El sistema ya le dijo «Ya estás geolocalizado y la ayuda va en camino.»
+    # (lo agrega habla.aplicar_aviso_911, una vez por llamada).
+    aviso_911_dicho: bool = False
     # Lo levanta el detector determinístico de on_user_turn_completed, no el LLM.
     senal_critica: str | None = None
+    # Categorías de riesgo ya avisadas al modelo (para no repetir el aviso).
+    alertas: set[str] = field(default_factory=set)
+    # Temas del manual ya inyectados en el contexto (para no repetirlos).
+    temas_inyectados: set[str] = field(default_factory=set)
     # Lo que dijo la persona, textual.
     dichos: list[str] = field(default_factory=list)
+    # Última consulta a buscar_protocolo en este turno (evita repetirla).
+    ultima_consulta: str | None = None
+    # La persona hizo una pregunta en este turno (la marca contexto_del_turno).
+    pregunta_pendiente: bool = False
+    # En este turno se adjuntó un protocolo: la indicación va antes que los datos.
+    indicacion_pendiente: bool = False
 
     # Debug: tool calls en el turno actual
     tool_calls: list[dict] = field(default_factory=list)
@@ -246,8 +351,9 @@ async def registrar_datos_escena(
 ) -> str:
     """Guarda datos de la escena a medida que la persona los va diciendo.
 
-    Llamala en el mismo turno en que te dan un dato, con solo los campos que te
-    dijeron. Guardá las palabras de la persona, no tu interpretación.
+    Llamala en el mismo turno en que te dan un dato NUEVO, con solo los campos
+    que te dijeron. Si en el turno no hay datos nuevos de la escena, no la llames.
+    Guardá las palabras de la persona, no tu interpretación.
 
     La ubicación NO se pide ni se guarda aquí porque el sistema ya geolocaliza
     automáticamente a la persona.
@@ -290,15 +396,12 @@ async def registrar_datos_escena(
 
     if not guardados:
         if st.critico() and not st.derivado:
+            derivar_automatico(st, motivo="riesgo de vida")
             return (
-                "No hay nuevos datos. Hay riesgo de vida pendiente: "
-                "derivá de inmediato con derivar_a_emergencias avisando que ya está geolocalizado "
-                "y la ayuda va en camino, y continuá asistiendo con indicaciones seguras."
+                "No hay nuevos datos. Hay riesgo de vida: ya se dio aviso al 911 y está "
+                "geolocalizado. Seguí asistiendo con indicaciones seguras."
             )
-        faltan = st.faltantes()
-        if faltan:
-            return f"No se registraron nuevos datos. Falta saber: {', '.join(faltan)}."
-        return "No se registraron nuevos datos. Continuá asistiendo a la persona."
+        return "No se registraron datos nuevos. Seguí asistiendo a la persona."
 
     context.userdata.tool_calls.append({
         "tool": "registrar_datos_escena",
@@ -314,18 +417,23 @@ async def registrar_datos_escena(
 
     logger.info("triage | guardado=%s | estado=%s", guardados, st.brief())
 
-    # Auto-derivación inmediata: si hay heridos confirmados o riesgo crítico,
-    # el sistema activa el despacho al 911 sin requerir un roundtrip extra al LLM.
-    if not st.derivado:
+    # En las pruebas, con «¿le saco el casco?» o «se queja del cuello», el
+    # modelo registraba datos en paralelo y la respuesta de esta tool («faltan
+    # datos») lo llevaba a preguntar en vez de indicar. Si hay una pregunta o
+    # un protocolo recién adjuntado, eso va primero.
+    if st.pregunta_pendiente or st.indicacion_pendiente:
         if st.critico() or (st.heridos and not st._sin_heridos()):
-            st.derivado = True
-            context.userdata.tool_calls.append({
-                "tool": "derivar_a_emergencias",
-                "args": {"auto": True},
-                "was_critical": st.critico(),
-                "triage_brief": st.brief(),
-            })
-            logger.info("derivar_a_emergencias (auto) | geolocalizado | estado=%s", st.brief())
+            derivar_automatico(st, motivo="riesgo de vida" if st.critico() else "heridos")
+        que = "respondé la pregunta de la persona" if st.pregunta_pendiente else "dale la indicación"
+        return (
+            f"Registrado. Ahora {que} con el protocolo del contexto. "
+            "No hagas ninguna pregunta en este turno."
+        )
+
+    # Auto-derivación: con heridos confirmados o riesgo crítico el sistema
+    # despacha al 911 sin otra vuelta al LLM.
+    if st.critico() or (st.heridos and not st._sin_heridos()):
+        derivar_automatico(st, motivo="riesgo de vida" if st.critico() else "heridos")
 
     if st.critico():
         es_atrapado = (
@@ -334,106 +442,46 @@ async def registrar_datos_escena(
             or any(s in (st.que_paso or "").lower() for s in SENALES_ATRAPAMIENTO)
             or any(s in (st.senal_critica or "").lower() for s in SENALES_ATRAPAMIENTO)
         )
+        if st.respira is False:
+            return (
+                "Registrado. NO RESPIRA: ya se dio aviso al 911 y está geolocalizado. "
+                "Indicá compresiones en el centro del pecho, fuertes y rápidas. "
+                "Si ya está comprimiendo, que siga sin parar hasta que llegue la ayuda."
+            )
         if es_atrapado:
             return (
-                "Registrado. HAY PERSONA ATRAPADA (riesgo crítico): dejá de juntar datos. "
-                "Ya se dio aviso al 911 y está GEOLOCALIZADO. "
-                "En tu respuesta sé RESOLUTIVO: confirmale primero «Ya estás geolocalizado y la ayuda va en camino.» "
-                "Indicá tajantemente NO mover a la persona ni forzar el vehículo (peligro severo de daño medular), "
-                "y verificá desde afuera sin tocarla ni meterse al auto si reacciona o respira."
+                "Registrado. PERSONA ATRAPADA: ya se dio aviso al 911 y está geolocalizado. "
+                "Que NO la mueva ni fuerce el vehículo (riesgo de dañar la columna). "
+                "Si puede verla, que le hable desde afuera; si no la ve, que no insista y se quede a resguardo."
             )
-
         if st.consciente is False and st.respira is None:
             return (
-                "Registrado. HAY RIESGO DE VIDA (persona inconsciente): dejá de juntar datos. "
-                "Ya se dio aviso al 911 y está GEOLOCALIZADO. "
-                "NO indiques RCP sin saber si respira: pedile de inmediato verificar si "
-                "respira (si se le mueve el pecho)."
+                "Registrado. INCONSCIENTE: ya se dio aviso al 911 y está geolocalizado. "
+                "No indiques compresiones sin saber si respira: pedile que se fije si se le mueve el pecho."
             )
         if st.consciente is False and st.respira is True:
             return (
-                "Registrado. La persona está inconsciente pero RESPIRA. "
-                "Ya se dio aviso al 911 y está GEOLOCALIZADO. "
-                "NO hagas RCP ni compresiones. Si está en el suelo o accesible, indicá mantener la vía aérea abierta. "
-                "Si está atrapada dentro de un auto o no la ve, NO intentes moverla; indicá vigilarla desde la ventanilla."
-            )
-        if st.respira is False:
-            return (
-                "Registrado. PARO RESPIRATORIO (NO RESPIRA): ya se dio aviso al 911 y está GEOLOCALIZADO. "
-                "Confirmale «Ya estás geolocalizado y la ayuda va en camino.» e indicá apoyar el talón de la mano "
-                "en el centro del pecho y comprimir fuerte y rápido."
+                "Registrado. Inconsciente pero RESPIRA: ya se dio aviso al 911 y está geolocalizado. "
+                "NO indiques compresiones. Que no lo mueva, mantenga libre el paso del aire y vigile "
+                "que siga respirando."
             )
         return (
-            "Registrado. HAY RIESGO DE VIDA: dejá de juntar datos. "
-            "Ya se dio aviso al 911 y está GEOLOCALIZADO. "
+            "Registrado. HAY RIESGO DE VIDA: ya se dio aviso al 911 y está geolocalizado. "
             "Dale la indicación que salva la vida con la información del manual."
         )
 
     faltan = st.faltantes()
     if not faltan:
-        if st._sin_heridos() and not st.critico():
-            return (
-                "Registrado. Se confirmó que NO HAY HERIDOS ni riesgo de vida. "
-                "NO menciones ambulancia ni 911 en camino. "
-                "Guiá a la persona con recomendaciones de seguridad vial y despeje seguro de la calzada."
-            )
-        return (
-            "Registrado. Ya se dio aviso al 911 y la llamada está GEOLOCALIZADA. "
-            "Continuá asistiendo a la persona con indicaciones paso a paso."
-        )
-    return f"Registrado. Todavía falta, en este orden: {', '.join(faltan)}."
-
-
-@function_tool(flags=ToolFlag.IGNORE_ON_ENTER, on_duplicate="reject")
-async def derivar_a_emergencias(context: RunContext[TriageState]) -> str:
-    """Notifica y despacha los servicios de emergencia (911/ambulancia).
-
-    Usala cuando ya sepas qué pasó y cuántos heridos hay, o antes si hay
-    riesgo de vida (no respira, sangra sin parar, atrapado, fuego).
-    La ubicación ya fue geolocalizada automáticamente por el sistema.
-    Al llamarla, confirmale a la persona que fue geolocalizada y que la
-    ayuda ya va en camino, y seguí asistiéndola con primeros auxilios.
-    """
-    st = context.userdata
-
-    if st.derivado:
-        return (
-            "Ya diste aviso al 911 y la persona ya está geolocalizada. "
-            "Seguí acompañándola y dándole indicaciones de primeros auxilios."
-        )
-
-    if not st.critico():
-        if st.heridos is None:
-            raise ToolError(
-                "Todavía no sé si hay personas lastimadas. Preguntale cuántos "
-                "heridos hay antes de despachar al 911."
-            )
         if st._sin_heridos():
             return (
-                "No hay heridos ni riesgo de vida en la escena. "
-                "No corresponde despachar auxilio médico ni derivar al 911. "
-                "Avisale a la persona que no se requiere ambulancia y dale indicaciones de seguridad vial."
+                "Registrado. NO HAY HERIDOS ni riesgo de vida: no menciones ambulancia ni 911. "
+                "Respondé lo que haya preguntado y guiala con pautas de seguridad vial."
             )
-
-    st.derivado = True
-    context.userdata.tool_calls.append({
-        "tool": "derivar_a_emergencias",
-        "args": {},
-        "was_critical": st.critico(),
-        "triage_brief": st.brief(),
-    })
-    logger.info("derivar_a_emergencias | geolocalizado | estado=%s", st.brief())
-
-    if st.critico():
         return (
-            "La llamada fue GEOLOCALIZADA automáticamente y se dio aviso inmediato al 911 (auxilio despachado en camino). "
-            "En tu respuesta confirmale explícitamente: «Ya estás geolocalizado y la ayuda va en camino.» "
-            "e integralo con la maniobra inmediata que salva la vida. "
-            "Continuá asistiéndola paso a paso."
+            "Registrado. Ya se dio aviso al 911 y la llamada está geolocalizada. "
+            "Seguí asistiendo paso a paso."
         )
-
     return (
-        "La llamada fue GEOLOCALIZADA automáticamente y se dio aviso inmediato al 911 (auxilio despachado en camino). "
-        "Confirmale a la persona: «Ya estás geolocalizado y la ayuda va en camino.» "
-        "y continuá asistiéndola con las indicaciones paso a paso."
+        "Registrado. Si la persona hizo una pregunta, respondela primero. "
+        f"Datos que faltan (pedí uno solo, y solo si no hay algo más urgente): {', '.join(faltan)}."
     )

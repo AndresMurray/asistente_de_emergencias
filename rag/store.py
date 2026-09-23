@@ -135,6 +135,36 @@ class ChunkStore:
             )
         return fragments
 
+    def cargar_todo(self) -> tuple[list[Fragment], list[list[float]]]:
+        """Trae el corpus entero con sus embeddings, para el índice en memoria.
+        Bloqueante: se llama una vez al arrancar el proceso."""
+        select_cols = ", ".join(self._select_columns())
+        with self._checkout() as conn:
+            with conn.cursor() as cur:
+                cur.execute(f"SELECT {select_cols}, embedding FROM {self._settings.table};")
+                rows = cur.fetchall()
+
+        cols = self._select_columns()
+        fragments: list[Fragment] = []
+        embeddings: list[list[float]] = []
+        for row in rows:
+            values = dict(zip(cols, row))
+            fragments.append(
+                Fragment(
+                    text=values["text"],
+                    score=0.0,
+                    source=values.get("source"),
+                    section=values.get("section"),
+                    subsection=values.get("subsection"),
+                    page_start=values.get("page_start"),
+                    page_end=values.get("page_end"),
+                )
+            )
+            vector = row[-1]
+            # pgvector devuelve un objeto Vector, no una lista.
+            embeddings.append(vector.to_list() if hasattr(vector, "to_list") else list(vector))
+        return fragments, embeddings
+
     async def health(self) -> int:
         """Cantidad de chunks. Para chequear al arrancar que la base responde."""
         def _count() -> int:

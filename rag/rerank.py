@@ -21,23 +21,31 @@ import aiohttp
 
 from .config import RagSettings
 from .errors import RetrievalError
-from .ratelimit import esperar_turno
+from .ratelimit import esperar_turno, intentar_turno
 from .session import cohere_session
 
 logger = logging.getLogger("rag.rerank")
 
 
 async def rerank(
-    query: str, documentos: list[str], settings: RagSettings
+    query: str, documentos: list[str], settings: RagSettings, *, esperar: bool = False
 ) -> list[tuple[int, float]]:
     """Ordena los documentos por relevancia real contra la consulta.
 
     Devuelve [(indice_original, score)] ordenado de mejor a peor. Si el reranker
     falla, se levanta RetrievalError y el caller decide si degrada al orden del
     coseno: preferimos una respuesta con orden peor a no responder nada.
+
+    Con `esperar=False` (el turno en vivo) no se espera cupo del rate limit: si
+    no hay, se levanta RetrievalError al instante y se sigue con el coseno.
     """
     if not documentos:
         return []
+
+    if esperar:
+        await esperar_turno()
+    elif not intentar_turno():
+        raise RetrievalError("sin cupo de rerank en este momento (key Trial)")
 
     payload = {
         "model": settings.rerank_model,
@@ -53,7 +61,6 @@ async def rerank(
     timeout = aiohttp.ClientTimeout(total=settings.rerank_timeout_s, connect=0.5)
 
     try:
-        await esperar_turno()
         async with cohere_session().post(
             settings.cohere_rerank_url, headers=headers, json=payload, timeout=timeout
         ) as response:

@@ -6,7 +6,8 @@
 # (AgentServer, inference.*, turn_handling) y los defaults de turn handling
 # cambian entre versiones. Sin pin, cualquier rebuild mueve el comportamiento
 # de voz y las mediciones dejan de ser comparables.
-livekit-agents==1.6.5
+# 1.6.8 es la versión con la que se prueba en local (venv) y se midió todo.
+livekit-agents==1.6.8
 
 # Plugins de proveedores directos (desacoplados del gateway)
 livekit-plugins-cartesia~=1.6
@@ -19,4 +20,7 @@ pgvector==0.5.0
 aiohttp==3.14.1
 httpx>=0.27.0
 requests>=2.31.0
-python-dotenv==1.2.2
+python-dotenv==1.2.2
+# Índice en memoria (ya viene como dependencia de livekit-agents; explícito
+# porque rag/index.py lo importa directo).
+numpy>=2.0

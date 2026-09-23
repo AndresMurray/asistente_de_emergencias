@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import random
+import re
 import time
 
 # pyrefly: ignore [missing-import]
@@ -13,6 +14,8 @@ from livekit.agents import (  # type: ignore
     Agent,
     AgentServer,
     AgentSession,
+    JobProcess,
+    ModelSettings,
     RunContext,
     ToolError,
     function_tool,
@@ -20,18 +23,20 @@ from livekit.agents import (  # type: ignore
     metrics,
     room_io,
 )
+from livekit.agents import llm as lk_llm
 from livekit.agents.llm import ToolFlag
 from livekit.plugins import cartesia, deepgram, google, openai
 
+from habla import NormalizadorStream, aplicar_aviso_911
 from prompts import KEYTERMS_ES, SALUDO, SYSTEM_INSTRUCTIONS
+from protocolos import TEMAS, detectar_temas, respira_positivo, tema_de_consulta
 from rag import Retriever
 from triage import (
-    AVISO_CRITICO,
     TriageState,
-    derivar_a_emergencias,
     generar_aviso_critico,
     procesar_turno_usuario,
     registrar_datos_escena,
+    sin_acceso_al_herido,
 )
 
 load_dotenv(".env.local")
@@ -39,8 +44,8 @@ load_dotenv(".env.local")
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("emergency-agent")
 
-# Un retriever por proceso: adentro tiene el pool de conexiones y se comparte
-# entre los jobs del proceso.
+# Un retriever por proceso: adentro tiene el pool de conexiones, el índice en
+# memoria y el caché de consultas, y se comparte entre los jobs del proceso.
 _retriever: Retriever | None = None
 
 
@@ -50,6 +55,19 @@ def _get_retriever() -> Retriever:
         _retriever = Retriever()
         _retriever.connect()
     return _retriever
+
+
+def prewarm(proc: JobProcess) -> None:
+    """Conecta la base y carga índice + caché ANTES de que entre una llamada.
+
+    Antes la conexión se hacía en la primera búsqueda, dentro del turno: ~2 s
+    de pool + detección de esquema justo cuando alguien pedía una maniobra."""
+    try:
+        _get_retriever()
+    except Exception:
+        # Si la base no responde al arrancar, el agente igual atiende: los
+        # protocolos críticos tienen texto de respaldo.
+        logger.exception("prewarm: no pude conectar el retriever")
 
 
 def create_llm(model: str | None = None):
@@ -72,7 +90,14 @@ def create_llm(model: str | None = None):
 
     if use_groq:
         mod = modelo or "openai/gpt-oss-120b"
-        logger.info("usando Groq vía livekit.plugins.openai.LLM (modelo=%s)", mod)
+        # gpt-oss es un modelo de razonamiento y el plugin solo le fija
+        # reasoning_effort a los GPT-5, así que Groq usaba "medium": medido con
+        # el prompt real, ~1900 tokens de razonamiento oculto y 2,5 s por
+        # llamada. Con "low" baja a ~0,6 s y la calidad de las tools se sostiene.
+        extra = {}
+        if "gpt-oss" in mod:
+            extra["reasoning_effort"] = os.getenv("LLM_REASONING_EFFORT", "low")
+        logger.info("usando Groq vía livekit.plugins.openai.LLM (modelo=%s %s)", mod, extra)
         return openai.LLM(
             model=mod,
             api_key=groq_key,
@@ -80,6 +105,7 @@ def create_llm(model: str | None = None):
             temperature=0.1,
             parallel_tool_calls=True,
             _strict_tool_schema=False,
+            **extra,
         )
 
     if gemini_key:
@@ -143,94 +169,242 @@ def _elegir_frase_espera(userdata: TriageState | None = None) -> str:
 async def buscar_protocolo(context: RunContext, query: str) -> str:
     """Busca en el manual de primeros auxilios los fragmentos relevantes.
 
-    Llamala cuando necesites una maniobra de primeros auxilios.
+    Llamala cuando necesites una maniobra que NO esté ya en el contexto (si ya
+    tenés el protocolo adjunto en el mensaje de la persona, no la llames).
     Reformulá lo que dijo la persona con palabras del manual: "no respira" se
     busca como "herido inconsciente que no respira reanimación cardiopulmonar";
     "se está desangrando" como "control de hemorragias externas".
     NUNCA la llames más de una vez en el mismo turno ni repitas la misma consulta.
-    Una vez obtenidos los fragmentos, respondé a la persona con esa información.
     """
+    st: TriageState = context.userdata
     q_norm = query.strip().lower()
-    last_query = getattr(context.userdata, "_last_search_query", None)
-    if last_query and last_query == q_norm:
+    if st.ultima_consulta == q_norm:
         logger.warning("buscar_protocolo: consulta duplicada en el mismo turno: '%s'", query)
         return (
-            f"Ya consultaste el manual para «{query}» y los fragmentos están disponibles arriba. "
-            "NO vuelvas a buscar lo mismo en este turno. Formulá tu respuesta ahora para quien llama."
+            f"Ya consultaste el manual para «{query}» en este turno y los fragmentos están arriba. "
+            "Formulá tu respuesta ahora."
         )
-    setattr(context.userdata, "_last_search_query", q_norm)
+    st.ultima_consulta = q_norm
 
-    retriever = _get_retriever()
-    frase_espera = _elegir_frase_espera(context.userdata)
+    # Si la consulta es claramente de un tema crítico, se usa la consulta
+    # canónica: su resultado está precalculado y sale en 0 ms.
+    tema = tema_de_consulta(query)
+    consulta = tema.consulta if tema else query
 
     t0 = time.monotonic()
-    async with context.with_filler(frase_espera, delay=0.6, max_steps=1):
-        result = await retriever.search(query)
+    async with context.with_filler(_elegir_frase_espera(st), delay=0.6, max_steps=1):
+        result = await _get_retriever().search(consulta)
     elapsed = int((time.monotonic() - t0) * 1000)
 
-    # Store debug data in userdata
-    context.userdata.tool_calls.append({
+    usa_respaldo = result.status != "ok" and tema is not None
+    st.tool_calls.append({
         "tool": "buscar_protocolo",
-        "args": {"query": query},
-        "status": result.status,
-        "error": result.error,
-        "chunks_found": len(result.fragments),
-        "top_score": result.top_score,
+        "args": {"query": query, "consulta_usada": consulta},
+        "origen": "respaldo" if usa_respaldo else result.modo,
         "total_latency_ms": elapsed,
-        "embed_ms": result.embed_ms,
-        "vector_search_ms": result.vector_search_ms,
-        "rerank_ms": result.rerank_ms,
-        "candidate_count": result.candidate_count,
-        "reranked": result.reranked,
-        "fragments": [
-            {
-                "text": f.text[:300],
-                "score": f.score,
-                "section": f.section,
-                "subsection": f.subsection,
-                "page_start": f.page_start,
-                "page_end": f.page_end,
-            }
-            for f in result.fragments
-        ],
-        "context_for_llm": result.para_llm() if result.status == "ok" else None,
+        "chunks_found": len(result.fragments),
+        "context_for_llm": (
+            result.para_llm() if result.status == "ok" else tema.respaldo if usa_respaldo else None
+        ),
+        **result.to_debug_dict(),
     })
+
+    if result.status == "ok":
+        return result.para_llm()
+
+    # Para los temas críticos nunca se contesta "no está en el manual" ni
+    # "perdí el acceso": hay texto de respaldo redactado del mismo manual.
+    if usa_respaldo:
+        logger.warning("buscar_protocolo: %s (%s), uso respaldo de «%s»", result.status, result.error, tema.clave)
+        return tema.respaldo
 
     if result.status == "error":
         raise ToolError(
             "La búsqueda en el manual falló por un problema técnico. "
             f"Motivo: {result.error}"
         )
+    return (
+        "El manual no tiene nada relevante para esa consulta. "
+        "No inventes un procedimiento: decí que no está en tu manual y seguí acompañando."
+    )
 
-    if result.status == "no_match":
-        return (
-            "El manual no tiene nada relevante para esa consulta. "
-            "No inventes un procedimiento: decí que no está en tu manual y derivá."
+
+# --- contexto determinístico de cada turno -----------------------------------
+
+_MAX_TEMAS_POR_TURNO = 2
+
+# «¿le saco el casco?», «tengo que mover el auto». Deepgram puntúa, pero por
+# las dudas también se miran las formas típicas de pedir una indicación.
+_PREGUNTA = re.compile(
+    r"\?|\b(tengo que|debo|hago|le saco|lo saco|la saco|lo muevo|la muevo|"
+    r"qué hago|que hago|cómo|como hago|está bien|esta bien)\b",
+    re.IGNORECASE,
+)
+
+
+async def contexto_del_turno(texto: str, st: TriageState) -> str | None:
+    """Lo que el sistema le agrega al turno ANTES de llamar al LLM.
+
+    Es el mismo para voz, chat y los scripts de prueba. Hace tres cosas sin
+    depender de que el modelo llame una tool:
+    1. detecta riesgo de vida y deriva al 911 (triage.procesar_turno_usuario);
+    2. adjunta el protocolo del manual de los temas mencionados (precalculado:
+       0 ms), así el modelo responde en UNA pasada en vez de llamar a
+       buscar_protocolo y esperar otra vuelta;
+    3. marca situaciones que el modelo manejaba mal (no ve al herido, pide RCP
+       sin saber si respira).
+    """
+    st.ultima_consulta = None
+    st.pregunta_pendiente = bool(_PREGUNTA.search(texto))
+    partes: list[str] = []
+
+    senal = procesar_turno_usuario(texto, st)
+    if senal:
+        partes.append(generar_aviso_critico(senal, st))
+        # Lo esencial (no respira, inconsciente, atrapado) ya quedó registrado y
+        # el 911 ya fue avisado: registrar_datos_escena acá solo agrega otra
+        # vuelta al LLM (~1 s) en el turno donde más importa la velocidad.
+        partes.append("Esto ya quedó registrado: respondé directo, SIN llamar herramientas en este turno.")
+
+    inconsciente = st.consciente is False or "inconsciencia" in st.alertas
+    en_rcp = st.respira is False and "rcp" in st.temas_inyectados
+    if respira_positivo(texto) and (st.respira is False or (inconsciente and st.respira is None)):
+        # También cubre «¡volvió a respirar!» en plena RCP: se dejan las
+        # compresiones y pasa al protocolo del inconsciente que respira.
+        if st.respira is False:
+            partes.append("VOLVIÓ A RESPIRAR: que deje de comprimir y vigile que siga respirando.")
+        st.respira = True
+        en_rcp = False
+    elif en_rcp:
+        # En las pruebas, ante «ya hice las compresiones, ¿ahora qué?», el
+        # modelo pedía revisar si respiraba: eso frena la RCP.
+        partes.append(
+            "Está haciendo RCP: que siga comprimiendo sin parar, dos veces por segundo, hasta que "
+            "llegue la ayuda o la persona empiece a respirar. No le pidas que frene ni que revise nada."
         )
 
-    return result.para_llm()
+    temas = detectar_temas(texto)
+    if st.respira is False:
+        temas.insert(0, "rcp")
+    elif "rcp" in temas:
+        # Pregunta por RCP sin paro confirmado: nunca adjuntar el protocolo de
+        # compresiones a ciegas (si respira, comprimir le hace daño).
+        temas.remove("rcp")
+        partes.append(
+            "Todavía no está confirmado que el herido NO respire: antes de cualquier "
+            "compresión, pedí que se fije si se le mueve el pecho."
+        )
+    if inconsciente and st.respira is True:
+        temas.insert(0, "inconsciente_respira")
+
+    if st.pregunta_pendiente:
+        # En las pruebas el modelo ignoraba «¿le saco el casco?» para seguir con
+        # sus preguntas de triage, aun con el protocolo adjunto.
+        partes.append(
+            "La persona te hizo una pregunta: respondela en ESTE turno, con el protocolo "
+            "si lo hay, antes de preguntar cualquier otra cosa."
+        )
+
+    if sin_acceso_al_herido(texto):
+        partes.append(
+            "La persona NO puede ver ni llegar al herido: no le pidas que revise nada del "
+            "herido. Que se quede a resguardo, fuera de la calzada, y te avise si ve algún cambio."
+        )
+
+    nuevos = [t for t in dict.fromkeys(temas) if t not in st.temas_inyectados]
+    st.indicacion_pendiente = bool(nuevos)
+    for clave in nuevos[:_MAX_TEMAS_POR_TURNO]:
+        tema = TEMAS[clave]
+        # Primero el resumen verificado (redactado del manual para este caso) y
+        # después los fragmentos como respaldo. Solo con los fragmentos, el
+        # modelo tomaba el primero al pie de la letra: ante un inconsciente
+        # que respira indicaba la posición lateral, cuando el manual dice que en
+        # un accidente de tránsito no hay que moverlo salvo que vomite.
+        fragmentos = ""
+        res = None
+        t0 = time.monotonic()
+        try:
+            res = await _get_retriever().search(tema.consulta)
+            if res.status == "ok":
+                fragmentos = res.para_llm()
+        except Exception:
+            logger.exception("prefetch de «%s» falló, uso solo el resumen", clave)
+        elapsed = int((time.monotonic() - t0) * 1000)
+        st.temas_inyectados.add(clave)
+        bloque = (
+            f"PROTOCOLO DEL MANUAL ({clave}), ya consultado, no llames buscar_protocolo para esto.\n"
+            f"Qué indicar: {tema.respaldo}"
+        )
+        if fragmentos:
+            bloque += f"\nFragmentos del manual:\n{fragmentos}"
+        partes.append(bloque)
+
+        # Mismo formato que buscar_protocolo, para que el panel de debug del
+        # frontend muestre fragmentos, scores y el contexto que recibió el LLM.
+        debug = res.to_debug_dict() if res else {"status": "error", "error": "retriever no disponible", "fragments": []}
+        st.tool_calls.append({
+            "tool": "prefetch_protocolo",
+            "args": {"tema": clave, "query": tema.consulta},
+            "origen": debug.get("modo") if fragmentos else "respaldo",
+            "total_latency_ms": elapsed,
+            "chunks_found": len(debug["fragments"]),
+            "context_for_llm": bloque,
+            **debug,
+        })
+
+    if not partes:
+        return None
+    # Con el protocolo completo a mano el modelo tendía a recitarlo entero
+    # (50+ palabras): por teléfono eso no se retiene.
+    partes.append("Respondé con UNA indicación corta (máximo dieciocho palabras); lo demás, en los turnos siguientes.")
+    return "[Contexto del sistema, no lo leas en voz alta]\n" + "\n\n".join(partes)
 
 
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
             instructions=SYSTEM_INSTRUCTIONS,
-            tools=[buscar_protocolo, registrar_datos_escena, derivar_a_emergencias],
+            tools=[buscar_protocolo, registrar_datos_escena],
         )
 
     async def on_user_turn_completed(self, turn_ctx, new_message) -> None:
-        """Camino de audio: detecta riesgo de vida sin depender del modelo."""
-        senal = procesar_turno_usuario(
-            new_message.text_content, self.session.userdata
-        )
-        if senal:
-            aviso = generar_aviso_critico(senal, self.session.userdata)
-            turn_ctx.add_message(
-                role="system", content=aviso
-            )
+        """Camino de audio: mismo contexto determinístico que el chat.
+
+        Se agrega al mensaje del usuario (no a turn_ctx): lo que se agrega a
+        turn_ctx vale solo para este turno, y el aviso de riesgo o el protocolo
+        desaparecían en el turno siguiente."""
+        extra = await contexto_del_turno(new_message.text_content or "", self.session.userdata)
+        if extra:
+            new_message.content.append(extra)
+
+    async def llm_node(self, chat_ctx, tools, model_settings: ModelSettings):
+        """Corrige el texto antes de hablarlo (ver habla.py): jerga, voseo y el
+        aviso «Ya estás geolocalizado y la ayuda va en camino.», que lo pone el
+        sistema una sola vez cuando se derivó al 911."""
+        st: TriageState = self.session.userdata
+        norm = NormalizadorStream()
+
+        def salida(texto: str) -> str:
+            return aplicar_aviso_911(texto, st) if texto else texto
+
+        async for chunk in Agent.default.llm_node(self, chat_ctx, tools, model_settings):
+            if isinstance(chunk, str):
+                if listo := salida(norm.push(chunk)):
+                    yield listo
+            elif isinstance(chunk, lk_llm.ChatChunk) and chunk.delta and chunk.delta.content:
+                listo = salida(norm.push(chunk.delta.content))
+                chunk.delta.content = listo or None
+                if listo or chunk.delta.tool_calls or chunk.usage:
+                    yield chunk
+            else:
+                if resto := salida(norm.flush()):
+                    yield resto
+                yield chunk
+        if resto := salida(norm.flush()):
+            yield resto
 
 
-server = AgentServer()
+server = AgentServer(setup_fnc=prewarm, initialize_process_timeout=30.0)
 
 
 @server.rtc_session(agent_name="asistente-emergencias")
@@ -247,7 +421,9 @@ async def entrypoint(ctx: agents.JobContext):
         llm=create_llm(),
         tts=create_tts(),
         turn_handling={
-            "endpointing": {"mode": "dynamic", "min_delay": 0.5, "max_delay": 3.0},
+            # max_delay 3.0 -> 2.0: alguien asustado deja pausas cortas y
+            # esperar tres segundos de silencio se siente como que nadie atiende.
+            "endpointing": {"mode": "dynamic", "min_delay": 0.5, "max_delay": 2.0},
             "interruption": {"min_duration": 0.4, "min_words": 2},
             "preemptive_generation": {"preemptive_tts": False, "max_speech_duration": 15.0},
         },
@@ -325,13 +501,14 @@ async def entrypoint(ctx: agents.JobContext):
 
     retriever = _get_retriever()
     logger.info(
-        "config | llm=%s stt=deepgram/nova-3(es) keyterms=%d rerank=%s piso=%s",
+        "config | llm=%s stt=deepgram/nova-3(es) keyterms=%d rerank=%s piso=%s indice=%s",
         os.getenv("LLM_MODEL", "google/gemma-4-31b-it"),
         len(KEYTERMS_ES),
         retriever.settings.rerank_model if retriever.settings.rerank_enabled else "off",
         retriever.settings.min_rerank_score
         if retriever.settings.rerank_enabled
         else retriever.settings.min_score,
+        len(retriever.index) if retriever.index else "NO (búsqueda contra la base)",
     )
 
     session.say(SALUDO, allow_interruptions=True)
@@ -398,15 +575,16 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
             except Exception:
                 pass
 
-            senal = procesar_turno_usuario(query, session.userdata)
-            entrada = query
-            if senal:
-                aviso = generar_aviso_critico(senal, session.userdata)
-                entrada = f"{query}\n\n[{aviso}]"
+            extra = await contexto_del_turno(query, session.userdata)
+            entrada = f"{query}\n\n{extra}" if extra else query
 
             try:
-                session.interrupt()
-                await asyncio.sleep(0.2)
+                # interrupt() devuelve un future que se completa cuando la
+                # interrupción terminó: no hace falta un sleep fijo.
+                await asyncio.wait_for(session.interrupt(), timeout=1.0)
+            except Exception:
+                pass
+            try:
                 await session.run(user_input=entrada)
             except (asyncio.CancelledError, Exception) as exc:
                 logger.warning("run de chat interrumpido o fallido: %s", exc)
@@ -429,7 +607,9 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
                 retriever = _get_retriever()
 
                 # Count searches
-                search_count = sum(1 for tc in tool_calls if tc.get("tool") == "buscar_protocolo")
+                search_count = sum(
+                    1 for tc in tool_calls if tc.get("tool") in ("buscar_protocolo", "prefetch_protocolo")
+                )
 
                 # Merge tokens into metrics
                 if llm_tokens:

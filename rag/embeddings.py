@@ -1,4 +1,4 @@
-"""Embeddings con Google AI Studio (text-embedding-004).
+"""Embeddings con Google AI Studio (gemini-embedding-001).
 
 Genera vectores de 768 dimensiones optimizados para búsqueda semántica.
 Utiliza aiohttp reutilizando la sesión compartida con keepalive.
@@ -18,8 +18,17 @@ from .session import cohere_session
 logger = logging.getLogger("rag.embeddings")
 
 
-async def embed_query(text: str, settings: RagSettings) -> list[float]:
-    """Embebe la consulta del usuario usando taskType RETRIEVAL_QUERY."""
+async def embed_query(
+    text: str, settings: RagSettings, *, intentos: int = 3, pausa_s: float = 0.05
+) -> list[float]:
+    """Embebe la consulta del usuario usando taskType RETRIEVAL_QUERY.
+
+    El plan gratuito de Google devuelve 429 ("Resource exhausted") en ~70% de
+    las llamadas aunque se espacien (medido 2026-09). Cada 429 vuelve en ~260
+    ms, así que tres intentos rápidos entran en el presupuesto del turno; si
+    igual falla, el retriever cae a la búsqueda léxica en memoria. Para scripts
+    offline (generar el caché) conviene pasar más intentos y pausas largas.
+    """
     if not settings.gemini_api_key:
         raise RetrievalError("GEMINI_API_KEY no está configurada")
 
@@ -37,7 +46,7 @@ async def embed_query(text: str, settings: RagSettings) -> list[float]:
     timeout = aiohttp.ClientTimeout(total=settings.embed_timeout_s, connect=0.5)
 
     last_error: Exception | None = None
-    for attempt in (1, 2):
+    for attempt in range(1, intentos + 1):
         try:
             async with cohere_session().post(
                 url, headers=headers, json=payload, timeout=timeout
@@ -47,7 +56,7 @@ async def embed_query(text: str, settings: RagSettings) -> list[float]:
                     return data["embedding"]["values"]
                 elif response.status in (429, 500, 503):
                     last_error = RetrievalError(
-                        f"Google AI devolvió {response.status}: {(await response.text())[:200]}"
+                        f"Google AI devolvió {response.status}: {(await response.text())[:120]}"
                     )
                 else:
                     raise RetrievalError(
@@ -62,9 +71,9 @@ async def embed_query(text: str, settings: RagSettings) -> list[float]:
             last_error = RetrievalError(f"error de red hablando con Google AI: {exc}")
             last_error.__cause__ = exc
 
-        if attempt == 1:
-            logger.warning("embedding falló (intento 1), reintentando: %s", last_error)
-            await asyncio.sleep(0.15)
+        if attempt < intentos:
+            logger.info("embedding falló (intento %d), reintentando: %s", attempt, last_error)
+            await asyncio.sleep(pausa_s)
 
     raise last_error or RetrievalError("no se pudo embeber la consulta con Google AI")
 
