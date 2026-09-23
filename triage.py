@@ -123,6 +123,28 @@ def hay_herido(texto: str) -> bool:
     return bool(_HERIDO.search(texto)) and not _SIN_HERIDOS.search(texto)
 
 
+# Respuesta afirmativa corta a «¿Hay alguien herido?»: «sí, una persona»,
+# «una», «dos», «el acompañante». Sola no dice nada; junto con la pregunta
+# anterior del agente confirma que hay heridos. En producción, «si, una
+# persona» no derivaba porque la frase no contiene «herido».
+_AFIRMA_HERIDOS = re.compile(
+    r"^\W*(s[ií]\b|hay\b|uno\b|una\b|dos\b|tres\b|cuatro\b|varios\b|varias\b|muchos\b|"
+    r"el (conductor|acompañante|otro)|la (conductora|acompañante|otra)|yo\b|mi\b)",
+    re.IGNORECASE,
+)
+_NIEGA = re.compile(r"\b(no|nadie|ning[uú]n[oa]?)\b", re.IGNORECASE)
+_PREGUNTA_HERIDOS = re.compile(r"herid|lastimad|lesionad|cu[aá]ntas personas", re.IGNORECASE)
+
+
+def confirma_heridos(texto: str, ultima_respuesta: str) -> bool:
+    """«sí, una persona» como respuesta a «¿Hay alguien herido…?»."""
+    return (
+        bool(_PREGUNTA_HERIDOS.search(ultima_respuesta or ""))
+        and bool(_AFIRMA_HERIDOS.search(texto))
+        and not _NIEGA.search(texto)
+    )
+
+
 def sin_acceso_al_herido(texto: str) -> bool:
     bajo = texto.lower()
     return any(s in bajo for s in SENALES_SIN_ACCESO)
@@ -275,6 +297,8 @@ class TriageState:
     dichos: list[str] = field(default_factory=list)
     # Última consulta a buscar_protocolo en este turno (evita repetirla).
     ultima_consulta: str | None = None
+    # Lo último que dijo el agente (para entender respuestas cortas como «una»).
+    ultima_respuesta: str = ""
     # La persona hizo una pregunta en este turno (la marca contexto_del_turno).
     pregunta_pendiente: bool = False
     # En este turno se adjuntó un protocolo: la indicación va antes que los datos.
@@ -506,5 +530,5 @@ async def registrar_datos_escena(
         )
     return (
         "Registrado. Si la persona hizo una pregunta, respondela primero. "
-        f"Datos que faltan (pedí uno solo, y solo si no hay algo más urgente): {', '.join(faltan)}."
+        f"Si no hay algo más urgente, el próximo dato a pedir (uno solo): {faltan[0]}."
     )

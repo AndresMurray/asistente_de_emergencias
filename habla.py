@@ -50,7 +50,7 @@ _VOSEO = {
     "acuéstalo": "acostalo", "acuéstala": "acostala",
     "avísame": "avisame", "dime": "decime", "cuéntame": "contame",
     "arrodíllate": "arrodillate", "acércate": "acercate", "abre": "abrí",
-    "quedá": "quedate",
+    "quedá": "quedate", "deja": "dejá", "sujeta": "sujetá", "tapa": "tapá",
 }
 # Fuera de la lista a propósito: «respira», «sigue», «continúa». Al
 # inicio de una pregunta son tercera persona («¿Respira?», «¿Sigue sangrando?»)
@@ -105,7 +105,7 @@ _QUITAR_911 = [
 # Sin derivación (nadie herido, sin riesgo) tampoco puede sonar que «llega la
 # ayuda»: en las pruebas, ante un roce sin heridos, el modelo dijo «esperá a
 # que llegue la ayuda».
-_LLEGA_AYUDA = r"(la ayuda|la ambulancia|los servicios|los bomberos|los médicos)"
+_LLEGA_AYUDA = r"(la ayuda|ayuda|la ambulancia|una ambulancia|los servicios|los bomberos|los médicos)"
 _AYUDA_SIN_DERIVAR: list[tuple[re.Pattern[str], str]] = [(p, "") for p in _QUITAR_911] + [
     (re.compile(r"\b(y )?esper[aá] (a )?que llegue(n)? " + _LLEGA_AYUDA, re.I), r"\1mantené la calma"),
     (re.compile(r"\s*hasta que llegue(n)? " + _LLEGA_AYUDA, re.I), ""),

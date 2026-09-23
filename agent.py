@@ -33,6 +33,7 @@ from protocolos import TEMAS, detectar_temas, respira_positivo, tema_de_consulta
 from rag import Retriever
 from triage import (
     TriageState,
+    confirma_heridos,
     derivar_automatico,
     generar_aviso_critico,
     hay_herido,
@@ -267,6 +268,16 @@ async def contexto_del_turno(texto: str, st: TriageState) -> str | None:
         if st.heridos is None:
             st.heridos = texto
         derivar_automatico(st, motivo="herido")
+    elif not senal and not st.derivado and confirma_heridos(texto, st.ultima_respuesta):
+        # «sí, una persona» a «¿Hay alguien herido?»: no dice «herido», pero lo
+        # confirma. Antes dependía de que el modelo llamara a la tool, y en
+        # producción no la llamó: no derivaba y preguntaba «¿cuántos heridos?».
+        st.heridos = texto
+        derivar_automatico(st, motivo="heridos confirmados")
+        partes.append(
+            f"Ya está confirmado que hay heridos («{texto}»): no vuelvas a preguntar si hay "
+            "heridos ni cuántos. Seguí con lo siguiente (por ejemplo, si el herido está despierto)."
+        )
     if senal:
         partes.append(generar_aviso_critico(senal, st))
         # Lo esencial (no respira, inconsciente, atrapado) ya quedó registrado y
@@ -402,8 +413,13 @@ class Assistant(Agent):
         st: TriageState = self.session.userdata
         norm = NormalizadorStream()
 
+        dicho: list[str] = []
+
         def salida(texto: str) -> str:
-            return aplicar_aviso_911(texto, st) if texto else texto
+            texto = aplicar_aviso_911(texto, st) if texto else texto
+            if texto:
+                dicho.append(texto)
+            return texto
 
         async for chunk in Agent.default.llm_node(self, chat_ctx, tools, model_settings):
             if isinstance(chunk, str):
@@ -420,6 +436,10 @@ class Assistant(Agent):
                 yield chunk
         if resto := salida(norm.flush()):
             yield resto
+        # Se guarda para entender la próxima respuesta corta («sí», «una»).
+        # Los pasos que solo llaman tools no dicen nada y no pisan lo anterior.
+        if dicho:
+            st.ultima_respuesta = "".join(dicho)
 
 
 server = AgentServer(setup_fnc=prewarm, initialize_process_timeout=30.0)

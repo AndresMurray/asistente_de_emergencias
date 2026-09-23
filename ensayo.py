@@ -93,6 +93,14 @@ ESCENARIOS: dict[str, list[str]] = {
         "le scao el casco",
         "le saco el casco?",
     ],
+    # Segunda conversación real de producción: «sí, una persona» no derivaba.
+    "herido_confirmado": [
+        "choco una moto",
+        "si, una persona",
+        "una",
+        "si, me pide que le saque el casco",
+        "le sangra una pierna mucho",
+    ],
     "pregunta_directa": [
         "Choqué de atrás a otro auto en la avenida",
         "No, nadie lastimado. ¿Tengo que mover el auto o lo dejo?",

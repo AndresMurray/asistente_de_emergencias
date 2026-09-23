@@ -18,7 +18,7 @@ from protocolos import TEMAS, consultas_canonicas, detectar_temas, respira_posit
 from rag import ratelimit
 from rag.index import MemoryIndex, tokenizar
 from rag.store import Fragment
-from triage import TriageState, hay_herido, procesar_turno_usuario, sin_acceso_al_herido
+from triage import TriageState, confirma_heridos, hay_herido, procesar_turno_usuario, sin_acceso_al_herido
 
 
 # --- triage ----------------------------------------------------------------------
@@ -59,6 +59,18 @@ def test_sin_senal_no_deriva():
 ])
 def test_hay_herido(texto, esperado):
     assert hay_herido(texto) is esperado
+
+
+@pytest.mark.parametrize("texto,pregunta,esperado", [
+    ("si, una persona", "¿Hay alguien herido y hay fuego cerca?", True),
+    ("una", "¿Cuántas personas están heridas?", True),
+    ("el acompañante", "¿Hay alguien lastimado?", True),
+    ("no, nadie", "¿Hay alguien herido?", False),
+    ("sí", "¿Hay fuego, humo o combustible cerca?", False),
+    ("si, una persona", "", False),
+])
+def test_confirma_heridos(texto, pregunta, esperado):
+    assert confirma_heridos(texto, pregunta) is esperado
 
 
 @pytest.mark.parametrize("texto", ["no veo si reacciona", "No llego hasta el auto", "no puedo ver nada"])
@@ -155,6 +167,7 @@ def test_sin_derivacion_no_promete_ayuda():
     texto = "Alejate del tráfico y esperá a que llegue la ayuda."
     assert aplicar_aviso_911(texto, st) == "Alejate del tráfico y mantené la calma."
     assert aplicar_aviso_911("No muevas el auto hasta que lleguen los servicios.", st) == "No muevas el auto."
+    assert aplicar_aviso_911("Mantené la cabeza inmóvil hasta que llegue ayuda.", st) == "Mantené la cabeza inmóvil."
 
 
 def test_con_derivacion_se_mantiene_hasta_que_llegue_la_ayuda():
