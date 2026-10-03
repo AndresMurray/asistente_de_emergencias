@@ -6,6 +6,7 @@ import random
 import re
 import threading
 import time
+from collections.abc import Callable
 
 # pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
@@ -29,6 +30,7 @@ from livekit.agents.llm import ToolFlag
 from livekit.plugins import cartesia, deepgram, google, openai
 
 from habla import NormalizadorStream, aplicar_aviso_911
+from metronomo import Metronomo, pide_apagar, pide_prender
 from prompts import KEYTERMS_ES, SALUDO, SYSTEM_INSTRUCTIONS
 from protocolos import TEMAS, detectar_temas, respira_positivo, tema_de_consulta
 from rag import RetrievalResult, Retriever, load_settings
@@ -38,8 +40,10 @@ from triage import (
     derivar_automatico,
     generar_aviso_critico,
     hay_herido,
+    llego_la_ayuda,
     niega_heridos,
     procesar_turno_usuario,
+    rcp_en_curso,
     registrar_datos_escena,
     sin_acceso_al_herido,
 )
@@ -102,6 +106,11 @@ def prewarm(proc: JobProcess | None) -> None:
         logger.warning("prewarm: el índice sigue cargando; mientras tanto, textos de respaldo")
 
 
+# gemini-2.5-flash ya no se habilita para claves nuevas (la API devuelve 404 y
+# sugiere gemini-3.8-flash).
+GEMINI_MODELO = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+
+
 def create_llm(model: str | None = None):
     """Crea el LLM: prioriza Groq si está configurado (vía openai plugin),
     o Google Gemini directo con clave propia, o gateway de LiveKit como fallback."""
@@ -130,7 +139,7 @@ def create_llm(model: str | None = None):
         if "gpt-oss" in mod:
             extra["reasoning_effort"] = os.getenv("LLM_REASONING_EFFORT", "low")
         logger.info("usando Groq vía livekit.plugins.openai.LLM (modelo=%s %s)", mod, extra)
-        return openai.LLM(
+        groq = openai.LLM(
             model=mod,
             api_key=groq_key,
             base_url="https://api.groq.com/openai/v1",
@@ -139,11 +148,29 @@ def create_llm(model: str | None = None):
             _strict_tool_schema=False,
             **extra,
         )
+        # Respaldo: con la cuenta gratuita de Groq (8000 tokens por minuto, ~2
+        # turnos) el 429 llegaba enseguida; tras varios turnos fallidos la
+        # sesión se cerraba y el agente quedaba mudo en plena RCP. Con el
+        # adapter, si Groq falla el mismo turno sale por el gateway de LiveKit
+        # (y, si hay clave, por Gemini). Gemini solo no alcanzaba: con la clave
+        # gratuita devolvía 503/504 en las pruebas.
+        if os.getenv("LLM_FALLBACK", "on").lower() not in {"0", "off", "false", "no"}:
+            respaldo = os.getenv("LLM_FALLBACK_MODEL", "openai/gpt-4.1-mini")
+            cadena = [
+                groq,
+                inference.LLM(model=respaldo, extra_kwargs={"temperature": 0.1, "parallel_tool_calls": True}),
+            ]
+            if gemini_key:
+                cadena.append(google.LLM(model=GEMINI_MODELO, api_key=gemini_key, temperature=0.1))
+            logger.info("respaldo del LLM: %s", " -> ".join([respaldo] + ([GEMINI_MODELO] if gemini_key else [])))
+            # Gemini rechaza plazos menores a 10 s (el default del adapter es 5).
+            return lk_llm.FallbackAdapter(cadena, attempt_timeout=10.0)
+        return groq
 
     if gemini_key:
-        mod = modelo or "gemini-2.5-flash"
+        mod = modelo or GEMINI_MODELO
         if "gemma" in mod or mod.startswith("google/") or "llama" in mod or "oss" in mod:
-            mod = "gemini-2.5-flash"
+            mod = GEMINI_MODELO
         logger.info("usando livekit.plugins.google.LLM (modelo=%s)", mod)
         return google.LLM(model=mod, api_key=gemini_key, temperature=0.1)
 
@@ -342,8 +369,30 @@ async def contexto_del_turno(
         # vuelta al LLM (~1 s) en el turno donde más importa la velocidad.
         partes.append("Esto ya quedó registrado: respondé directo, SIN llamar herramientas en este turno.")
 
+    if not st.ayuda_llego and llego_la_ayuda(texto):
+        st.ayuda_llego = True
+        # En los ensayos, con un «hagan cargo» a secas, el modelo decía
+        # «detené las compresiones» apenas llegaba la ambulancia: no se frena
+        # hasta que alguien toma el lugar.
+        aviso_ayuda = "LLEGÓ LA AYUDA: que deje que los profesionales se hagan cargo y les cuente lo que pasó."
+        if st.respira is False:
+            aviso_ayuda += (
+                " NO le digas que deje de comprimir: que siga hasta que un profesional le pida el lugar."
+            )
+        partes.append(aviso_ayuda)
+
+    if pide_apagar(texto) and not st.metronomo_silenciado:
+        st.metronomo_silenciado = True
+        partes.append(
+            "La persona pidió sacar el sonido del ritmo: ya se apagó. Confirmáselo en pocas "
+            "palabras y, si está comprimiendo, que siga al mismo ritmo."
+        )
+    elif pide_prender(texto) and st.metronomo_silenciado:
+        st.metronomo_silenciado = False
+        partes.append("La persona pidió volver a escuchar el ritmo: ya vuelve a sonar. Decile que lo siga.")
+
     inconsciente = st.consciente is False or "inconsciencia" in st.alertas
-    en_rcp = st.respira is False and "rcp" in st.temas_inyectados
+    en_rcp = rcp_en_curso(st)
     if respira_positivo(texto) and (st.respira is False or (inconsciente and st.respira is None)):
         # También cubre «¡volvió a respirar!» en plena RCP: se dejan las
         # compresiones y pasa al protocolo del inconsciente que respira.
@@ -354,10 +403,18 @@ async def contexto_del_turno(
     elif en_rcp:
         # En las pruebas, ante «ya hice las compresiones, ¿ahora qué?», el
         # modelo pedía revisar si respiraba: eso frena la RCP.
-        partes.append(
+        # El ejemplo de cierre rota: con uno fijo, el modelo terminaba cada
+        # turno de RCP con la misma frase.
+        cierre_rcp = _CIERRES_RCP[st.seguimientos_usados.get("rcp", 0) % len(_CIERRES_RCP)]
+        st.seguimientos_usados["rcp"] = st.seguimientos_usados.get("rcp", 0) + 1
+        aviso_rcp = (
             "Está haciendo RCP: que siga comprimiendo sin parar, dos veces por segundo, hasta que "
-            "llegue la ayuda o la persona empiece a respirar. No le pidas que frene ni que revise nada."
+            "llegue la ayuda o la persona empiece a respirar. No le pidas que frene ni que revise nada. "
+            f"No le hagas preguntas: cerrá invitándola a avisarte, por ejemplo «{cierre_rcp}»."
         )
+        if st.metronomo_activo:
+            aviso_rcp += " Ya suena un sonido que marca el ritmo: decile que siga ese sonido."
+        partes.append(aviso_rcp)
 
     temas = detectar_temas(texto)
     repetidos = [t for t in temas if t in st.temas_inyectados]
@@ -399,6 +456,8 @@ async def contexto_del_turno(
 
     nuevos = [t for t in dict.fromkeys(temas) if t not in st.temas_inyectados]
     st.indicacion_pendiente = bool(nuevos)
+    if nuevos:
+        st.tema_activo = nuevos[0]
     for clave in nuevos[:_MAX_TEMAS_POR_TURNO]:
         tema = TEMAS[clave]
         # Primero el resumen verificado (redactado del manual para este caso) y
@@ -448,20 +507,89 @@ async def contexto_del_turno(
             "Todavía no se sabe si hay heridos: preguntá solo eso, con una sola pregunta "
             "corta («¿Hay alguien lastimado?»)."
         )
-    if not partes:
+    cierre = _guia_de_cierre(texto, temas, nuevos, st, en_rcp)
+    if not partes and not cierre:
         return None
-    # Con el protocolo completo a mano el modelo tendía a recitarlo entero
-    # (50+ palabras): por teléfono eso no se retiene.
-    partes.append("Respondé con UNA indicación corta (máximo dieciocho palabras); lo demás, en los turnos siguientes.")
-    return "[Contexto del sistema, no lo leas en voz alta]\n" + "\n\n".join(partes)
+    if partes:
+        # Con el protocolo completo a mano el modelo tendía a recitarlo entero
+        # (50+ palabras): por teléfono eso no se retiene.
+        partes.append(
+            "Respondé con UNA indicación corta (máximo dieciocho palabras) y la pregunta de "
+            "cierre si corresponde; lo demás, en los turnos siguientes."
+        )
+    return "[Contexto del sistema, no lo leas en voz alta]\n" + "\n\n".join(partes + cierre)
+
+
+_CIERRES_RCP = (
+    "Avisame si se mueve o empieza a respirar.",
+    "Si ves que respira, decímelo enseguida.",
+    "Vas bien, avisame si notás algún cambio.",
+)
+
+_ULTIMA_PREGUNTA = re.compile(r"¿[^¿?]+\?")
+
+
+def _ultima_pregunta(texto: str) -> str | None:
+    preguntas = _ULTIMA_PREGUNTA.findall(texto or "")
+    return preguntas[-1] if preguntas else None
+
+
+def _pregunta_de_seguimiento(temas: list[str], nuevos: list[str], st: TriageState) -> str | None:
+    """La próxima pregunta de seguimiento sin usar del tema más relevante.
+
+    Primero los temas recién adjuntados, después los mencionados en el turno y
+    por último el último tema tratado (la persona dice «listo, ya aprieto» sin
+    nombrar el tema). Cada pregunta se sugiere una sola vez por llamada: después
+    el modelo cierra con sus palabras en lugar de repetir siempre la misma."""
+    for clave in dict.fromkeys([*nuevos, *temas, st.tema_activo]):
+        if clave is None:
+            continue
+        preguntas = TEMAS[clave].seguimiento
+        usadas = st.seguimientos_usados.get(clave, 0)
+        if usadas < len(preguntas):
+            st.seguimientos_usados[clave] = usadas + 1
+            return preguntas[usadas]
+    return None
+
+
+def _guia_de_cierre(
+    texto: str, temas: list[str], nuevos: list[str], st: TriageState, en_rcp: bool
+) -> list[str]:
+    """Cómo cerrar el turno para que la conversación siga.
+
+    Librado al prompt, el modelo cerraba casi todo con «¿Lo pudiste hacer?»,
+    que no le sirve para decidir el paso siguiente. Acá se le sugiere la
+    observación que importa para el tema en curso («¿Sigue saliendo sangre?»)
+    y se le recuerda su última pregunta para que no la repita igual."""
+    if st.respira is False and not st.ayuda_llego:
+        if en_rcp:
+            return []  # el aviso de RCP ya dice cómo cerrar sin preguntar
+        return [
+            "No cierres con una pregunta: que empiece a comprimir ya y te avise si se mueve "
+            "o empieza a respirar."
+        ]
+
+    cierre: list[str] = []
+    if not sin_acceso_al_herido(texto):
+        if sugerida := _pregunta_de_seguimiento(temas, nuevos, st):
+            cierre.append(
+                f"Cerrá con UNA pregunta que te diga si la indicación funcionó, por ejemplo "
+                f"«{sugerida}». No uses «¿Pudiste?» si hay algo más útil para observar."
+            )
+    if previa := _ultima_pregunta(st.ultima_respuesta):
+        cierre.append(f"Tu última pregunta fue «{previa}»: no la repitas igual.")
+    return cierre
 
 
 class Assistant(Agent):
-    def __init__(self) -> None:
+    def __init__(self, al_actualizar_estado: Callable[[], None] | None = None) -> None:
         super().__init__(
             instructions=SYSTEM_INSTRUCTIONS,
             tools=[buscar_protocolo, registrar_datos_escena],
         )
+        # Se llama apenas el turno actualizó el estado de triage, antes del LLM
+        # (entrypoint lo usa para apagar el metrónomo si volvió a respirar).
+        self._al_actualizar_estado = al_actualizar_estado
 
     async def on_user_turn_completed(self, turn_ctx, new_message) -> None:
         """Camino de audio: mismo contexto determinístico que el chat.
@@ -474,6 +602,8 @@ class Assistant(Agent):
         )
         if extra:
             new_message.content.append(extra)
+        if self._al_actualizar_estado is not None:
+            self._al_actualizar_estado()
 
     async def llm_node(self, chat_ctx, tools, model_settings: ModelSettings):
         """Corrige el texto antes de hablarlo (ver habla.py): jerga, voseo y el
@@ -500,6 +630,73 @@ class Assistant(Agent):
                 yield chunk
         if resto := salida(norm.flush()):
             yield resto
+
+
+# --- metrónomo de RCP ----------------------------------------------------------
+
+FRASE_FALLA_LLM = "Perdón, se me cortó un momento. Seguí con lo que estabas haciendo y repetime lo último."
+
+FRASE_INICIO_METRONOMO = "Comprimí al ritmo de este sonido, sin parar."
+FRASE_FIN_METRONOMO = (
+    "Voy a sacar el sonido. Si seguís comprimiendo, mantené el mismo ritmo. "
+    "Si querés que vuelva, pedime que ponga el sonido."
+)
+
+FRASES_ALIENTO_RCP = [
+    "Vas muy bien, seguí al ritmo del sonido.",
+    "No pares, la ayuda ya viene en camino.",
+    "Fuerte y parejo, seguí el sonido.",
+]
+
+
+class AlientoRCP:
+    """Una frase corta de aliento cada tanto mientras la persona comprime en silencio.
+
+    user_away_timeout no alcanza: se dispara una sola vez y no se rearma hasta
+    que la persona vuelve a hablar, y en RCP ya se derivó, así que el handler
+    de «away» no dice nada. Sin esto, después de la indicación quedaba solo
+    el clic durante minutos."""
+
+    def __init__(self, session: AgentSession, metronomo: Metronomo, cada_s: float = 20.0) -> None:
+        self._session = session
+        self._metronomo = metronomo
+        self._cada_s = cada_s
+        self._ultima_actividad = time.monotonic()
+        self._siguiente = 0
+        self._tarea: asyncio.Task[None] | None = None
+        session.on("agent_state_changed", self._actividad)
+        session.on("user_state_changed", self._actividad)
+
+    def _actividad(self, _ev) -> None:
+        self._ultima_actividad = time.monotonic()
+
+    def iniciar(self) -> None:
+        if self._tarea is None or self._tarea.done():
+            self._ultima_actividad = time.monotonic()
+            self._tarea = asyncio.create_task(self._bucle(), name="aliento-rcp")
+
+    def aclose(self) -> None:
+        if self._tarea is not None:
+            self._tarea.cancel()
+
+    async def _bucle(self) -> None:
+        while self._metronomo.activo:
+            await asyncio.sleep(1.0)
+            if self._metronomo.encendido_hace >= self._metronomo.max_s:
+                # Tope de tiempo: no puede quedar sonando indefinidamente.
+                self._metronomo.detener()
+                st: TriageState = self._session.userdata
+                st.metronomo_activo = False
+                st.metronomo_silenciado = True
+                logger.info("metrónomo: se cumplió el tope de %.0f s", self._metronomo.max_s)
+                self._session.say(FRASE_FIN_METRONOMO, allow_interruptions=True)
+                return
+            quieto = self._session.agent_state == "listening" and self._session.user_state != "speaking"
+            if quieto and time.monotonic() - self._ultima_actividad >= self._cada_s:
+                frase = FRASES_ALIENTO_RCP[self._siguiente % len(FRASES_ALIENTO_RCP)]
+                self._siguiente += 1
+                self._session.say(frase, allow_interruptions=True)
+                self._ultima_actividad = time.monotonic()
 
 
 server = AgentServer(setup_fnc=prewarm, initialize_process_timeout=30.0)
@@ -539,10 +736,45 @@ async def entrypoint(ctx: agents.JobContext):
         aec_warmup_duration=1.0,
     )
 
+    metronomo = Metronomo()
+    aliento = AlientoRCP(session, metronomo)
+
+    ya_sono = False
+
+    def _sincronizar_metronomo(role: str) -> None:
+        """Prende el metrónomo cuando ya se DIJO la indicación de comprimir (el
+        item del asistente llega después de reproducirse) y lo apaga apenas el
+        turno de la persona cambia el estado: volvió a respirar, llegó la ayuda
+        o pidió sacar el sonido. Lo segundo se llama desde
+        on_user_turn_completed y no desde el item del usuario, que LiveKit no
+        emite si la respuesta se interrumpe o falla: con eso, en la consola el
+        clic seguía sonando después de «sí, respira»."""
+        nonlocal ya_sono
+        st = session.userdata
+        sonar = rcp_en_curso(st) and not st.metronomo_silenciado and session.output.audio_enabled
+        if role == "assistant" and sonar and metronomo.iniciar():
+            st.metronomo_activo = True
+            if not ya_sono:
+                session.say(FRASE_INICIO_METRONOMO, allow_interruptions=True)
+            ya_sono = True
+            aliento.iniciar()
+        elif not sonar and metronomo.detener():
+            st.metronomo_activo = False
+
+    @session.on("close")
+    def _on_close(_ev):
+        # Si la sesión se cierra (por ejemplo, el LLM falló varias veces
+        # seguidas), el clic no puede quedar sonando solo.
+        aliento.aclose()
+        metronomo.detener()
+        session.userdata.metronomo_activo = False
+
     @session.on("conversation_item_added")
     def _on_item(ev):
         item = ev.item
         role = getattr(item, "role", None)
+        if role == "assistant":
+            _sincronizar_metronomo(role)
         m = getattr(item, "metrics", None) or {}
         if not m:
             return
@@ -589,15 +821,32 @@ async def entrypoint(ctx: agents.JobContext):
         if ev.new_state == "away" and not session.userdata.derivado:
             session.say("Seguí, te escucho. ¿Cómo va?")
 
+    @session.on("error")
+    def _on_error(ev):
+        # Si el LLM (y su respaldo) fallan, el turno se pierde sin decir nada:
+        # en una emergencia el silencio es lo peor. Esta frase no pasa por el LLM.
+        error = ev.error
+        if getattr(error, "type", None) == "llm_error" and not error.recoverable:
+            logger.error("el LLM no respondió este turno: %s", getattr(error, "error", error))
+            session.say(FRASE_FALLA_LLM, allow_interruptions=True)
+
     await session.start(
         room=ctx.room,
-        agent=Assistant(),
+        agent=Assistant(al_actualizar_estado=lambda: _sincronizar_metronomo("user")),
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(),
         ),
     )
 
     _wire_chat_backchannel(session, ctx)
+
+    await metronomo.start(ctx.room)
+
+    async def _cerrar_metronomo() -> None:
+        aliento.aclose()
+        await metronomo.aclose()
+
+    ctx.add_shutdown_callback(_cerrar_metronomo)
 
     participant = await ctx.wait_for_participant()
     logger.info("participante conectado: %s", participant.identity)

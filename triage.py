@@ -155,6 +155,31 @@ def sin_acceso_al_herido(texto: str) -> bool:
     return any(s in bajo for s in SENALES_SIN_ACCESO)
 
 
+# «Llegó la ambulancia», «ya llegaron los bomberos». Desde ahí se hacen cargo
+# los profesionales: se corta el metrónomo y el agente deja de guiar la RCP.
+_LLEGO_AYUDA = re.compile(
+    r"\b(lleg[oó]|llegaron|ya est[aá]n? ac[aá]|ya vino|ya vinieron)\b[^.?!]{0,25}"
+    r"\b(ambulancia|bomberos?|m[eé]dicos?|param[eé]dicos?|polic[ií]a|ayuda|emergencias|sam[eé])\b"
+    r"|\b(ambulancia|bomberos|m[eé]dicos|param[eé]dicos)\b[^.?!]{0,15}\b(lleg[oó]|llegaron|ya est[aá]n? ac[aá])\b",
+    re.IGNORECASE,
+)
+_NO_LLEGO = re.compile(r"\b(no|todav[ií]a no|a[uú]n no|cu[aá]ndo)\b[^.?!]{0,10}\b(lleg|vien)", re.IGNORECASE)
+
+
+def llego_la_ayuda(texto: str) -> bool:
+    """«Llegó la ambulancia». Descarta «todavía no llegó la ambulancia»."""
+    return bool(_LLEGO_AYUDA.search(texto)) and not _NO_LLEGO.search(texto)
+
+
+def rcp_en_curso(st: TriageState) -> bool:
+    """La persona está haciendo compresiones: el paro está confirmado (lo marca
+    el código, no el modelo), ya se le dio el protocolo y no llegó la ayuda.
+
+    Con un inconsciente sin la respiración verificada (`respira is None`) es
+    siempre falso: de esto dependen el metrónomo y el «no preguntes nada»."""
+    return st.respira is False and "rcp" in st.temas_inyectados and not st.ayuda_llego
+
+
 _AVISO_911 = (
     "Ya se dio aviso al 911 y la llamada está geolocalizada (eso se lo dice el sistema "
     "a la persona automáticamente: vos no lo digas)."
@@ -308,6 +333,17 @@ class TriageState:
     pregunta_pendiente: bool = False
     # En este turno se adjuntó un protocolo: la indicación va antes que los datos.
     indicacion_pendiente: bool = False
+    # Cuántas preguntas de seguimiento de cada tema ya se sugirieron (para rotar).
+    seguimientos_usados: dict[str, int] = field(default_factory=dict)
+    # El último tema del manual que se adjuntó (el que se está tratando).
+    tema_activo: str | None = None
+    # La persona avisó que llegó la ambulancia / los bomberos.
+    ayuda_llego: bool = False
+    # El metrónomo de RCP está sonando (lo mantiene entrypoint en agent.py).
+    metronomo_activo: bool = False
+    # La persona pidió sacar el sonido, o se cumplió el tope de tiempo: no se
+    # vuelve a prender salvo que lo pida.
+    metronomo_silenciado: bool = False
 
     # Debug: tool calls en el turno actual
     tool_calls: list[dict] = field(default_factory=list)
@@ -481,7 +517,8 @@ async def registrar_datos_escena(
         que = "respondé la pregunta de la persona" if st.pregunta_pendiente else "dale la indicación"
         return (
             f"Registrado. Ahora {que} con el protocolo del contexto. "
-            "No hagas ninguna pregunta en este turno."
+            "No hagas preguntas de datos de la escena en este turno; podés cerrar con "
+            "una pregunta de seguimiento sobre la indicación."
         )
 
     # Auto-derivación: con heridos confirmados o riesgo crítico el sistema

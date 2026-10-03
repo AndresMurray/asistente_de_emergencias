@@ -57,6 +57,8 @@ lk agent deploy
 - **`protocolos.py`**: Critical first-aid topics (CPR, bleeding, helmet, trapped, fire...), each with trigger words, a canonical manual query (precomputed) and a fallback text written from the manual, used if retrieval fails.
 - **`agent.py` → `contexto_del_turno()`**: runs before the LLM on every turn (voice, chat and test scripts): triage + attaches the manual protocol for detected topics (0 ms from cache) so the LLM answers in one pass. It is appended to the user message (edits to `turn_ctx` are per-turn only and were lost on the next turn).
 - **`habla.py`**: deterministic jargon/voseo fixes applied in `Assistant.llm_node` before TTS.
+- **Turn closings**: each topic in `protocolos.py` has `seguimiento` questions (what to observe after the instruction, e.g. "¿Sigue saliendo sangre?"). `contexto_del_turno` suggests one per turn (each at most once per call) and reminds the model of its last question so it does not loop on "¿Lo pudiste hacer?". During CPR no questions are allowed.
+- **`metronomo.py`**: CPR metronome (110 bpm click on a separate `BackgroundAudioPlayer` track). Started/stopped by `entrypoint` from `triage.rcp_en_curso()` — never by the LLM — so it cannot play for an unconscious person whose breathing was not verified. In `console` mode (where LiveKit does not play background audio) it plays straight to the local speakers via sounddevice. Silent in `ensayo.py` and the text chat.
 - **`rag/`**: Shared retrieval package. `Retriever.connect()` (called in the process `prewarm`) loads the whole corpus into an in-memory index (numpy cosine + BM25) and `rag/cache_consultas.json`. Search order: cached result → Gemini embedding + in-memory cosine + Cohere rerank (only if quota is free, never waits) → BM25 lexical fallback if the embedding fails. `search()` returns `RetrievalResult` with three statuses: `ok`, `no_match`, `error` — never raises to the caller.
 - **`ingestion/chunker.py`**: New chunker (sentence-aware, metadata-rich). `ingestion/chunking.py` is the old chunker (legacy, still importable). `ingestion/ingest.py` handles embed + upsert.
 - **`metricas/`**: Evaluation scripts. Dataset source of truth is `metricas/dataset_evaluacion.json`. Gold chunk labels resolved at runtime via keyword matching (silver labels).
@@ -72,6 +74,10 @@ lk agent deploy
 ## Environment
 
 `.env.local` (gitignored) with: `DATABASE_URL`, `GEMINI_API_KEY` (or `COHERE_API_KEY`), `LIVEKIT_URL/API_KEY/API_SECRET`, `CARTESIA_VOICE_ID` (optional). See `.env.example` for template.
+
+Metronome: `METRONOMO` (on/off, default on), `METRONOMO_BPM` (default 110), `METRONOMO_VOLUMEN` (default 0.35), `METRONOMO_MAX_MIN` (default 5: after that it turns off and the agent says so; the caller can ask to turn it back on). It also stops when the person breathes, help arrives, the caller asks to stop the sound, or the session closes.
+
+LLM fallback: with Groq as primary, `create_llm` wraps it in a `FallbackAdapter` → LiveKit gateway (`LLM_FALLBACK_MODEL`, default `openai/gpt-4.1-mini`) → Gemini (`GEMINI_MODEL`, default `gemini-3.8-flash`, if a key exists). Disable with `LLM_FALLBACK=off`. Reason: Groq free tier (8000 TPM ≈ 2 turns/min) returned 429 and, after a few failed turns, the session closed and the agent went silent.
 
 `LLM_MODEL` env var defaults to `google/gemma-4-31b-it`. Can be overridden for testing.
 

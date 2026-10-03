@@ -49,3 +49,40 @@ def test_si_a_pregunta_de_heridos_deriva(sin_indice):
     st = TriageState()
     asyncio.run(agent.contexto_del_turno("Sí, una persona.", st, "¿Hay alguien herido?"))
     assert st.derivado
+
+
+# --- cierre del turno ---------------------------------------------------------------
+
+def test_sugiere_seguimiento_del_tema_y_rota(sin_indice):
+    st = TriageState()
+    primero = asyncio.run(agent.contexto_del_turno("le sale mucha sangre de la pierna", st))
+    assert "«¿Sigue saliendo sangre o ya bajó?»" in primero
+    # «listo» no nombra el tema: se sigue con el tema activo y la otra pregunta.
+    segundo = asyncio.run(agent.contexto_del_turno("listo, ya aprieto", st, "Apretá fuerte. ¿Sigue saliendo sangre o ya bajó?"))
+    assert "«¿La tela se sigue empapando?»" in segundo
+    assert "Tu última pregunta fue «¿Sigue saliendo sangre o ya bajó?»" in segundo
+    # Cada pregunta se sugiere una sola vez: después el modelo cierra con sus palabras.
+    tercero = asyncio.run(agent.contexto_del_turno("bajó bastante", st, "Seguí apretando. ¿La tela se sigue empapando?"))
+    assert "Cerrá con UNA pregunta" not in tercero
+
+
+def test_en_rcp_no_se_sugieren_preguntas(sin_indice):
+    st = TriageState()
+    primero = asyncio.run(agent.contexto_del_turno("no respira y le sale sangre", st))
+    assert "No cierres con una pregunta" in primero
+    assert "Cerrá con UNA pregunta" not in primero
+    segundo = asyncio.run(agent.contexto_del_turno("ya estoy comprimiendo", st, "Comprimí fuerte y rápido."))
+    assert "No le hagas preguntas" in segundo
+    assert "Cerrá con UNA pregunta" not in segundo
+
+
+def test_sin_acceso_no_sugiere_preguntas_sobre_el_herido(sin_indice):
+    st = TriageState()
+    extra = asyncio.run(agent.contexto_del_turno("está atrapado en el auto y no lo veo", st))
+    assert "Cerrá con UNA pregunta" not in extra
+
+
+def test_ultima_pregunta():
+    assert agent._ultima_pregunta("Apretá fuerte. ¿Sigue sangrando?") == "¿Sigue sangrando?"
+    assert agent._ultima_pregunta("¿Hay humo? Alejate. ¿Están lejos?") == "¿Están lejos?"
+    assert agent._ultima_pregunta("Seguí comprimiendo.") is None

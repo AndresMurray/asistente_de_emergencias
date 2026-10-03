@@ -5,7 +5,11 @@ Cada tema tiene:
 - la consulta canónica al manual (precalculada en rag/cache_consultas.json, así
   que en vivo sale en 0 ms y sin depender de Google ni Cohere),
 - un texto de respaldo, redactado a partir de los fragmentos del manual, para el
-  caso extremo en que el retrieval falle igual (base caída, índice sin cargar).
+  caso extremo en que el retrieval falle igual (base caída, índice sin cargar);
+- preguntas de seguimiento: lo que conviene preguntar DESPUÉS de dar la
+  indicación para saber si funcionó o qué cambió. Solo piden observar, nunca
+  agregan maniobras. Existen porque, librado a sí mismo, el modelo cerraba
+  cada turno con «¿Lo pudiste hacer?», que no aporta nada para el paso siguiente.
 
 Con esto la maniobra que salva la vida nunca depende de tres servicios externos
 funcionando a la vez. Antes, un 429 de Google hacía que el agente contestara
@@ -26,13 +30,20 @@ class Tema:
     consulta: str
     palabras: tuple[str, ...]
     respaldo: str
+    seguimiento: tuple[str, ...] = ()
 
 
 TEMAS: dict[str, Tema] = {}
 
 
-def _tema(clave: str, consulta: str, palabras: tuple[str, ...], respaldo: str) -> None:
-    TEMAS[clave] = Tema(clave, consulta, palabras, respaldo)
+def _tema(
+    clave: str,
+    consulta: str,
+    palabras: tuple[str, ...],
+    respaldo: str,
+    seguimiento: tuple[str, ...] = (),
+) -> None:
+    TEMAS[clave] = Tema(clave, consulta, palabras, respaldo, seguimiento)
 
 
 # El orden importa: es el orden de prioridad cuando en un mismo turno aparecen
@@ -46,6 +57,8 @@ _tema(
     (
         'Herido inconsciente que no respira: arrodillarse al lado de la víctima a la altura del pecho. Colocar el talón de una mano en el centro del pecho y la otra mano encima, con los dedos entrelazados, sin apoyar sobre las costillas ni sobre la parte alta de la panza. Con los brazos rectos, comprimir hundiendo el pecho unos cuatro o cinco centímetros y soltar sin despegar las manos, a un ritmo de casi dos compresiones por segundo. No parar hasta que llegue la ayuda o la persona empiece a respirar.'
     ),
+    # Sin seguimiento a propósito: mientras comprime no se le pregunta nada,
+    # porque una pregunta invita a frenar para contestar.
 )
 _tema(
     "inconsciente_respira",
@@ -53,6 +66,11 @@ _tema(
     (),  # se activa por estado (inconsciente y respira), no por palabras
     (
         'Herido inconsciente que respira: por ser un accidente de tránsito, tratarlo como si tuviera una lesión en la columna, sin moverlo y manteniendo alineados cabeza, cuello y tronco. Mantener abierto el paso del aire con la maniobra frente-mentón mientras siga inconsciente, comprobar cada tanto que sigue respirando y no dejarlo solo. Solo ponerlo de costado (posición lateral de seguridad) si empieza a vomitar o a sangrar por la boca, o si hay que dejarlo solo para pedir ayuda.'
+    ),
+    (
+        "¿Sigue respirando igual?",
+        "¿Reaccionó cuando le hablaste?",
+        "¿Se le sigue moviendo el pecho?",
     ),
 )
 _tema(
@@ -63,6 +81,10 @@ _tema(
     (
         'Hemorragia externa: la medida más efectiva es apretar fuerte y directo con la mano sobre el punto que sangra, poniendo en el medio una gasa o una prenda limpia, sin soltar. Atender primero la sangre que sale rápido o a chorro. No tapar la sangre que sale por oídos, nariz o boca después de un golpe: puede venir de una lesión grave en la cabeza.'
     ),
+    (
+        "¿Sigue saliendo sangre o ya bajó?",
+        "¿La tela se sigue empapando?",
+    ),
 )
 _tema(
     "fuego",
@@ -71,6 +93,10 @@ _tema(
      "combustible", "nafta", "gasoil", "olor a quemado"),
     (
         'Riesgo de incendio: es extremadamente peligroso quedarse en la calzada o acercarse a un vehículo en llamas o con combustible derramado; alejarse. El incendio o el riesgo elevado de incendio es uno de los pocos casos en que se justifica mover a un herido, siempre manteniendo alineados cabeza, cuello y tronco y solo si se puede sin ponerse en peligro. Si se prende la ropa de una persona, taparla con una manta o algo similar para apagar el fuego.'
+    ),
+    (
+        "¿Ya están todos lejos del auto?",
+        "¿Sigue saliendo humo?",
     ),
 )
 _tema(
@@ -82,6 +108,10 @@ _tema(
      "moverlo", "moverla"),
     (
         'Heridos dentro del vehículo: como norma general no se debe mover a los heridos ni sacarlos del vehículo. Solo se justifica si hay incendio o riesgo elevado de incendio, riesgo de un nuevo accidente o necesidad de reanimación. Sacarlos sin las condiciones adecuadas puede provocar o agravar lesiones de la columna. Si no hay más remedio que moverlo, mantener alineados cabeza, cuello y tronco.'
+    ),
+    (
+        "¿Te contesta cuando le hablás?",
+        "¿Lo ves respirar desde afuera?",
     ),
 )
 _tema(
@@ -96,6 +126,10 @@ _tema(
         "mantener quietos y alineados cabeza, cuello y tronco hasta que llegue la ayuda. No "
         "trasladarlo en un auto particular."
     ),
+    (
+        "¿Se está quedando quieto?",
+        "¿Te sigue hablando?",
+    ),
 )
 _tema(
     "casco",
@@ -108,6 +142,10 @@ _tema(
         # médicos. Por eso acá va sin la excepción.
         'Motociclista: no hay que sacarle el casco ni dejar que nadie se lo saque, porque puede agravar una lesión en el cuello. Si hiciera falta sacarlo, lo hacen los médicos cuando llegan. Mantener quietos la cabeza y el cuello.'
     ),
+    (
+        "¿Te responde cuando le hablás?",
+        "¿Se queja de dolor en el cuello?",
+    ),
 )
 _tema(
     "quemadura",
@@ -115,6 +153,10 @@ _tema(
     ("quemad", "quemó", "quemo", "quema"),
     (
         'Quemaduras: si la ropa sigue prendida, taparla con una manta para apagar el fuego, sin echar agua ni extintor directo sobre el cuerpo. Enfriar la zona quemada con agua fría. No tocar la zona, no sacar la ropa pegada a la piel ni reventar ampollas. Cubrir con una tela limpia humedecida. Si la quemadura es en la cara, vigilar que respire bien.'
+    ),
+    (
+        "¿Tenés agua a mano para enfriar la zona?",
+        "¿La quemadura es en la cara?",
     ),
 )
 _tema(
@@ -124,6 +166,10 @@ _tema(
     (
         'Posible hueso roto: no intentar acomodarlo. Si hay herida, taparla y frenar el sangrado. Inmovilizar la zona sujetándola por encima y por debajo de la lesión; en el brazo, con un cabestrillo hecho con una tela o un pañuelo.'
     ),
+    (
+        "¿Le sale sangre de esa zona?",
+        "¿Tenés una tela para sujetarlo?",
+    ),
 )
 _tema(
     "seguridad_escena",
@@ -132,6 +178,10 @@ _tema(
      "triángulo", "triangulo", "balizas", "señaliz", "chaleco"),
     (
         'Proteger el lugar: señalizar cuanto antes con los triángulos, encender las balizas y las luces, dejar el auto propio en un lugar seguro, usar chaleco reflectante y no quedarse en la calzada. Fijarse si hay riesgo de incendio o manchas de combustible. No sacar a los heridos de los vehículos salvo que esté claramente indicado.'
+    ),
+    (
+        "¿Ya están todos fuera de la calzada?",
+        "¿Tenés balizas o triángulos en el auto?",
     ),
 )
 
@@ -157,18 +207,32 @@ def consultas_canonicas() -> list[str]:
 # --- detección ---------------------------------------------------------------
 
 _RESPIRA_SI = re.compile(
-    # «sí respira» solo con tilde: sin tilde, «no sé si respira» daría positivo.
-    r"(?<!no )\b(est[aá] respirando|sí respira|respira bien|respira normal|"
-    r"se le mueve el pecho|sigue respirando|empezó a respirar|empezo a respirar|"
-    r"volvió a respirar|volvio a respirar|respira de nuevo)"
+    # «sí respira» solo con tilde: sin tilde, «no sé si respira» o «si respira,
+    # ¿qué hago?» darían positivo.
+    r"(?<!no )\b(est[aá] respirando|sí,? respira|ya respira|ahora respira|respira sol[oa]|"
+    r"respira bien|respira normal|se le mueve el pecho|sigue respirando|"
+    r"empez[oó] a respirar|volvi[oó] a respirar|respira de nuevo|"
+    # Señales de vida que implican que respira.
+    r"tos(e|i[oó]|iendo)|abri[oó] los ojos|se despert[oó])"
+    # «Respira.», «¡Sí, respira!» como respuesta corta.
+    r"|^\W*(sí\W+)?respira\b"
 )
+# Respiración anormal (boqueadas, ronquidos): se trata como si no respirara,
+# así que no corta la RCP.
+_RESPIRA_MAL = re.compile(
+    r"respira (raro|mal|poco|apenas|con dificultad|entrecortado)|boque|jade|ronca|como ahogad"
+)
+_NO_RESPIRA = re.compile(r"\bno (est[aá] respirando|se le mueve el pecho|respira|tose|abri[oó])")
 
 
 def respira_positivo(texto: str) -> bool:
-    """«Sí, se le mueve el pecho», «está respirando». Evita «no está respirando»."""
+    """«Sí, respira», «está respirando», «tosió». Evita «no está respirando» y
+    la respiración anormal («respira raro», «boquea»)."""
     bajo = texto.lower()
-    return bool(_RESPIRA_SI.search(bajo)) and not re.search(
-        r"\bno (est[aá] respirando|se le mueve el pecho|respira)", bajo
+    return (
+        bool(_RESPIRA_SI.search(bajo))
+        and not _NO_RESPIRA.search(bajo)
+        and not _RESPIRA_MAL.search(bajo)
     )
 
 

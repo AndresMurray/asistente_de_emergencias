@@ -20,6 +20,7 @@ import argparse
 import asyncio
 import logging
 import os
+import re
 import sys
 import threading
 import time
@@ -105,6 +106,29 @@ ESCENARIOS: dict[str, list[str]] = {
         "Choqué de atrás a otro auto en la avenida",
         "No, nadie lastimado. ¿Tengo que mover el auto o lo dejo?",
     ],
+    # RCP sostenida: mientras comprime no se le pregunta nada, y al llegar la
+    # ayuda se corta.
+    "rcp_continua": [
+        "Choqué, hay un hombre tirado en la ruta que no respira",
+        "Ya empecé a comprimir, ¿a qué ritmo sigo?",
+        "Sigo, sigo, estoy cansado",
+        "Llegó la ambulancia",
+    ],
+    # El caso de la prueba por consola: «Sí, respira» en plena RCP tiene que
+    # cortar las compresiones (y el metrónomo).
+    "rcp_vuelve_a_respirar": [
+        "Hay un hombre tirado en la ruta que no respira",
+        "Ya estoy comprimiendo",
+        "Sí, respira",
+    ],
+    # Seguimiento de una indicación: el cierre tiene que preguntar por el
+    # resultado («¿sigue saliendo sangre?»), no «¿lo pudiste hacer?».
+    "seguimiento_hemorragia": [
+        "Hubo un choque, un muchacho tiene un tajo en el brazo y sangra",
+        "Listo, ya le estoy apretando con una remera",
+        "Bajó bastante",
+        "Ahora está tranquilo, me habla",
+    ],
 }
 
 
@@ -119,14 +143,15 @@ async def correr(nombre: str, turnos: list[str], modelo: str) -> None:
     await session.start(Assistant())
 
     try:
-        for turno in turnos:
-            await un_turno(session, turno)
+        turnos_hechos = [await un_turno(session, turno) for turno in turnos]
         resumen(session.userdata)
+        reporte_cierres(turnos_hechos)
     finally:
         await session.aclose()
 
 
-async def un_turno(session: AgentSession, texto: str) -> None:
+async def un_turno(session: AgentSession, texto: str) -> tuple[str, bool]:
+    """Corre un turno. Devuelve la respuesta y si la persona estaba en RCP."""
     # Se replica el camino de texto tal como está en el back-channel de chat:
     # session.run() no pasa por Agent.on_user_turn_completed, así que el
     # contexto determinístico (riesgo de vida + protocolo) se agrega acá.
@@ -149,8 +174,46 @@ async def un_turno(session: AgentSession, texto: str) -> None:
             print(f"      {_corto(ev.item.output, 120)}")
 
     respuestas = [m for m in session.history.messages() if m.role == "assistant"]
+    respuesta = (respuestas[-1].text_content or "") if respuestas else ""
     if respuestas:
-        print(f"<<< {respuestas[-1].text_content}   ({time.perf_counter() - t0:.2f}s)")
+        print(f"<<< {respuesta}   ({time.perf_counter() - t0:.2f}s)")
+    st = session.userdata
+    return respuesta, st.respira is False and not st.ayuda_llego
+
+
+_INVITA = re.compile(r"\b(avisame|contame|decime|avis[aá]|cont[aá]|dec[ií])\b", re.IGNORECASE)
+_PUDISTE = re.compile(r"pudiste", re.IGNORECASE)
+
+
+def _cierre(respuesta: str) -> str:
+    """La última oración de la respuesta."""
+    oraciones = [o.strip() for o in re.split(r"(?<=[.!?])\s+", respuesta.strip()) if o.strip()]
+    return oraciones[-1] if oraciones else ""
+
+
+def reporte_cierres(turnos: list[tuple[str, bool]]) -> None:
+    """Cómo cerró el agente cada turno. Solo informa, no falla.
+
+    Lo que se busca: que cada turno invite a seguir, que «¿Pudiste?» sea la
+    excepción, que no repita el mismo cierre y que en RCP no pregunte nada."""
+    sin_cierre, pudiste, repetidos, preguntas_en_rcp = [], 0, 0, 0
+    anterior = None
+    for i, (respuesta, en_rcp) in enumerate(turnos, 1):
+        cierre = _cierre(respuesta)
+        if _PUDISTE.search(respuesta):
+            pudiste += 1
+        if en_rcp:
+            preguntas_en_rcp += "?" in respuesta
+        elif not (cierre.endswith("?") or _INVITA.search(cierre)):
+            sin_cierre.append(i)
+        if anterior is not None and cierre and cierre.lower() == anterior.lower():
+            repetidos += 1
+        anterior = cierre
+    print(
+        f"--- cierres --- sin invitar a seguir: {sin_cierre or 'ninguno'} "
+        f"| «pudiste»: {pudiste}/{len(turnos)} | repetidos: {repetidos} "
+        f"| preguntas en RCP: {preguntas_en_rcp}"
+    )
 
 
 def resumen(st: TriageState) -> None:

@@ -102,9 +102,19 @@ def test_detectar_temas():
 @pytest.mark.parametrize("texto,esperado", [
     ("sí, se le mueve el pecho", True),
     ("está respirando", True),
+    # Respuestas cortas a «¿Respira?» o en plena RCP: antes no se detectaban
+    # y el metrónomo seguía sonando después de «Sí, respira».
+    ("Sí, respira.", True),
+    ("Respira.", True),
+    ("ya respira", True),
+    ("empezó a toser", True),
+    ("abrió los ojos", True),
     ("no está respirando", False),
     ("no se le mueve el pecho", False),
     ("no sé si respira", False),
+    ("si respira, ¿qué hago?", False),
+    # Respiración anormal: se sigue tratando como paro.
+    ("respira raro, como que boquea", False),
 ])
 def test_respira_positivo(texto, esperado):
     assert respira_positivo(texto) is esperado
@@ -234,3 +244,15 @@ def test_intentar_turno_no_espera():
     assert ratelimit.intentar_turno() is False
     assert time.monotonic() - t0 < 0.05
     ratelimit._proxima = 0.0
+
+
+def test_preguntas_de_seguimiento():
+    """Todo tema tiene con qué cerrar, salvo RCP: comprimiendo no se pregunta."""
+    for tema in TEMAS.values():
+        if tema.clave == "rcp":
+            assert tema.seguimiento == ()
+            continue
+        assert tema.seguimiento, tema.clave
+        for pregunta in tema.seguimiento:
+            assert pregunta.startswith("¿") and pregunta.endswith("?"), pregunta
+            assert "112" not in pregunta and "pudiste" not in pregunta.lower()
