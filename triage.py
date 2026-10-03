@@ -108,9 +108,22 @@ def _categoria_de(senal: str) -> str | None:
 _HERIDO = re.compile(
     r"\b(herid[oa]s?|lastimad[oa]s?|golpead[oa]s?|lesionad[oa]s?|atropellad[oa]s?|"
     r"tirad[oa]s? (en|sobre|al)|en el (piso|suelo|asfalto)|no se (puede )?levanta|"
-    r"se cay[oó]|sangra|le duele|se queja)",
+    r"se cay[oó]|sangra|le duele|se queja|"
+    # «tiene un fierro clavado»: en una prueba no derivaba y el agente
+    # preguntaba «¿Hay alguien lastimado?».
+    r"clavad[oa]s?|se le clav[oó]|incrustad[oa]s?|atravesad[oa]s?|empalad[oa]s?)",
     re.IGNORECASE,
 )
+
+_OBJETO_CLAVADO = re.compile(
+    r"clavad[oa]s?|se le clav[oó]|incrustad[oa]s?|atravesad[oa]s?|empalad[oa]s?",
+    re.IGNORECASE,
+)
+
+
+def hay_objeto_clavado(st: TriageState) -> bool:
+    """Alguna vez en la llamada se dijo que el herido tiene algo clavado."""
+    return any(_OBJETO_CLAVADO.search(d) for d in st.dichos)
 _SIN_HERIDOS = re.compile(
     r"\b(nadie|ning[uú]n[oa]?|no hay|sin|estamos bien|todos bien|ninguno)\b[^.?!]{0,25}"
     r"(herid|lastimad|lesionad|golpead)",
@@ -225,6 +238,12 @@ def generar_aviso_critico(senal: str, st: TriageState) -> str:
             "Respondé exactamente con esta idea: «Fijate si se le mueve el pecho. ¿Respira?»."
         )
     if categoria == "hemorragia":
+        if hay_objeto_clavado(st):
+            return (
+                f"SANGRADO GRAVE CON UN OBJETO CLAVADO («{senal}»). {_AVISO_911} "
+                "Que NO saque ni mueva el objeto y NO apriete sobre él: que tape la herida "
+                "alrededor del objeto con una tela limpia, según el protocolo del manual."
+            )
         return (
             f"SANGRADO GRAVE («{senal}»). {_AVISO_911} "
             "Indicá apretar fuerte y sin soltar sobre la herida, según el protocolo del manual."

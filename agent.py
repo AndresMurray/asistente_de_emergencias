@@ -439,6 +439,11 @@ async def contexto_del_turno(
         )
     if inconsciente and st.respira is True:
         temas.insert(0, "inconsciente_respira")
+    if "hemorragia" in temas and ("objeto_clavado" in temas or "objeto_clavado" in st.temas_inyectados):
+        # El protocolo de hemorragia dice «apretar directo sobre el punto que
+        # sangra»: con un objeto clavado eso lo empuja. El de objeto clavado ya
+        # dice cómo tapar el sangrado.
+        temas.remove("hemorragia")
 
     if st.pregunta_pendiente:
         # En las pruebas el modelo ignoraba «¿le saco el casco?» para seguir con

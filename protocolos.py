@@ -73,6 +73,24 @@ _tema(
         "¿Se le sigue moviendo el pecho?",
     ),
 )
+# Va antes que hemorragia y la reemplaza cuando aparecen juntas: el respaldo de
+# hemorragia dice «apretar directo sobre el punto que sangra», que con un objeto
+# clavado lo empuja más adentro. En una prueba, ante «tiene un fierro clavado»,
+# el modelo improvisó «apretá un paño sobre la herida» sin consultar el manual.
+_tema(
+    "objeto_clavado",
+    "objeto clavado en la herida no retirar",
+    # «clavad» y no «clav»: «clavícula» no es un objeto clavado.
+    ("clavad", "se le clavó", "se le clavo", "incrustad", "atravesad", "empalad",
+     "ensartad", "enterrad"),
+    (
+        'Objeto clavado en una herida: no sacarlo ni intentar sacarlo, porque se puede agrandar la lesión y aumentar el sangrado. Dejarlo donde está, sin moverlo ni empujarlo. Si sangra, tapar la herida alrededor del objeto con una tela limpia, sin apretar sobre el objeto. Que el herido se quede quieto, sin mover la zona, hasta que llegue la ayuda.'
+    ),
+    (
+        "¿Le sale mucha sangre alrededor del objeto?",
+        "¿Está despierto y te responde?",
+    ),
+)
 _tema(
     "hemorragia",
     "control de hemorragias externas",

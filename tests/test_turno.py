@@ -18,7 +18,10 @@ from protocolos import TEMAS, consultas_canonicas, detectar_temas, respira_posit
 from rag import ratelimit
 from rag.index import MemoryIndex, tokenizar
 from rag.store import Fragment
-from triage import TriageState, confirma_heridos, hay_herido, procesar_turno_usuario, sin_acceso_al_herido
+from triage import (
+    TriageState, confirma_heridos, generar_aviso_critico, hay_herido, procesar_turno_usuario,
+    sin_acceso_al_herido,
+)
 
 
 # --- triage ----------------------------------------------------------------------
@@ -56,6 +59,8 @@ def test_sin_senal_no_deriva():
     ("nadie está lastimado", False),
     ("no hay heridos, solo el auto roto", False),
     ("tuve un roce con otro auto", False),
+    ("hubo un accidente una persona tiene un fierro clavado", True),
+    ("tiene un vidrio incrustado en el brazo", True),
 ])
 def test_hay_herido(texto, esperado):
     assert hay_herido(texto) is esperado
@@ -97,6 +102,16 @@ def test_detectar_temas():
     assert "hemorragia" in detectar_temas("le sale mucha sangre de la pierna")
     assert "fuego" in detectar_temas("sale humo del motor")
     assert detectar_temas("hola, tuve un choque") == []
+    assert detectar_temas("una persona tiene un fierro clavado") == ["objeto_clavado"]
+    assert "objeto_clavado" not in detectar_temas("se golpeó la clavícula")
+
+
+def test_objeto_clavado_cambia_el_aviso_de_sangrado():
+    st = TriageState()
+    procesar_turno_usuario("tiene un fierro clavado en la pierna", st)
+    senal = procesar_turno_usuario("y sangra mucho", st)
+    aviso = generar_aviso_critico(senal, st)
+    assert "NO saque" in aviso and "alrededor" in aviso
 
 
 @pytest.mark.parametrize("texto,esperado", [
