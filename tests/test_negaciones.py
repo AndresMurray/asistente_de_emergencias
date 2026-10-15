@@ -129,6 +129,10 @@ def test_objetos_no_son_personas():
     ("No sangra pero le duele la pierna.", True),
     ("Se cayó de la moto.", True),
     ("La moto lo dejó tirado en el piso.", True),
+    ("Choqué y el otro conductor tiene un golpe en la cabeza.", True),
+    ("Se pegó la cabeza contra el vidrio.", True),
+    ("El auto tiene un golpe en la puerta.", False),
+    ("No tiene ningún golpe en la cabeza.", False),
 ])
 def test_hay_herido_con_negaciones_y_objetos(texto, esperado):
     assert hay_herido(texto) is esperado

@@ -118,7 +118,11 @@ _HERIDO = re.compile(
     r"se cay[oó]|sangra|le duele|se queja|"
     # «tiene un fierro clavado»: en una prueba no derivaba y el agente
     # preguntaba «¿Hay alguien lastimado?».
-    r"clavad[oa]s?|se le clav[oó]|incrustad[oa]s?|atravesad[oa]s?|empalad[oa]s?)",
+    r"clavad[oa]s?|se le clav[oó]|incrustad[oa]s?|atravesad[oa]s?|empalad[oa]s?|"
+    # «tiene un golpe en la cabeza»: en una prueba no derivaba. Solo con una
+    # parte del cuerpo, porque «el auto tiene un golpe» no es un herido.
+    r"(golpe|golpe[oó]|peg[oó])\b[^.,;]{0,20}\b(cabeza|cara|frente|pecho|panza|pierna|"
+    r"brazo|espalda|cuello|nuca|rodilla|mano|boca|nariz))",
     re.IGNORECASE,
 )
 
