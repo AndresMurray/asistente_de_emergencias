@@ -1,7 +1,7 @@
 """Prueba del agente POR VOZ, de punta a punta, sin micrófono.
 
 Entra a una sala de LiveKit como si fuera quien llama, "habla" cada frase con
-audio sintetizado (Cartesia) y muestra lo que entendió el STT, lo que respondió
+audio sintetizado (Deepgram) y muestra lo que entendió el STT, lo que respondió
 el agente y cuánto tardó en empezar a hablar. Recorre el mismo camino que una
 llamada real: VAD, detección de fin de turno, Deepgram, generación anticipada
 (preemptive), LLM y TTS. Por eso encuentra fallas que el chat de texto no ve.
@@ -35,7 +35,7 @@ load_dotenv(".env.local")
 
 from livekit import api, rtc  # noqa: E402
 from livekit.agents.utils import http_context  # noqa: E402
-from livekit.plugins import cartesia  # noqa: E402
+from livekit.plugins import deepgram  # noqa: E402
 
 CONVERSACION = [
     "Sí.",
@@ -53,7 +53,7 @@ _FIN_RESPUESTA_S = 3.0
 
 
 class Llamada:
-    def __init__(self, room: rtc.Room, tts: cartesia.TTS) -> None:
+    def __init__(self, room: rtc.Room, tts: deepgram.TTS) -> None:
         self.room = room
         self.tts = tts
         self.fuente = rtc.AudioSource(tts.sample_rate, 1)
@@ -145,10 +145,11 @@ async def main() -> int:
     )
 
     async with http_context.open():
-        tts = cartesia.TTS(
-            model="sonic-3", language="es", api_key=os.environ["CARTESIA_API_KEY"],
-            voice=os.getenv("CARTESIA_VOICE_ID", "b4b8e2af-6139-466e-a93a-30c20d2e1fc5"),
-        )
+        # La voz de quien llama sale de Deepgram y no de Cartesia: el agente ya
+        # usa Cartesia, y con las dos voces en Cartesia las pruebas vaciaron
+        # los créditos del plan gratuito (octubre 2026). Voz distinta a la del
+        # agente para que el STT no se confunda.
+        tts = deepgram.TTS(model="aura-2-javier-es", api_key=os.environ["DEEPGRAM_API_KEY"])
         room = rtc.Room()
         llamada = Llamada(room, tts)
         llamada.escuchar_transcripciones()
