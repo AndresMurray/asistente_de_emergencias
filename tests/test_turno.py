@@ -19,7 +19,7 @@ from rag import ratelimit
 from rag.index import MemoryIndex, tokenizar
 from rag.store import Fragment
 from triage import (
-    TriageState, confirma_heridos, generar_aviso_critico, hay_herido, procesar_turno_usuario,
+    TriageState, confirma_despierto, confirma_heridos, generar_aviso_critico, hay_herido, procesar_turno_usuario,
     sin_acceso_al_herido,
 )
 
@@ -61,6 +61,9 @@ def test_sin_senal_no_deriva():
     ("tuve un roce con otro auto", False),
     ("hubo un accidente una persona tiene un fierro clavado", True),
     ("tiene un vidrio incrustado en el brazo", True),
+    # Visto en la web: no derivaba.
+    ("hay un accidentado en moto", True),
+    ("el auto accidentado quedó en la banquina", False),
 ])
 def test_hay_herido(texto, esperado):
     assert hay_herido(texto) is esperado
@@ -73,6 +76,15 @@ def test_hay_herido(texto, esperado):
     ("no, nadie", "¿Hay alguien herido?", False),
     ("sí", "¿Hay fuego, humo o combustible cerca?", False),
     ("si, una persona", "", False),
+    # Visto en la web: empezaba con «y» y no se tomaba como un sí.
+    ("y si, el de la moto", "¿Hay alguien lastimado?", True),
+    ("obvio, el motociclista", "¿Hay alguien lastimado?", True),
+    ("la del auto blanco", "¿Hay alguien lastimado?", True),
+    ("el auto nomás", "¿Hay alguien lastimado?", False),
+    ("y no, nadie", "¿Hay alguien lastimado?", False),
+    ("mmm no sé, creo que sí, el otro conductor", "¿Hay alguien lastimado?", True),
+    ("no sé si hay alguien", "¿Hay alguien lastimado?", False),
+    ("el otro auto está destrozado", "¿Hay alguien lastimado?", False),
 ])
 def test_confirma_heridos(texto, pregunta, esperado):
     assert confirma_heridos(texto, pregunta) is esperado
@@ -288,3 +300,14 @@ def test_preguntas_de_seguimiento():
         for pregunta in tema.seguimiento:
             assert pregunta.startswith("¿") and pregunta.endswith("?"), pregunta
             assert "112" not in pregunta and "pudiste" not in pregunta.lower()
+
+
+@pytest.mark.parametrize("texto,pregunta,esperado", [
+    ("y si", "Quedate a distancia. ¿Está despierto y habla?", True),
+    ("sí, me habla", "¿Te responde cuando le hablás?", True),
+    ("no, no me responde", "¿Te responde cuando le hablás?", False),
+    ("sí", "¿Respira?", False),
+    ("sí", "¿Hay alguien lastimado?", False),
+])
+def test_confirma_despierto(texto, pregunta, esperado):
+    assert confirma_despierto(texto, pregunta) is esperado

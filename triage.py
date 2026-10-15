@@ -120,6 +120,9 @@ _HERIDO = re.compile(
     r"\b(herid[oa]s?|lastimad[oa]s?|golpead[oa]s?|lesionad[oa]s?|atropellad[oa]s?|"
     r"tirad[oa]s? (en|sobre|al)|en el (piso|suelo|asfalto)|no se (puede )?levanta|"
     r"se cay[oó]|sangra|le duele|se queja|"
+    # «hay un accidentado en moto»: en la web no derivaba y el agente
+    # preguntaba «¿Hay alguien lastimado?».
+    r"accidentad[oa]s?|"
     # «tiene un fierro clavado»: en una prueba no derivaba y el agente
     # preguntaba «¿Hay alguien lastimado?».
     r"clavad[oa]s?|se le clav[oó]|incrustad[oa]s?|atravesad[oa]s?|empalad[oa]s?|"
@@ -162,9 +165,20 @@ def hay_herido(texto: str) -> bool:
 # «una», «dos», «el acompañante». Sola no dice nada; junto con la pregunta
 # anterior del agente confirma que hay heridos. En producción, «si, una
 # persona» no derivaba porque la frase no contiene «herido».
+# En la web, «y si, el de la moto» no se tomaba como un sí: empezaba con «y».
+_RELLENO = r"(?:(?:y|e|bueno|obvio|claro|eh+|s[ií])\W+)*"
+_PERSONA = (
+    r"conductor|conductora|acompañante|motociclista|motoquero|ciclista|peat[oó]n|"
+    r"chico|chica|pibe|piba|nene|nena|señor|señora|hombre|mujer|muchacho|muchacha"
+)
+# «el otro» es una persona, salvo «el otro auto».
+_EL_OTRO = r"(el|la) otr[oa]\b(?!\s+(auto|coche|veh[ií]culo|cami[oó]n|moto|colectivo|camioneta))"
 _AFIRMA_HERIDOS = re.compile(
-    r"^\W*(s[ií]\b|hay\b|uno\b|una\b|dos\b|tres\b|cuatro\b|varios\b|varias\b|muchos\b|"
-    r"el (conductor|acompañante|otro)|la (conductora|acompañante|otra)|yo\b|mi\b)",
+    r"^\W*" + _RELLENO
+    + r"(s[ií]\b|claro\b|obvio\b|hay\b|uno\b|una\b|dos\b|tres\b|cuatro\b|varios\b|varias\b|muchos\b|"
+    # «el de la moto», «la del auto»: hablan de una persona.
+    r"(el|la|los|las) (de la|del|de los|de las)\b|"
+    r"(el|la|un|una|mi) (?:otr[oa] )?(" + _PERSONA + r")\b|" + _EL_OTRO + r"|yo\b|mi\b)",
     re.IGNORECASE,
 )
 _NIEGA = re.compile(r"\b(no|nadie|ning[uú]n[oa]?)\b", re.IGNORECASE)
@@ -181,12 +195,51 @@ def niega_heridos(texto: str) -> bool:
     return bool(_SIN_HERIDOS.search(texto))
 
 
+# Un «sí» o una persona en cualquier parte de la respuesta: «mmm no sé, creo
+# que sí, el otro conductor». «si» sin tilde solo seguido de coma o al final
+# («no sé si hay alguien» no es un sí).
+_SI_EN_LA_FRASE = re.compile(
+    r"\bsí\b|\bsi\b(?=\s*[,.!]|\s*$)|\b(el|la) (de la|del|de los|de las)\b|"
+    r"\b(el|la|un|una|mi) (?:otr[oa] )?(" + _PERSONA + r")\b",
+    re.IGNORECASE,
+)
+# «No sé» es duda, no una negación.
+_NO_SE = re.compile(r"\bno s[eé]\b", re.IGNORECASE)
+_PREGUNTA_DESPIERTO = re.compile(r"despiert|consciente|responde|te habla|\bhabla\b|reacciona", re.IGNORECASE)
+_AFIRMA_DESPIERTO = re.compile(
+    r"^\W*" + _RELLENO + r"(s[ií]\b|claro\b|obvio\b|me habla|habla\b|responde|me responde|me contesta)",
+    re.IGNORECASE,
+)
+
+
+def _ultima_pregunta(texto: str) -> str:
+    preguntas = re.findall(r"¿[^¿?]+\?", texto or "")
+    return preguntas[-1] if preguntas else ""
+
+
+def pregunto_por_heridos(ultima_respuesta: str) -> bool:
+    return bool(_PREGUNTA_HERIDOS.search(ultima_respuesta or ""))
+
+
 def confirma_heridos(texto: str, ultima_respuesta: str) -> bool:
     """«sí, una persona» como respuesta a «¿Hay alguien herido…?»."""
+    # El comienzo se mira en el texto original: sin «no sé», «no sé si hay
+    # alguien» empezaría con «si hay».
+    sin_dudas = _NO_SE.sub(" ", texto)
     return (
-        bool(_PREGUNTA_HERIDOS.search(ultima_respuesta or ""))
-        and bool(_AFIRMA_HERIDOS.search(texto))
-        and not _NIEGA.search(texto)
+        pregunto_por_heridos(ultima_respuesta)
+        and bool(_AFIRMA_HERIDOS.search(texto) or _SI_EN_LA_FRASE.search(sin_dudas))
+        and not _NIEGA.search(sin_dudas)
+    )
+
+
+def confirma_despierto(texto: str, ultima_respuesta: str) -> bool:
+    """«Sí» a «¿Está despierto y te responde?». Sin esto el agente seguía con
+    «¿Respira?» para alguien que le habla."""
+    return (
+        bool(_PREGUNTA_DESPIERTO.search(_ultima_pregunta(ultima_respuesta)))
+        and bool(_AFIRMA_DESPIERTO.search(texto))
+        and not _NIEGA.search(_NO_SE.sub(" ", texto))
     )
 
 

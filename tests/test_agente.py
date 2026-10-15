@@ -86,3 +86,21 @@ def test_ultima_pregunta():
     assert agent._ultima_pregunta("Apretá fuerte. ¿Sigue sangrando?") == "¿Sigue sangrando?"
     assert agent._ultima_pregunta("¿Hay humo? Alejate. ¿Están lejos?") == "¿Están lejos?"
     assert agent._ultima_pregunta("Seguí comprimiendo.") is None
+
+
+def test_no_repite_la_pregunta_por_heridos(sin_indice):
+    """Visto en la web: «¿Hay alguien lastimado?» dos veces seguidas."""
+    st = TriageState()
+    extra = asyncio.run(agent.contexto_del_turno(
+        "mmm a ver", st, "Mantenete a distancia del tráfico. ¿Hay alguien lastimado?"
+    ))
+    assert "NO repitas" in extra and "preguntá solo eso" not in extra
+
+
+def test_motociclista_accidentado_deriva(sin_indice):
+    st = TriageState()
+    asyncio.run(agent.contexto_del_turno("hay un accidentado en moto", st, "¿Estás en un lugar seguro?"))
+    assert st.derivado
+    st = TriageState()
+    asyncio.run(agent.contexto_del_turno("y si, el de la moto", st, "¿Hay alguien lastimado?"))
+    assert st.derivado

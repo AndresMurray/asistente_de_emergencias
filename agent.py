@@ -41,6 +41,7 @@ from rag import RetrievalResult, Retriever, load_settings
 from triage import (
     TriageState,
     categoria_de,
+    confirma_despierto,
     confirma_heridos,
     derivar_automatico,
     esta_despierto,
@@ -49,6 +50,7 @@ from triage import (
     hay_objeto_clavado,
     llego_la_ayuda,
     niega_heridos,
+    pregunto_por_heridos,
     procesar_turno_usuario,
     rcp_en_curso,
     recupera_acceso,
@@ -476,9 +478,11 @@ async def preparar_turno(
             "heridos ni cuántos. Lo próximo es saber si el herido está despierto y responde "
             "(salvo que la persona te haya preguntado algo: eso primero)."
         )
-    if st.respira is not False and esta_despierto(texto):
-        st.consciente = True
     categorias_nuevas = [categoria_de(s) for s in st.senales_del_turno]
+    if st.respira is not False and "inconsciencia" not in categorias_nuevas and (
+        esta_despierto(texto) or confirma_despierto(texto, st.ultima_respuesta)
+    ):
+        st.consciente = True
     for nueva in st.senales_del_turno:
         # Con el paro, el aviso de inconsciencia sobra (y dice lo contrario:
         # «todavía no se sabe si respira»).
@@ -631,13 +635,23 @@ async def preparar_turno(
         })
 
     if not directivas and not protocolos and st.heridos is None and not st.derivado:
-        # Al principio de la llamada el modelo juntaba dos preguntas («¿Qué pasó
-        # y cuántas personas resultaron heridas?»). Lo que importa primero es
-        # si hay heridos: una sola pregunta.
-        directivas.append(
-            "Todavía no se sabe si hay heridos: preguntá solo eso, con una sola pregunta "
-            "corta («¿Hay alguien lastimado?»)."
-        )
+        if pregunto_por_heridos(st.ultima_respuesta):
+            # Ya lo preguntó y la respuesta no fue clara: repetir la misma
+            # pregunta es un bucle (visto en la web: «¿Hay alguien lastimado?»
+            # dos veces seguidas, con un motociclista accidentado).
+            directivas.append(
+                "Ya preguntaste si hay heridos y la respuesta no fue clara: NO repitas "
+                "«¿Hay alguien lastimado?». Preguntalo de otra forma, directo por la persona "
+                "que mencionó (por ejemplo «¿Está lastimado?» o «¿Te responde?»)."
+            )
+        else:
+            # Al principio de la llamada el modelo juntaba dos preguntas («¿Qué
+            # pasó y cuántas personas resultaron heridas?»). Lo que importa
+            # primero es si hay heridos: una sola pregunta.
+            directivas.append(
+                "Todavía no se sabe si hay heridos: preguntá solo eso, con una sola pregunta "
+                "corta («¿Hay alguien lastimado?»)."
+            )
     cierre = _guia_de_cierre(temas, nuevos, st, en_rcp)
     if directivas or protocolos:
         # Con el protocolo completo a mano el modelo tendía a recitarlo entero
