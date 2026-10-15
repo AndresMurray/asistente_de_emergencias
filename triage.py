@@ -25,13 +25,16 @@ from dataclasses import dataclass, field
 from livekit.agents import RunContext, function_tool
 from livekit.agents.llm import ToolFlag
 
+from deteccion import buscar, buscar_regex
 from protocolos import fuego_apagado
 
 logger = logging.getLogger("triage")
 
 # Señales de riesgo de vida, tal como las dice una persona común por teléfono.
 # Se usan para detectar el caso crítico de forma DETERMINÍSTICA, sin depender de
-# que el modelo se acuerde de llamar una tool.
+# que el modelo se acuerde de llamar una tool. Se buscan con deteccion.buscar,
+# que descarta las negadas («no hay fuego ni humo») y las hipotéticas («¿y si
+# no respira?»).
 SENALES_INCONSCIENCIA = (
     "inconsciente", "inconscientes",
     "desmayado", "desmayada", "desmayados", "desmayadas",
@@ -44,6 +47,9 @@ SENALES_INCONSCIENCIA = (
 SENALES_PARO_RESPIRATORIO = (
     "no respira", "no está respirando", "no esta respirando", "dejó de respirar",
     "dejo de respirar", "no tiene pulso", "se está muriendo", "se esta muriendo",
+    # La respuesta a la pregunta del propio agente («Fijate si se le mueve el
+    # pecho. ¿Respira?»): sola no disparaba nada.
+    "no se le mueve el pecho", "no se mueve el pecho", "sin respirar", "sin pulso",
 )
 
 SENALES_ATRAPAMIENTO = (
@@ -92,8 +98,7 @@ SENALES_SIN_ACCESO = (
 
 
 def _tiene_senal_critica(texto: str) -> bool:
-    bajo = texto.lower()
-    return any(s in bajo for s in SENALES_CRITICAS)
+    return buscar(texto, SENALES_CRITICAS) is not None
 
 
 def _categoria_de(senal: str) -> str | None:
@@ -124,8 +129,11 @@ _OBJETO_CLAVADO = re.compile(
 
 
 def hay_objeto_clavado(st: TriageState) -> bool:
-    """Alguna vez en la llamada se dijo que el herido tiene algo clavado."""
-    return any(_OBJETO_CLAVADO.search(d) for d in st.dichos)
+    """Alguna vez en la llamada se dijo que el herido tiene algo clavado
+    («no tiene nada clavado» no cuenta)."""
+    return any(buscar_regex(d, _OBJETO_CLAVADO) for d in st.dichos)
+
+
 _SIN_HERIDOS = re.compile(
     r"\b(nadie|ning[uú]n[oa]?|no hay|sin|estamos bien|todos bien|ninguno)\b[^.?!]{0,25}"
     r"(herid|lastimad|lesionad|golpead)",
@@ -134,8 +142,12 @@ _SIN_HERIDOS = re.compile(
 
 
 def hay_herido(texto: str) -> bool:
-    """«Está tirado en el piso», «hay un herido». Descarta «nadie está herido»."""
-    return bool(_HERIDO.search(texto)) and not _SIN_HERIDOS.search(texto)
+    """«Está tirado en el piso», «hay un herido». Descarta «nadie está herido»,
+    «no sangra» y las cosas («se cayó la moto», «el auto está golpeado»)."""
+    return (
+        buscar_regex(texto, _HERIDO, descartar_objetos=True) is not None
+        and not _SIN_HERIDOS.search(texto)
+    )
 
 
 # Respuesta afirmativa corta a «¿Hay alguien herido?»: «sí, una persona»,
@@ -285,10 +297,10 @@ def procesar_turno_usuario(texto: str, st: TriageState) -> str | None:
         return None
 
     st.dichos.append(texto)
-    bajo = texto.lower()
 
     for categoria, senales in CATEGORIAS.items():
-        senal = next((s for s in senales if s in bajo), None)
+        # «El celular no responde» no es una persona inconsciente.
+        senal = buscar(texto, senales, descartar_objetos=categoria == "inconsciencia")
         if senal is None:
             continue
         if categoria == "fuego" and fuego_apagado(texto):
@@ -424,9 +436,8 @@ class TriageState:
             return True
         if self.senal_critica:
             return True
-        texto = " ".join(
-            filter(None, (self.riesgos, self.heridos, self.que_paso))
-        ).lower()
+        # Con punto: que el «ninguno» de los riesgos no niegue a los heridos.
+        texto = ". ".join(filter(None, (self.riesgos, self.heridos, self.que_paso)))
         return _tiene_senal_critica(texto)
 
     def listo_para_derivar(self) -> bool:
@@ -491,8 +502,7 @@ async def registrar_datos_escena(
     st = context.userdata
 
     if atrapado is None:
-        texto_in = f"{heridos or ''} {que_paso or ''}".lower()
-        if any(s in texto_in for s in SENALES_ATRAPAMIENTO):
+        if buscar(f"{heridos or ''}. {que_paso or ''}", SENALES_ATRAPAMIENTO):
             atrapado = True
 
     guardados = []
@@ -561,9 +571,9 @@ async def registrar_datos_escena(
     if st.critico():
         es_atrapado = (
             st.atrapado is True
-            or any(s in (st.heridos or "").lower() for s in SENALES_ATRAPAMIENTO)
-            or any(s in (st.que_paso or "").lower() for s in SENALES_ATRAPAMIENTO)
-            or any(s in (st.senal_critica or "").lower() for s in SENALES_ATRAPAMIENTO)
+            or buscar(st.heridos or "", SENALES_ATRAPAMIENTO) is not None
+            or buscar(st.que_paso or "", SENALES_ATRAPAMIENTO) is not None
+            or buscar(st.senal_critica or "", SENALES_ATRAPAMIENTO) is not None
         )
         if st.respira is False:
             return (

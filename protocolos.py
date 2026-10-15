@@ -21,6 +21,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from deteccion import buscar
 from rag.retriever import normalizar_consulta
 
 
@@ -52,7 +53,8 @@ _tema(
     "rcp",
     "herido inconsciente que no respira reanimación cardiopulmonar",
     ("no respira", "no está respirando", "no esta respirando", "dejó de respirar",
-     "dejo de respirar", "no tiene pulso", "reanimación", "reanimacion", "rcp",
+     "dejo de respirar", "no tiene pulso", "no se le mueve el pecho", "no se mueve el pecho",
+     "sin respirar", "sin pulso", "reanimación", "reanimacion", "rcp",
      "compresiones", "comprimiendo", "comprimir"),
     (
         'Herido inconsciente que no respira: arrodillarse al lado de la víctima a la altura del pecho. Colocar el talón de una mano en el centro del pecho y la otra mano encima, con los dedos entrelazados, sin apoyar sobre las costillas ni sobre la parte alta de la panza. Con los brazos rectos, comprimir hundiendo el pecho unos cuatro o cinco centímetros y soltar sin despegar las manos, a un ritmo de casi dos compresiones por segundo. No parar hasta que llegue la ayuda o la persona empiece a respirar.'
@@ -205,7 +207,9 @@ _tema(
     # Específico a propósito: «agua» sola choca con «agua fría» de las
     # quemaduras. En una prueba, a «me pide agua, ¿le doy?» el agente dijo
     # «sí, pequeños sorbos»: el manual dice lo contrario.
-    ("pide agua", "quiere agua", "le doy agua", "darle agua", "tomar agua", "de tomar",
+    # «de tomar» solo era demasiado: «dejá de tomar mate» activaba el tema.
+    ("pide agua", "quiere agua", "le doy agua", "darle agua", "tomar agua", "darle de tomar",
+     "dar de tomar", "doy de tomar", "algo de tomar",
      "tiene sed", "beber", "un vaso", "algo de comer", "le doy de comer", "darle de comer",
      "quiere comer"),
     (
@@ -293,11 +297,32 @@ def fuego_apagado(texto: str) -> bool:
     return bool(_FUEGO_APAGADO.search(texto))
 
 
-def detectar_temas(texto: str) -> list[str]:
-    """Temas mencionados en lo que dijo la persona, en orden de prioridad."""
-    bajo = texto.lower()
+# Temas que hablan de una persona: «se quemó el motor» no es una quemadura.
+_TEMAS_DE_PERSONAS = frozenset({"quemadura"})
+
+_ORACION = re.compile(r"[^.!?]*[.!?]+|[^.!?]+$")
+
+
+def detectar_temas(texto: str, *, respetar_negacion: bool = True) -> list[str]:
+    """Temas mencionados en lo que dijo la persona, en orden de prioridad.
+
+    Las preguntas cuentan («¿le saco el casco?»: hay que contestarlas con el
+    protocolo), lo negado no: «no sangra» o «no tiene nada clavado» no
+    adjuntan esos protocolos. En una oración que termina en «?» la negación
+    no se mira, porque el STT a veces no pone el «¿» y «No le saco el
+    casco?» es una pregunta."""
+    oraciones = [o for o in _ORACION.findall(texto or "") if o.strip()]
     temas = [
-        t.clave for t in TEMAS.values() if t.palabras and any(p in bajo for p in t.palabras)
+        t.clave
+        for t in TEMAS.values()
+        if t.palabras and any(
+            buscar(
+                o, t.palabras, aceptar_hipotesis=True,
+                respetar_negacion=respetar_negacion and not o.rstrip().endswith("?"),
+                descartar_objetos=t.clave in _TEMAS_DE_PERSONAS,
+            )
+            for o in oraciones
+        )
     ]
     if "fuego" in temas and fuego_apagado(texto):
         temas.remove("fuego")
@@ -313,5 +338,7 @@ def tema_de_consulta(consulta: str) -> Tema | None:
     for t in TEMAS.values():
         if clave == normalizar_consulta(t.consulta):
             return t
-    temas = detectar_temas(consulta)
+    # La consulta la escribe el modelo («no mover al herido columna»): ahí el
+    # «no» es parte de la indicación, no una negación de quien llama.
+    temas = detectar_temas(consulta, respetar_negacion=False)
     return TEMAS[temas[0]] if len(temas) == 1 else None
