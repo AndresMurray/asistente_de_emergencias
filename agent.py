@@ -36,11 +36,14 @@ from habla import EstadoAviso, NormalizadorStream, aplicar_aviso_911, aviso_ya_d
 from metronomo import Metronomo, pide_apagar, pide_prender
 from prompts import KEYTERMS_ES, SALUDO, SYSTEM_INSTRUCTIONS
 from protocolos import TEMAS, detectar_temas, respira_positivo, tema_de_consulta
+from respuestas_fijas import respuesta_fija
 from rag import RetrievalResult, Retriever, load_settings
 from triage import (
     TriageState,
+    categoria_de,
     confirma_heridos,
     derivar_automatico,
+    esta_despierto,
     generar_aviso_critico,
     hay_herido,
     hay_objeto_clavado,
@@ -341,6 +344,9 @@ class Turno:
     # Solo para la respuesta de este turno: el estado actual de la llamada y
     # los avisos (los agrega Assistant.llm_node, no quedan en el historial).
     directivas: list[str] = field(default_factory=list)
+    # Momento crítico con respuesta fija (respuestas_fijas.py): se dice esto y
+    # el LLM no se llama.
+    respuesta_fija: str | None = None
 
     def texto_protocolos(self) -> str | None:
         return f"{_ENCABEZADO}\n" + "\n\n".join(self.protocolos) if self.protocolos else None
@@ -470,8 +476,16 @@ async def preparar_turno(
             "heridos ni cuántos. Lo próximo es saber si el herido está despierto y responde "
             "(salvo que la persona te haya preguntado algo: eso primero)."
         )
+    if st.respira is not False and esta_despierto(texto):
+        st.consciente = True
+    categorias_nuevas = [categoria_de(s) for s in st.senales_del_turno]
+    for nueva in st.senales_del_turno:
+        # Con el paro, el aviso de inconsciencia sobra (y dice lo contrario:
+        # «todavía no se sabe si respira»).
+        if categoria_de(nueva) == "inconsciencia" and "paro" in categorias_nuevas:
+            continue
+        directivas.append(generar_aviso_critico(nueva, st))
     if senal:
-        directivas.append(generar_aviso_critico(senal, st))
         # Lo esencial (no respira, inconsciente, atrapado) ya quedó registrado y
         # el 911 ya fue avisado: registrar_datos_escena acá solo agrega otra
         # vuelta al LLM (~1 s) en el turno donde más importa la velocidad.
@@ -525,6 +539,7 @@ async def preparar_turno(
         directivas.append(aviso_rcp)
 
     temas = detectar_temas(texto)
+    mencionados = list(temas)
     repetidos = [t for t in temas if t in st.temas_inyectados]
     if repetidos:
         # «le scao el casco» (con error de tipeo, sin signo de pregunta) después
@@ -631,7 +646,15 @@ async def preparar_turno(
             "Respondé con UNA indicación corta (máximo dieciocho palabras) y la pregunta de "
             "cierre si corresponde; lo demás, en los turnos siguientes."
         )
-    return Turno(protocolos=protocolos, directivas=[estado_actual(st), *directivas, *cierre])
+    fija = respuesta_fija(texto, categorias_nuevas, mencionados, nuevos, st)
+    if fija is not None:
+        st.fijas_dadas[fija[0]] = st.fijas_dadas.get(fija[0], 0) + 1
+        st.tool_calls.append({"tool": "respuesta_fija", "args": {"momento": fija[0]}, "respuesta": fija[1]})
+    return Turno(
+        protocolos=protocolos,
+        directivas=[estado_actual(st), *directivas, *cierre],
+        respuesta_fija=fija[1] if fija else None,
+    )
 
 
 async def contexto_del_turno(
@@ -874,6 +897,11 @@ class Assistant(Agent):
 
         def salida(texto: str) -> str:
             return aplicar_aviso_911(texto, st) if texto else texto
+
+        if turno is not None and turno.respuesta_fija:
+            # Momento crítico: la frase es fija y sale al instante, sin LLM.
+            yield salida(turno.respuesta_fija)
+            return
 
         async for chunk in Agent.default.llm_node(self, chat_ctx, tools, model_settings):
             if isinstance(chunk, str):

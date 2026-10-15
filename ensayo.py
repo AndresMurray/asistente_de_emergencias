@@ -161,6 +161,9 @@ async def un_turno(session: AgentSession, texto: str) -> tuple[str, bool]:
     print(f"\n>>> {texto}")
     temas = [tc["args"]["tema"] for tc in session.userdata.tool_calls if tc["tool"] == "prefetch_protocolo"]
     print(f"    ⚠  contexto inyectado (temas: {', '.join(temas) or '—'})")
+    for tc in session.userdata.tool_calls:
+        if tc["tool"] == "respuesta_fija":
+            print(f"    ⚡ respuesta fija ({tc['args']['momento']}), sin LLM")
     session.userdata.tool_calls.clear()
 
     resultado = await session.run(user_input=entrada)

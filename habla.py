@@ -70,7 +70,7 @@ _VOSEO = {
     "arrodíllate": "arrodillate", "acércate": "acercate", "abre": "abrí",
     "quedá": "quedate", "deja": "dejá", "sujeta": "sujetá", "tapa": "tapá",
     "enciende": "encendé", "apaga": "apagá", "aleja": "alejá", "señaliza": "señalizá",
-    "retira": "retirá",
+    "retira": "retirá", "vigila": "vigilá",
 }
 # Fuera de la lista a propósito: «respira», «sigue», «continúa». Al
 # inicio de una pregunta son tercera persona («¿Respira?», «¿Sigue sangrando?»)

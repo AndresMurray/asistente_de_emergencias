@@ -42,6 +42,10 @@ SENALES_INCONSCIENCIA = (
     "no reacciona", "no reaccionan",
     "no responde", "no responden",
     "no se mueve", "no se mueven",
+    # «Ahora no me contesta, se desmayó»: el modelo lo deducía, el sistema no.
+    "no me responde", "no nos responde", "no contesta", "no me contesta",
+    "se desmayó", "se desmayo", "se desvaneció", "se desvanecio",
+    "perdió el conocimiento", "perdio el conocimiento",
 )
 
 SENALES_PARO_RESPIRATORIO = (
@@ -101,7 +105,7 @@ def _tiene_senal_critica(texto: str) -> bool:
     return buscar(texto, SENALES_CRITICAS) is not None
 
 
-def _categoria_de(senal: str) -> str | None:
+def categoria_de(senal: str) -> str | None:
     for categoria, senales in CATEGORIAS.items():
         if senal in senales:
             return categoria
@@ -191,6 +195,26 @@ def sin_acceso_al_herido(texto: str) -> bool:
     return any(s in bajo for s in SENALES_SIN_ACCESO)
 
 
+# El herido está despierto: «me habla», «está consciente». Lo registraba solo
+# el modelo (a veces), y sin eso el agente preguntaba «¿te responde?» justo
+# después de que le dijeran «me habla».
+SENALES_DESPIERTO = (
+    "está despierto", "esta despierto", "está despierta", "esta despierta",
+    "está consciente", "esta consciente", "sigue despierto", "sigue despierta",
+    "sigue consciente", "me habla", "me contesta", "me responde", "nos habla",
+    "está hablando", "esta hablando", "se queja",
+)
+
+
+def esta_despierto(texto: str) -> bool:
+    """«Está despierto y me habla». No cuenta «no me responde» ni si en la misma
+    frase se habla de inconsciencia («sigue inconsciente, no me habla»)."""
+    return (
+        buscar(texto, SENALES_DESPIERTO) is not None
+        and buscar(texto, SENALES_INCONSCIENCIA, descartar_objetos=True) is None
+    )
+
+
 _RECUPERA_ACCESO = re.compile(
     r"\b(ya )?(llegu[eé]|me acerqu[eé]|estoy (al lado|junto|con [eé]l|con ella)|"
     r"(ya|ahora) (lo|la|los) veo)\b",
@@ -246,7 +270,7 @@ def generar_aviso_critico(senal: str, st: TriageState) -> str:
     El aviso al 911 ya está hecho cuando esto se inyecta (lo hace
     procesar_turno_usuario), así que el modelo solo tiene que comunicarlo UNA
     vez, integrado con la maniobra."""
-    categoria = _categoria_de(senal)
+    categoria = categoria_de(senal)
 
     if categoria == "atrapamiento":
         return (
@@ -302,13 +326,15 @@ def procesar_turno_usuario(texto: str, st: TriageState) -> str | None:
     """Registra lo que dijo la persona y detecta riesgo de vida determinísticamente.
 
     Devuelve la señal crítica de ESTE turno si es de una categoría que todavía
-    no se avisó. Antes solo se detectaba la primera señal de la llamada: si
-    alguien decía «inconsciente» y en el turno siguiente «no respira», el paro
-    pasaba sin aviso.
+    no se avisó (la de más prioridad; todas quedan en st.senales_del_turno).
+    Antes solo se detectaba la primera señal de la llamada: si alguien decía
+    «inconsciente» y en el turno siguiente «no respira», el paro pasaba sin
+    aviso.
 
     También actualiza el estado que no conviene dejar librado al modelo (que no
     respira, que hay alguien atrapado) y deriva al 911 sin esperar una tool.
     """
+    st.senales_del_turno = []
     if not texto:
         return None
 
@@ -332,13 +358,15 @@ def procesar_turno_usuario(texto: str, st: TriageState) -> str | None:
 
         if st.senal_critica is None:
             st.senal_critica = senal
+        # Una categoría ya avisada no corta la búsqueda: antes, en «sigue
+        # inconsciente y ahora sale humo del motor», el fuego no se detectaba.
         if categoria in st.alertas:
-            return None
+            continue
         st.alertas.add(categoria)
+        st.senales_del_turno.append(senal)
         logger.warning("señal crítica detectada: '%s' (%s) | dicho: %s", senal, categoria, texto)
         derivar_automatico(st, motivo=senal)
-        return senal
-    return None
+    return st.senales_del_turno[0] if st.senales_del_turno else None
 
 
 def derivar_automatico(st: TriageState, motivo: str) -> None:
@@ -372,6 +400,10 @@ class TriageState:
     derivado: bool = False
     # Lo levanta el detector determinístico de on_user_turn_completed, no el LLM.
     senal_critica: str | None = None
+    # Señales de categorías nuevas detectadas en el último turno, por prioridad.
+    senales_del_turno: list[str] = field(default_factory=list)
+    # Cuántas veces se dio cada respuesta fija (para no repetirla igual).
+    fijas_dadas: dict[str, int] = field(default_factory=dict)
     # Categorías de riesgo ya avisadas al modelo (para no repetir el aviso).
     alertas: set[str] = field(default_factory=set)
     # Temas del manual ya inyectados en el contexto (para no repetirlos).
