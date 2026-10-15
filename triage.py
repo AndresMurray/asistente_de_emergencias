@@ -25,6 +25,8 @@ from dataclasses import dataclass, field
 from livekit.agents import RunContext, function_tool
 from livekit.agents.llm import ToolFlag
 
+from protocolos import fuego_apagado
+
 logger = logging.getLogger("triage")
 
 # Señales de riesgo de vida, tal como las dice una persona común por teléfono.
@@ -147,6 +149,11 @@ _AFIRMA_HERIDOS = re.compile(
 )
 _NIEGA = re.compile(r"\b(no|nadie|ning[uú]n[oa]?)\b", re.IGNORECASE)
 _PREGUNTA_HERIDOS = re.compile(r"herid|lastimad|lesionad|cu[aá]ntas personas", re.IGNORECASE)
+
+
+_HERIDOS_NEGATIVO = re.compile(
+    r"^\W*(no|0|cero|nadie|ninguno|ninguna|ning[uú]n|no hay|none)\W*$", re.IGNORECASE
+)
 
 
 def niega_heridos(texto: str) -> bool:
@@ -284,6 +291,8 @@ def procesar_turno_usuario(texto: str, st: TriageState) -> str | None:
         senal = next((s for s in senales if s in bajo), None)
         if senal is None:
             continue
+        if categoria == "fuego" and fuego_apagado(texto):
+            continue
 
         if categoria == "paro":
             st.respira = False
@@ -399,6 +408,10 @@ class TriageState:
         if not self.heridos:
             return False
         texto = self.heridos.lower()
+        # El modelo a veces registra solo «no» o «0»: antes eso contaba como
+        # que HABÍA heridos y derivaba al 911 en un choque sin lastimados.
+        if _HERIDOS_NEGATIVO.match(texto) or _SIN_HERIDOS.search(texto):
+            return True
         return any(
             n in texto
             for n in ("nadie", "ninguno", "ninguna", "no hay herid",

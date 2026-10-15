@@ -845,6 +845,23 @@ async def entrypoint(ctx: agents.JobContext):
 
     _wire_chat_backchannel(session, ctx)
 
+    participant = await ctx.wait_for_participant()
+    logger.info("participante conectado: %s", participant.identity)
+
+    # El saludo va lo antes posible: el frontend no deja hablar ni escribir
+    # hasta recibirlo, así que todo lo que se haga antes es espera para quien
+    # llama. El metrónomo y el log de configuración pueden ir después.
+    try:
+        asyncio.create_task(
+            ctx.room.local_participant.publish_data(
+                payload=json.dumps({"type": "chat_reply", "message": SALUDO}).encode("utf-8"),
+                topic="test-chat",
+            )
+        )
+    except Exception:
+        pass
+    session.say(SALUDO, allow_interruptions=True)
+
     await metronomo.start(ctx.room)
 
     async def _cerrar_metronomo() -> None:
@@ -852,9 +869,6 @@ async def entrypoint(ctx: agents.JobContext):
         await metronomo.aclose()
 
     ctx.add_shutdown_callback(_cerrar_metronomo)
-
-    participant = await ctx.wait_for_participant()
-    logger.info("participante conectado: %s", participant.identity)
 
     retriever = _retriever
     if retriever is None:
@@ -870,17 +884,6 @@ async def entrypoint(ctx: agents.JobContext):
             else retriever.settings.min_score,
             len(retriever.index) if retriever.index else "NO (búsqueda contra la base)",
         )
-
-    session.say(SALUDO, allow_interruptions=True)
-    try:
-        asyncio.create_task(
-            ctx.room.local_participant.publish_data(
-                payload=json.dumps({"type": "chat_reply", "message": SALUDO}).encode("utf-8"),
-                topic="test-chat",
-            )
-        )
-    except Exception:
-        pass
 
     logger.info("agente activo en la sala %s", ctx.room.name)
 

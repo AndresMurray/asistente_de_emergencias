@@ -152,6 +152,12 @@ def test_tema_de_consulta():
     ("Puede tener una fractura.", "Puede tener un hueso roto."),
     ("Aplicá la maniobra frente‑mentón.", "Aplicá la maniobra frente y mentón."),
     ("Mantene la presión.", "Mantené la presión."),
+    # Erratas vistas en las pruebas de la Expo.
+    ("Mantené la cabeza alineada y no lo movas.", "Mantené la cabeza alineada y no lo muevas."),
+    ("Alejáos del auto y de la calzada.", "Aléjense del auto y de la calzada."),
+    ("Mantené la calma y mantené la calma.", "Mantené la calma."),
+    ("Asegurate de que no obstruya y enciende las balizas.", "Asegurate de que no obstruya y encendé las balizas."),
+    ("Apaga el motor.", "Apagá el motor."),
 ])
 def test_normalizar_habla(entrada, salida):
     assert normalizar_habla(entrada) == salida
@@ -193,6 +199,16 @@ def test_sin_derivacion_no_promete_ayuda():
     assert aplicar_aviso_911(texto, st) == "Alejate del tráfico y mantené la calma."
     assert aplicar_aviso_911("No muevas el auto hasta que lleguen los servicios.", st) == "No muevas el auto."
     assert aplicar_aviso_911("Mantené la cabeza inmóvil hasta que llegue ayuda.", st) == "Mantené la cabeza inmóvil."
+    # Versión corta, vista en la prueba por voz del choque sin heridos.
+    assert aplicar_aviso_911("Quedate donde estás y esperá ayuda.", st) == "Quedate donde estás."
+    assert aplicar_aviso_911("Mantené el freno, no te muevas y esperá ayuda.", st) == "Mantené el freno, no te muevas."
+
+
+def test_con_derivacion_puede_decir_espera_ayuda():
+    st = TriageState()
+    procesar_turno_usuario("está inconsciente", st)
+    aplicar_aviso_911("Fijate si respira.", st)  # primera respuesta: lleva el aviso
+    assert aplicar_aviso_911("Quedate con él y esperá la ayuda.", st) == "Quedate con él y esperá la ayuda."
 
 
 def test_con_derivacion_se_mantiene_hasta_que_llegue_la_ayuda():

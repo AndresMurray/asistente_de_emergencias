@@ -110,7 +110,11 @@ _tema(
     ("fuego", "incendio", "humo", "llamas", "se prendió", "se prendio",
      "combustible", "nafta", "gasoil", "olor a quemado"),
     (
-        'Riesgo de incendio: es extremadamente peligroso quedarse en la calzada o acercarse a un vehículo en llamas o con combustible derramado; alejarse. El incendio o el riesgo elevado de incendio es uno de los pocos casos en que se justifica mover a un herido, siempre manteniendo alineados cabeza, cuello y tronco y solo si se puede sin ponerse en peligro. Si se prende la ropa de una persona, taparla con una manta o algo similar para apagar el fuego.'
+        # La indicación principal va primero y la de la ropa prendida, al final y
+        # como condición: antes terminaba en «Si se prende la ropa…» y, ante un
+        # «¿qué hacemos?» genérico, el modelo respondía con eso aunque nadie
+        # se estuviera quemando.
+        'Riesgo de incendio: alejarse del vehículo y de la calzada, y no volver a acercarse (ni a buscar cosas): es extremadamente peligroso acercarse a un vehículo en llamas o con combustible derramado. El incendio o el riesgo elevado de incendio es uno de los pocos casos en que se justifica mover a un herido, siempre manteniendo alineados cabeza, cuello y tronco y solo si se puede sin ponerse en peligro. Solo si a alguien se le prende la ropa: taparla con una manta o algo similar para apagar el fuego.'
     ),
     (
         "¿Ya están todos lejos del auto?",
@@ -180,13 +184,36 @@ _tema(
 _tema(
     "fractura",
     "fracturas inmovilización del miembro",
-    ("hueso roto", "fractur", "quebr", "se le dobló", "se le doblo", "hueso afuera"),
+    # «se lo rompió» / «brazo torcido»: en una prueba, «tiene el brazo torcido,
+    # creo que se lo rompió» no activaba el tema y a «¿se lo acomodo?» el
+    # agente no decía que no.
+    ("hueso roto", "fractur", "quebr", "se le dobló", "se le doblo", "hueso afuera",
+     "se lo rompi", "se la rompi", "se rompió el", "se rompio el", "se rompió la", "se rompio la",
+     "brazo roto", "pierna rota", "mano rota", "brazo torcido", "pierna torcida",
+     "lo acomodo", "la acomodo", "acomodarlo", "acomodarla"),
     (
         'Posible hueso roto: no intentar acomodarlo. Si hay herida, taparla y frenar el sangrado. Inmovilizar la zona sujetándola por encima y por debajo de la lesión; en el brazo, con un cabestrillo hecho con una tela o un pañuelo.'
     ),
     (
         "¿Le sale sangre de esa zona?",
         "¿Tenés una tela para sujetarlo?",
+    ),
+)
+_tema(
+    "beber",
+    "traumatismos de tórax y abdomen no dar de beber ni comer",
+    # Específico a propósito: «agua» sola choca con «agua fría» de las
+    # quemaduras. En una prueba, a «me pide agua, ¿le doy?» el agente dijo
+    # «sí, pequeños sorbos»: el manual dice lo contrario.
+    ("pide agua", "quiere agua", "le doy agua", "darle agua", "tomar agua", "de tomar",
+     "tiene sed", "beber", "un vaso", "algo de comer", "le doy de comer", "darle de comer",
+     "quiere comer"),
+    (
+        'No darle nada de beber ni de comer al herido: el manual lo indica expresamente para los heridos con golpes en el pecho o en la panza, y en un accidente no se puede descartar. Si tiene sed, explicarle con calma que no puede tomar nada hasta que lo vean los médicos.'
+    ),
+    (
+        "¿Está despierto y te responde?",
+        "¿Le duele el pecho o la panza?",
     ),
 )
 _tema(
@@ -254,12 +281,27 @@ def respira_positivo(texto: str) -> bool:
     )
 
 
+_FUEGO_APAGADO = re.compile(
+    r"\b(ya )?(lo |la )?(apagaron|apag[oó]|apagamos|se apag[oó]|est[aá] apagad[oa]|no hay m[aá]s fuego|ya no hay fuego)",
+    re.IGNORECASE,
+)
+
+
+def fuego_apagado(texto: str) -> bool:
+    """«Se prendió fuego el auto, ya lo apagaron»: ya no hay que alejarse del
+    fuego. En una prueba el agente insistía con eso e ignoraba la quemadura."""
+    return bool(_FUEGO_APAGADO.search(texto))
+
+
 def detectar_temas(texto: str) -> list[str]:
     """Temas mencionados en lo que dijo la persona, en orden de prioridad."""
     bajo = texto.lower()
-    return [
+    temas = [
         t.clave for t in TEMAS.values() if t.palabras and any(p in bajo for p in t.palabras)
     ]
+    if "fuego" in temas and fuego_apagado(texto):
+        temas.remove("fuego")
+    return temas
 
 
 def tema_de_consulta(consulta: str) -> Tema | None:

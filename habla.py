@@ -33,6 +33,22 @@ _JERGA: list[tuple[re.Pattern[str], str]] = [
         re.I,
     ), "dos veces por segundo"),
     (re.compile(r"\b1\s*1\s*2\b|\bciento doce\b", re.I), "nueve once"),
+    # Erratas del modelo vistas en las pruebas de la Expo: «no lo movas» y
+    # formas de España («Alejáos») que en Argentina suenan raras.
+    (re.compile(r"\bmovas\b"), "muevas"),
+    (re.compile(r"\bcubri\b"), "cubrí"),
+    (re.compile(r"\bCubri\b"), "Cubrí"),
+    (re.compile(r"\baparc[aá]\b"), "estacioná"),
+    (re.compile(r"\bAparc[aá]\b"), "Estacioná"),
+    (re.compile(r"\baparcar\b"), "estacionar"),
+    (re.compile(r"\bal[eé]j[aá]os\b"), "aléjense"),
+    (re.compile(r"\bAl[eé]j[aá]os\b"), "Aléjense"),
+    (re.compile(r"\bqued[aá]os\b"), "quédense"),
+    (re.compile(r"\bQued[aá]os\b"), "Quédense"),
+    (re.compile(r"\bapart[aá]os\b"), "apártense"),
+    (re.compile(r"\bApart[aá]os\b"), "Apártense"),
+    # «Mantené la calma y mantené la calma.»: el modelo a veces repite la frase.
+    (re.compile(r"\b([^.,;:?!]{6,60}?)\s+y\s+\1\b", re.I), r"\1"),
 ]
 
 # Imperativo neutro -> voseo. Solo en posición de orden (inicio de oración o
@@ -51,6 +67,8 @@ _VOSEO = {
     "avísame": "avisame", "dime": "decime", "cuéntame": "contame",
     "arrodíllate": "arrodillate", "acércate": "acercate", "abre": "abrí",
     "quedá": "quedate", "deja": "dejá", "sujeta": "sujetá", "tapa": "tapá",
+    "enciende": "encendé", "apaga": "apagá", "aleja": "alejá", "señaliza": "señalizá",
+    "retira": "retirá",
 }
 # Fuera de la lista a propósito: «respira», «sigue», «continúa». Al
 # inicio de una pregunta son tercera persona («¿Respira?», «¿Sigue sangrando?»)
@@ -109,6 +127,9 @@ _LLEGA_AYUDA = r"(la ayuda|ayuda|la ambulancia|una ambulancia|los servicios|los 
 _AYUDA_SIN_DERIVAR: list[tuple[re.Pattern[str], str]] = [(p, "") for p in _QUITAR_911] + [
     (re.compile(r"\b(y )?esper[aá] (a )?que llegue(n)? " + _LLEGA_AYUDA, re.I), r"\1mantené la calma"),
     (re.compile(r"\s*hasta que llegue(n)? " + _LLEGA_AYUDA, re.I), ""),
+    # La versión corta: en un choque sin heridos dijo «Quedate donde estás y
+    # esperá ayuda», como si alguien estuviera en camino.
+    (re.compile(r"\s*,?\s*(y\s+)?esper[aá]\s+(la\s+)?ayuda\b", re.I), ""),
 ]
 
 
