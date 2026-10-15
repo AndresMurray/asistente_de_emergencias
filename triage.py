@@ -191,6 +191,18 @@ def sin_acceso_al_herido(texto: str) -> bool:
     return any(s in bajo for s in SENALES_SIN_ACCESO)
 
 
+_RECUPERA_ACCESO = re.compile(
+    r"\b(ya )?(llegu[eé]|me acerqu[eé]|estoy (al lado|junto|con [eé]l|con ella)|"
+    r"(ya|ahora) (lo|la|los) veo)\b",
+    re.IGNORECASE,
+)
+
+
+def recupera_acceso(texto: str) -> bool:
+    """«Ya llegué», «ahora lo veo»: puede volver a revisar al herido."""
+    return bool(_RECUPERA_ACCESO.search(texto))
+
+
 # «Llegó la ambulancia», «ya llegaron los bomberos». Desde ahí se hacen cargo
 # los profesionales: se corta el metrónomo y el agente deja de guiar la RCP.
 _LLEGO_AYUDA = re.compile(
@@ -358,9 +370,6 @@ class TriageState:
     atrapado: bool | None = None
 
     derivado: bool = False
-    # El sistema ya le dijo «Ya estás geolocalizado y la ayuda va en camino.»
-    # (lo agrega habla.aplicar_aviso_911, una vez por llamada).
-    aviso_911_dicho: bool = False
     # Lo levanta el detector determinístico de on_user_turn_completed, no el LLM.
     senal_critica: str | None = None
     # Categorías de riesgo ya avisadas al modelo (para no repetir el aviso).
@@ -383,6 +392,9 @@ class TriageState:
     tema_activo: str | None = None
     # La persona avisó que llegó la ambulancia / los bomberos.
     ayuda_llego: bool = False
+    # Quien llama no puede ver ni llegar al herido. Antes era un aviso de un
+    # solo turno que sobrevivía porque quedaba en el historial; ahora es estado.
+    sin_acceso: bool = False
     # El metrónomo de RCP está sonando (lo mantiene entrypoint en agent.py).
     metronomo_activo: bool = False
     # La persona pidió sacar el sonido, o se cumplió el tope de tiempo: no se

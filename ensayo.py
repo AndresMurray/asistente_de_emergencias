@@ -37,7 +37,7 @@ load_dotenv(".env.local")
 from livekit.agents import AgentSession, inference  # noqa: E402
 from livekit.agents.utils import http_context  # noqa: E402
 
-from agent import Assistant, contexto_del_turno, create_llm, prewarm, ultima_respuesta_de  # noqa: E402
+from agent import Assistant, create_llm, prewarm  # noqa: E402
 from prompts import SALUDO  # noqa: E402
 from triage import TriageState  # noqa: E402
 
@@ -154,15 +154,13 @@ async def un_turno(session: AgentSession, texto: str) -> tuple[str, bool]:
     """Corre un turno. Devuelve la respuesta y si la persona estaba en RCP."""
     # Se replica el camino de texto tal como está en el back-channel de chat:
     # session.run() no pasa por Agent.on_user_turn_completed, así que el
-    # contexto determinístico (riesgo de vida + protocolo) se agrega acá.
+    # contexto determinístico (riesgo de vida + protocolo) se prepara acá.
     t0 = time.perf_counter()
-    extra = await contexto_del_turno(texto, session.userdata, ultima_respuesta_de(session.history))
-    entrada = f"{texto}\n\n{extra}" if extra else texto
+    entrada, _ = await session.current_agent.preparar_texto(texto)
 
     print(f"\n>>> {texto}")
-    if extra:
-        temas = [tc["args"]["tema"] for tc in session.userdata.tool_calls if tc["tool"] == "prefetch_protocolo"]
-        print(f"    ⚠  contexto inyectado (temas: {', '.join(temas) or '—'})")
+    temas = [tc["args"]["tema"] for tc in session.userdata.tool_calls if tc["tool"] == "prefetch_protocolo"]
+    print(f"    ⚠  contexto inyectado (temas: {', '.join(temas) or '—'})")
     session.userdata.tool_calls.clear()
 
     resultado = await session.run(user_input=entrada)

@@ -13,7 +13,7 @@ import time
 
 import pytest
 
-from habla import FRASE_911, NormalizadorStream, aplicar_aviso_911, normalizar_habla
+from habla import FRASE_911, EstadoAviso, NormalizadorStream, aplicar_aviso_911, aviso_ya_dicho, normalizar_habla
 from protocolos import TEMAS, consultas_canonicas, detectar_temas, respira_positivo, tema_de_consulta
 from rag import ratelimit
 from rag.index import MemoryIndex, tokenizar
@@ -169,8 +169,7 @@ def test_normalizar_no_toca_terceras_personas(pregunta):
 
 
 def test_aviso_911_se_agrega_una_sola_vez_al_derivar():
-    st = TriageState()
-    procesar_turno_usuario("el acompañante no respira", st)  # deriva
+    st = EstadoAviso(derivado=True)
     primera = aplicar_aviso_911("Apoyá el talón de tu mano en el centro del pecho.", st)
     assert primera.startswith(FRASE_911)
     segunda = aplicar_aviso_911("Seguí comprimiendo sin parar.", st)
@@ -178,8 +177,7 @@ def test_aviso_911_se_agrega_una_sola_vez_al_derivar():
 
 
 def test_aviso_911_no_se_duplica_si_el_modelo_lo_dijo():
-    st = TriageState()
-    procesar_turno_usuario("hay una persona atrapada", st)
+    st = EstadoAviso(derivado=True)
     texto = "Ya estás geolocalizado y la ayuda va en camino."
     assert aplicar_aviso_911(texto, st) == texto
     # y si lo repite en un turno posterior, se saca
@@ -187,14 +185,12 @@ def test_aviso_911_no_se_duplica_si_el_modelo_lo_dijo():
 
 
 def test_sin_derivacion_no_hay_aviso_911():
-    st = TriageState()
-    procesar_turno_usuario("tuve un roce, nadie lastimado", st)
+    st = EstadoAviso(derivado=False)
     assert aplicar_aviso_911("Encendé las balizas.", st) == "Encendé las balizas."
 
 
 def test_sin_derivacion_no_promete_ayuda():
-    st = TriageState()
-    procesar_turno_usuario("tuve un roce, nadie lastimado", st)
+    st = EstadoAviso(derivado=False)
     texto = "Alejate del tráfico y esperá a que llegue la ayuda."
     assert aplicar_aviso_911(texto, st) == "Alejate del tráfico."
     # Antes el reemplazo era «mantené la calma» y duplicaba la frase.
@@ -207,15 +203,18 @@ def test_sin_derivacion_no_promete_ayuda():
 
 
 def test_con_derivacion_puede_decir_espera_ayuda():
-    st = TriageState()
-    procesar_turno_usuario("está inconsciente", st)
+    st = EstadoAviso(derivado=True)
     aplicar_aviso_911("Fijate si respira.", st)  # primera respuesta: lleva el aviso
     assert aplicar_aviso_911("Quedate con él y esperá la ayuda.", st) == "Quedate con él y esperá la ayuda."
 
 
+def test_aviso_ya_dicho_sale_del_historial():
+    assert aviso_ya_dicho(["Emergencias viales, te escucho.", f"{FRASE_911} Fijate si respira."])
+    assert not aviso_ya_dicho(["Emergencias viales, te escucho.", "¿Hay alguien lastimado?"])
+
+
 def test_con_derivacion_se_mantiene_hasta_que_llegue_la_ayuda():
-    st = TriageState()
-    procesar_turno_usuario("no respira", st)
+    st = EstadoAviso(derivado=True)
     aplicar_aviso_911("Comprimí fuerte.", st)  # primera respuesta: lleva el aviso
     assert aplicar_aviso_911("Seguí hasta que llegue la ayuda.", st) == "Seguí hasta que llegue la ayuda."
 

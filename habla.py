@@ -12,6 +12,8 @@ que se transcribe y lo que queda en el historial.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
+from dataclasses import dataclass
 
 # Jerga -> palabras de todos los días. De lo más específico a lo más general,
 # para que «la vía aérea abierta» no quede como «el paso del aire abierta».
@@ -140,6 +142,23 @@ def menciona_aviso_911(texto: str) -> bool:
     return bool(_MENCION_911.search(texto))
 
 
+@dataclass
+class EstadoAviso:
+    """Lo que necesita aplicar_aviso_911 para UNA respuesta.
+
+    `aviso_911_dicho` sale del historial (lo que el agente efectivamente dijo)
+    y no de una marca en el estado: por voz, LiveKit genera respuestas por
+    adelantado que a veces descarta, y con una marca el aviso quedaba como
+    dicho sin haberse escuchado nunca."""
+
+    derivado: bool
+    aviso_911_dicho: bool = False
+
+
+def aviso_ya_dicho(respuestas_del_agente: Iterable[str]) -> bool:
+    return any(menciona_aviso_911(r or "") for r in respuestas_del_agente)
+
+
 def quitar_aviso_911(
     texto: str, patrones: list[tuple[re.Pattern[str], str]] | None = None
 ) -> str:
@@ -159,10 +178,9 @@ def quitar_aviso_911(
     return (" " if texto[:1] == " " else "") + limpio
 
 
-def aplicar_aviso_911(texto: str, st) -> str:
-    """Aplica el aviso a un tramo de texto de la respuesta.
-
-    `st` es el TriageState: usa `derivado` y `aviso_911_dicho`."""
+def aplicar_aviso_911(texto: str, st: EstadoAviso) -> str:
+    """Aplica el aviso a un tramo de texto de la respuesta. Marca
+    `st.aviso_911_dicho` para no repetirlo en los tramos siguientes."""
     if not texto.strip():
         return texto
     if st.derivado and not st.aviso_911_dicho:

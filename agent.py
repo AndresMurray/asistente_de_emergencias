@@ -1,4 +1,6 @@
 import asyncio
+import contextvars
+import copy
 import json
 import logging
 import os
@@ -7,6 +9,7 @@ import re
 import threading
 import time
 from collections.abc import Callable
+from dataclasses import dataclass, field
 
 # pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
@@ -29,7 +32,7 @@ from livekit.agents import llm as lk_llm
 from livekit.agents.llm import ToolFlag
 from livekit.plugins import cartesia, deepgram, google, openai
 
-from habla import NormalizadorStream, aplicar_aviso_911
+from habla import EstadoAviso, NormalizadorStream, aplicar_aviso_911, aviso_ya_dicho
 from metronomo import Metronomo, pide_apagar, pide_prender
 from prompts import KEYTERMS_ES, SALUDO, SYSTEM_INSTRUCTIONS
 from protocolos import TEMAS, detectar_temas, respira_positivo, tema_de_consulta
@@ -40,10 +43,12 @@ from triage import (
     derivar_automatico,
     generar_aviso_critico,
     hay_herido,
+    hay_objeto_clavado,
     llego_la_ayuda,
     niega_heridos,
     procesar_turno_usuario,
     rcp_en_curso,
+    recupera_acceso,
     registrar_datos_escena,
     sin_acceso_al_herido,
 )
@@ -318,9 +323,108 @@ def ultima_respuesta_de(chat_ctx) -> str:
     return ""
 
 
-async def contexto_del_turno(
+_ENCABEZADO = "[Contexto del sistema, no lo leas en voz alta]"
+
+
+@dataclass
+class Turno:
+    """Lo que el sistema le agrega a un turno, separado por cuánto tiene que durar.
+
+    Antes todo iba pegado al mensaje de la persona y quedaba en el historial:
+    los avisos de turnos viejos seguían visibles aunque ya no valieran («pedí
+    que se fije si respira» seguía ahí con la RCP en marcha) y el contexto
+    crecía unos 2.000 caracteres por tema."""
+
+    # Quedan en el historial: el manual ya consultado sirve en los turnos
+    # siguientes y no se vuelve a mandar.
+    protocolos: list[str] = field(default_factory=list)
+    # Solo para la respuesta de este turno: el estado actual de la llamada y
+    # los avisos (los agrega Assistant.llm_node, no quedan en el historial).
+    directivas: list[str] = field(default_factory=list)
+
+    def texto_protocolos(self) -> str | None:
+        return f"{_ENCABEZADO}\n" + "\n\n".join(self.protocolos) if self.protocolos else None
+
+    def texto_directivas(self) -> str | None:
+        return f"{_ENCABEZADO}\n" + "\n\n".join(self.directivas) if self.directivas else None
+
+    def con_protocolos(self, texto: str) -> str:
+        """El mensaje de la persona tal como queda en el historial."""
+        protocolos = self.texto_protocolos()
+        return f"{texto}\n\n{protocolos}" if protocolos else texto
+
+    def completo(self) -> str | None:
+        partes = [t for t in (self.texto_protocolos(), self.texto_directivas()) if t]
+        return "\n\n".join(partes) or None
+
+
+def _corto(texto: str, n: int = 90) -> str:
+    texto = " ".join(texto.split())
+    return texto if len(texto) <= n else texto[: n - 1] + "…"
+
+
+def estado_actual(st: TriageState) -> str:
+    """Lo que ya se sabe de la llamada, regenerado en cada turno.
+
+    Reemplaza a los avisos que antes sobrevivían en el historial: el modelo
+    tiene el estado de AHORA en un solo lugar."""
+
+    def sino(valor: bool | None) -> str:
+        return "no se sabe" if valor is None else ("sí" if valor else "no")
+
+    hay_heridos = bool(st.heridos) and not st._sin_heridos()
+    lineas = ["911: ya avisado, la ayuda va en camino." if st.derivado else "911: todavía no hizo falta avisar."]
+    if st.que_paso:
+        lineas.append(f"Qué pasó: {_corto(st.que_paso)}.")
+    if st.heridos is None:
+        lineas.append("Heridos: todavía no se sabe.")
+    elif hay_heridos:
+        lineas.append(f"Heridos: sí («{_corto(st.heridos)}»).")
+    else:
+        lineas.append("Heridos: no hay.")
+    if st.consciente is False or st.respira is not None:
+        lineas.append(f"Herido despierto: {sino(st.consciente)}. Respira: {sino(st.respira)}.")
+    elif st.consciente:
+        # Si está despierto respira: que no se pregunte lo obvio.
+        lineas.append("Herido despierto: sí (entonces respira).")
+    elif hay_heridos:
+        # Sin «Respira: no se sabe»: el modelo lo tomaba como pie para
+        # preguntar por la respiración antes de saber si está despierto.
+        lineas.append("Herido despierto: no se sabe.")
+    if st.consciente is False and st.respira is None:
+        lineas.append(
+            "Todavía no se sabe si respira: PROHIBIDO indicar compresiones hasta que se fije "
+            "si se le mueve el pecho."
+        )
+    if st.atrapado:
+        lineas.append("Hay alguien atrapado en el vehículo.")
+    if hay_objeto_clavado(st):
+        lineas.append("El herido tiene un objeto clavado.")
+    if "fuego" in st.alertas:
+        lineas.append("Hubo aviso de fuego, humo o combustible.")
+    if st.riesgos:
+        lineas.append(f"Riesgos que contó: {_corto(st.riesgos)}.")
+    if rcp_en_curso(st):
+        lineas.append(
+            "RCP en curso, con un sonido que marca el ritmo." if st.metronomo_activo else "RCP en curso."
+        )
+    if st.metronomo_silenciado:
+        lineas.append("El sonido del ritmo está apagado porque lo pidió la persona.")
+    if st.ayuda_llego:
+        lineas.append("Ya llegó la ayuda: que los profesionales se hagan cargo.")
+    if st.sin_acceso:
+        lineas.append("Quien llama NO puede ver ni llegar al herido: no le pidas que revise nada del herido.")
+    if st.temas_inyectados:
+        lineas.append(
+            "Protocolos del manual ya dados en esta llamada (están más arriba): "
+            + ", ".join(sorted(st.temas_inyectados)) + "."
+        )
+    return "Estado de la llamada:\n" + "\n".join(f"- {linea}" for linea in lineas)
+
+
+async def preparar_turno(
     texto: str, st: TriageState, ultima_respuesta: str | None = None
-) -> str | None:
+) -> Turno:
     """Lo que el sistema le agrega al turno ANTES de llamar al LLM.
 
     Es el mismo para voz, chat y los scripts de prueba. Hace tres cosas sin
@@ -331,12 +435,16 @@ async def contexto_del_turno(
        buscar_protocolo y esperar otra vuelta;
     3. marca situaciones que el modelo manejaba mal (no ve al herido, pide RCP
        sin saber si respira).
+
+    Actualiza el estado que recibe: para una respuesta anticipada se le pasa
+    una copia (ver TurnosConfirmados).
     """
     st.ultima_consulta = None
     if ultima_respuesta is not None:
         st.ultima_respuesta = ultima_respuesta
     st.pregunta_pendiente = bool(_PREGUNTA.search(texto))
-    partes: list[str] = []
+    directivas: list[str] = []
+    protocolos: list[str] = []
 
     senal = procesar_turno_usuario(texto, st)
     herido_nuevo = False
@@ -357,17 +465,17 @@ async def contexto_del_turno(
     elif st.heridos is None and niega_heridos(texto):
         st.heridos = texto
     if herido_nuevo:
-        partes.append(
+        directivas.append(
             f"Ya está confirmado que hay un herido («{texto}»): no vuelvas a preguntar si hay "
             "heridos ni cuántos. Lo próximo es saber si el herido está despierto y responde "
             "(salvo que la persona te haya preguntado algo: eso primero)."
         )
     if senal:
-        partes.append(generar_aviso_critico(senal, st))
+        directivas.append(generar_aviso_critico(senal, st))
         # Lo esencial (no respira, inconsciente, atrapado) ya quedó registrado y
         # el 911 ya fue avisado: registrar_datos_escena acá solo agrega otra
         # vuelta al LLM (~1 s) en el turno donde más importa la velocidad.
-        partes.append("Esto ya quedó registrado: respondé directo, SIN llamar herramientas en este turno.")
+        directivas.append("Esto ya quedó registrado: respondé directo, SIN llamar herramientas en este turno.")
 
     if not st.ayuda_llego and llego_la_ayuda(texto):
         st.ayuda_llego = True
@@ -379,17 +487,17 @@ async def contexto_del_turno(
             aviso_ayuda += (
                 " NO le digas que deje de comprimir: que siga hasta que un profesional le pida el lugar."
             )
-        partes.append(aviso_ayuda)
+        directivas.append(aviso_ayuda)
 
     if pide_apagar(texto) and not st.metronomo_silenciado:
         st.metronomo_silenciado = True
-        partes.append(
+        directivas.append(
             "La persona pidió sacar el sonido del ritmo: ya se apagó. Confirmáselo en pocas "
             "palabras y, si está comprimiendo, que siga al mismo ritmo."
         )
     elif pide_prender(texto) and st.metronomo_silenciado:
         st.metronomo_silenciado = False
-        partes.append("La persona pidió volver a escuchar el ritmo: ya vuelve a sonar. Decile que lo siga.")
+        directivas.append("La persona pidió volver a escuchar el ritmo: ya vuelve a sonar. Decile que lo siga.")
 
     inconsciente = st.consciente is False or "inconsciencia" in st.alertas
     en_rcp = rcp_en_curso(st)
@@ -397,7 +505,7 @@ async def contexto_del_turno(
         # También cubre «¡volvió a respirar!» en plena RCP: se dejan las
         # compresiones y pasa al protocolo del inconsciente que respira.
         if st.respira is False:
-            partes.append("VOLVIÓ A RESPIRAR: que deje de comprimir y vigile que siga respirando.")
+            directivas.append("VOLVIÓ A RESPIRAR: que deje de comprimir y vigile que siga respirando.")
         st.respira = True
         en_rcp = False
     elif en_rcp:
@@ -414,7 +522,7 @@ async def contexto_del_turno(
         )
         if st.metronomo_activo:
             aviso_rcp += " Ya suena un sonido que marca el ritmo: decile que siga ese sonido."
-        partes.append(aviso_rcp)
+        directivas.append(aviso_rcp)
 
     temas = detectar_temas(texto)
     repetidos = [t for t in temas if t in st.temas_inyectados]
@@ -423,7 +531,7 @@ async def contexto_del_turno(
         # de haber hablado del casco: es una pregunta aunque no lo parezca, y el
         # agente respondía repitiendo su pregunta anterior.
         st.pregunta_pendiente = True
-        partes.append(
+        directivas.append(
             f"La persona vuelve a preguntar por {', '.join(repetidos)}: respondé eso directo, "
             "con el protocolo que ya tenés, antes que cualquier otra cosa."
         )
@@ -433,7 +541,7 @@ async def contexto_del_turno(
         # Pregunta por RCP sin paro confirmado: nunca adjuntar el protocolo de
         # compresiones a ciegas (si respira, comprimir le hace daño).
         temas.remove("rcp")
-        partes.append(
+        directivas.append(
             "Todavía no está confirmado que el herido NO respire: antes de cualquier "
             "compresión, pedí que se fije si se le mueve el pecho."
         )
@@ -448,16 +556,19 @@ async def contexto_del_turno(
     if st.pregunta_pendiente:
         # En las pruebas el modelo ignoraba «¿le saco el casco?» para seguir con
         # sus preguntas de triage, aun con el protocolo adjunto.
-        partes.append(
+        directivas.append(
             "La persona te hizo una pregunta: respondela en ESTE turno, con el protocolo "
             "si lo hay, antes de preguntar cualquier otra cosa."
         )
 
     if sin_acceso_al_herido(texto):
-        partes.append(
+        st.sin_acceso = True
+        directivas.append(
             "La persona NO puede ver ni llegar al herido: no le pidas que revise nada del "
             "herido. Que se quede a resguardo, fuera de la calzada, y te avise si ve algún cambio."
         )
+    elif st.sin_acceso and recupera_acceso(texto):
+        st.sin_acceso = False
 
     nuevos = [t for t in dict.fromkeys(temas) if t not in st.temas_inyectados]
     st.indicacion_pendiente = bool(nuevos)
@@ -489,7 +600,7 @@ async def contexto_del_turno(
         )
         if fragmentos:
             bloque += f"\nFragmentos del manual:\n{fragmentos}"
-        partes.append(bloque)
+        protocolos.append(bloque)
 
         # Mismo formato que buscar_protocolo, para que el panel de debug del
         # frontend muestre fragmentos, scores y el contexto que recibió el LLM.
@@ -504,25 +615,30 @@ async def contexto_del_turno(
             **debug,
         })
 
-    if not partes and st.heridos is None and not st.derivado:
+    if not directivas and not protocolos and st.heridos is None and not st.derivado:
         # Al principio de la llamada el modelo juntaba dos preguntas («¿Qué pasó
         # y cuántas personas resultaron heridas?»). Lo que importa primero es
         # si hay heridos: una sola pregunta.
-        partes.append(
+        directivas.append(
             "Todavía no se sabe si hay heridos: preguntá solo eso, con una sola pregunta "
             "corta («¿Hay alguien lastimado?»)."
         )
-    cierre = _guia_de_cierre(texto, temas, nuevos, st, en_rcp)
-    if not partes and not cierre:
-        return None
-    if partes:
+    cierre = _guia_de_cierre(temas, nuevos, st, en_rcp)
+    if directivas or protocolos:
         # Con el protocolo completo a mano el modelo tendía a recitarlo entero
         # (50+ palabras): por teléfono eso no se retiene.
-        partes.append(
+        directivas.append(
             "Respondé con UNA indicación corta (máximo dieciocho palabras) y la pregunta de "
             "cierre si corresponde; lo demás, en los turnos siguientes."
         )
-    return "[Contexto del sistema, no lo leas en voz alta]\n" + "\n\n".join(partes + cierre)
+    return Turno(protocolos=protocolos, directivas=[estado_actual(st), *directivas, *cierre])
+
+
+async def contexto_del_turno(
+    texto: str, st: TriageState, ultima_respuesta: str | None = None
+) -> str | None:
+    """Todo el contexto del turno en un solo texto (para tests y diagnóstico)."""
+    return (await preparar_turno(texto, st, ultima_respuesta)).completo()
 
 
 _CIERRES_RCP = (
@@ -557,9 +673,7 @@ def _pregunta_de_seguimiento(temas: list[str], nuevos: list[str], st: TriageStat
     return None
 
 
-def _guia_de_cierre(
-    texto: str, temas: list[str], nuevos: list[str], st: TriageState, en_rcp: bool
-) -> list[str]:
+def _guia_de_cierre(temas: list[str], nuevos: list[str], st: TriageState, en_rcp: bool) -> list[str]:
     """Cómo cerrar el turno para que la conversación siga.
 
     Librado al prompt, el modelo cerraba casi todo con «¿Lo pudiste hacer?»,
@@ -575,7 +689,7 @@ def _guia_de_cierre(
         ]
 
     cierre: list[str] = []
-    if not sin_acceso_al_herido(texto):
+    if not st.sin_acceso:
         if sugerida := _pregunta_de_seguimiento(temas, nuevos, st):
             cierre.append(
                 f"Cerrá con UNA pregunta que te diga si la indicación funcionó, por ejemplo "
@@ -584,6 +698,127 @@ def _guia_de_cierre(
     if previa := _ultima_pregunta(st.ultima_respuesta):
         cierre.append(f"Tu última pregunta fue «{previa}»: no la repitas igual.")
     return cierre
+
+
+# Mientras se calcula el contexto de una respuesta anticipada (sobre una copia
+# del estado) no se loguea: los avisos del turno salen una vez, al confirmarlo.
+_ANTICIPADA: contextvars.ContextVar[bool] = contextvars.ContextVar("respuesta_anticipada", default=False)
+
+
+class _SinLogsAnticipados(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not _ANTICIPADA.get()
+
+
+for _nombre in ("triage", "emergency-agent"):
+    logging.getLogger(_nombre).addFilter(_SinLogsAnticipados())
+
+
+def _ultimo_mensaje_de_usuario(chat_ctx) -> lk_llm.ChatMessage | None:
+    for item in reversed(chat_ctx.items):
+        if getattr(item, "type", None) == "message" and item.role == "user":
+            return item
+    return None
+
+
+def con_contexto(chat_ctx, turno: Turno):
+    """Copia de chat_ctx con el contexto del turno pegado al último mensaje de
+    la persona. Es la copia que va al LLM: el historial no cambia.
+
+    Los protocolos se agregan solo si el mensaje todavía no los tiene (en una
+    respuesta anticipada el turno no se confirmó y el mensaje está pelado)."""
+    mensaje = _ultimo_mensaje_de_usuario(chat_ctx)
+    if mensaje is None:
+        return chat_ctx
+    agregado = []
+    protocolos = turno.texto_protocolos()
+    if protocolos and protocolos not in (mensaje.text_content or ""):
+        agregado.append(protocolos)
+    if directivas := turno.texto_directivas():
+        agregado.append(directivas)
+    if not agregado:
+        return chat_ctx
+    copia = chat_ctx.copy()
+    i = next(i for i, item in enumerate(copia.items) if item.id == mensaje.id)
+    copia.items[i] = mensaje.model_copy(update={"content": [*mensaje.content, *agregado]})
+    return copia
+
+
+class TurnosConfirmados:
+    """Qué contexto le toca a cada respuesta, venga por donde venga.
+
+    - Voz: on_user_turn_completed confirma el turno (actualiza el estado) y lo
+      asocia al mensaje de la persona.
+    - Chat y ensayos: se confirma antes de session.run() y se asocia al
+      próximo mensaje que llegue al LLM.
+    - Voz con respuesta anticipada (preemptive generation): LiveKit empieza a
+      generar ANTES de que termine el turno, sin pasar por
+      on_user_turn_completed, y si la transcripción final coincide usa esa
+      respuesta tal cual. Antes el contexto se pegaba al mensaje recién en
+      on_user_turn_completed y esas respuestas salían sin el aviso crítico ni
+      el protocolo (en producción, más de la mitad de los turnos por voz).
+      Ahora se calcula sobre una COPIA del estado, porque el turno todavía
+      puede cambiar, y el estado real se actualiza al confirmar. Da lo mismo
+      porque preparar_turno es determinística: mismo texto, mismo estado.
+    """
+
+    def __init__(self) -> None:
+        self._por_mensaje: dict[str, Turno] = {}
+        self._siguiente: Turno | None = None
+        self._anticipado: str | None = None
+        self._confirmando: asyncio.Future[Turno] | None = None
+        self._inicio_confirmacion = 0.0
+
+    async def confirmar(
+        self, texto: str, st: TriageState, ultima_respuesta: str, mensaje_id: str | None = None
+    ) -> Turno:
+        """Actualiza el estado con lo que dijo la persona. Sin `mensaje_id`, el
+        turno queda para el próximo mensaje que llegue al LLM."""
+        confirmando = asyncio.get_running_loop().create_future()
+        self._confirmando, self._inicio_confirmacion = confirmando, time.time()
+        anticipado, self._anticipado = self._anticipado, None
+        try:
+            turno = await preparar_turno(texto, st, ultima_respuesta)
+        except BaseException:
+            confirmando.set_result(Turno())  # que no quede colgada ninguna respuesta
+            raise
+        confirmando.set_result(turno)
+        if mensaje_id is None:
+            self._siguiente = turno
+        else:
+            self._por_mensaje[mensaje_id] = turno
+        if anticipado is not None:
+            # La respuesta anticipada sigue en curso y, si llama una tool, vuelve
+            # a pasar por llm_node: desde ahora usa el turno confirmado.
+            self._por_mensaje[anticipado] = turno
+        return turno
+
+    async def para_respuesta(self, chat_ctx, st: TriageState) -> tuple[Turno | None, TriageState]:
+        """El turno de la respuesta que se va a generar y el estado con el que
+        se calculó (para decidir el aviso del 911)."""
+        mensaje = _ultimo_mensaje_de_usuario(chat_ctx)
+        if mensaje is None:
+            return None, st
+        if (turno := self._por_mensaje.get(mensaje.id)) is not None:
+            return turno, st
+        if self._siguiente is not None:
+            turno, self._siguiente = self._siguiente, None
+            self._por_mensaje[mensaje.id] = turno
+            return turno, st
+        if self._confirmando is not None and mensaje.created_at <= self._inicio_confirmacion:
+            # Respuesta anticipada de un turno que ya se está confirmando.
+            turno = await asyncio.shield(self._confirmando)
+            self._por_mensaje[mensaje.id] = turno
+            return turno, st
+        logger.info("respuesta anticipada: contexto calculado sobre una copia del estado")
+        copia = copy.deepcopy(st)
+        self._anticipado = mensaje.id
+        marca = _ANTICIPADA.set(True)
+        try:
+            turno = await preparar_turno(mensaje.text_content or "", copia, ultima_respuesta_de(chat_ctx))
+        finally:
+            _ANTICIPADA.reset(marca)
+        return turno, copia
 
 
 class Assistant(Agent):
@@ -595,26 +830,46 @@ class Assistant(Agent):
         # Se llama apenas el turno actualizó el estado de triage, antes del LLM
         # (entrypoint lo usa para apagar el metrónomo si volvió a respirar).
         self._al_actualizar_estado = al_actualizar_estado
+        self._turnos = TurnosConfirmados()
 
     async def on_user_turn_completed(self, turn_ctx, new_message) -> None:
-        """Camino de audio: mismo contexto determinístico que el chat.
+        """Camino de audio: confirma el turno.
 
-        Se agrega al mensaje del usuario (no a turn_ctx): lo que se agrega a
-        turn_ctx vale solo para este turno, y el aviso de riesgo o el protocolo
-        desaparecían en el turno siguiente."""
-        extra = await contexto_del_turno(
-            new_message.text_content or "", self.session.userdata, ultima_respuesta_de(turn_ctx)
+        Los protocolos se pegan al mensaje para que queden en el historial. El
+        estado y los avisos los agrega llm_node solo a esta respuesta. No se
+        toca turn_ctx: LiveKit descartaría la respuesta anticipada, que ya
+        trae el mismo contexto."""
+        turno = await self._turnos.confirmar(
+            new_message.text_content or "",
+            self.session.userdata,
+            ultima_respuesta_de(turn_ctx),
+            mensaje_id=new_message.id,
         )
-        if extra:
-            new_message.content.append(extra)
+        if protocolos := turno.texto_protocolos():
+            new_message.content.append(protocolos)
         if self._al_actualizar_estado is not None:
             self._al_actualizar_estado()
 
+    async def preparar_texto(self, texto: str) -> tuple[str, Turno]:
+        """Camino de texto (chat de la web, ensayos): session.run() no pasa por
+        on_user_turn_completed. Devuelve lo que hay que pasarle a session.run()."""
+        turno = await self._turnos.confirmar(
+            texto, self.session.userdata, ultima_respuesta_de(self.session.history)
+        )
+        if self._al_actualizar_estado is not None:
+            self._al_actualizar_estado()
+        return turno.con_protocolos(texto), turno
+
     async def llm_node(self, chat_ctx, tools, model_settings: ModelSettings):
-        """Corrige el texto antes de hablarlo (ver habla.py): jerga, voseo y el
-        aviso «Ya estás geolocalizado y la ayuda va en camino.», que lo pone el
-        sistema una sola vez cuando se derivó al 911."""
-        st: TriageState = self.session.userdata
+        """Agrega el contexto del turno a esta respuesta y corrige el texto
+        antes de hablarlo (ver habla.py): jerga, voseo y el aviso «Ya estás
+        geolocalizado y la ayuda va en camino.», que lo pone el sistema una sola
+        vez cuando se derivó al 911."""
+        turno, estado = await self._turnos.para_respuesta(chat_ctx, self.session.userdata)
+        if turno is not None:
+            chat_ctx = con_contexto(chat_ctx, turno)
+        dichas = (m.text_content or "" for m in chat_ctx.messages() if m.role == "assistant")
+        st = EstadoAviso(derivado=estado.derivado, aviso_911_dicho=aviso_ya_dicho(dichas))
         norm = NormalizadorStream()
 
         def salida(texto: str) -> str:
@@ -945,8 +1200,7 @@ def _wire_chat_backchannel(session: AgentSession, ctx: agents.JobContext) -> Non
             except Exception:
                 pass
 
-            extra = await contexto_del_turno(query, session.userdata, ultima_respuesta_de(session.history))
-            entrada = f"{query}\n\n{extra}" if extra else query
+            entrada, _ = await session.current_agent.preparar_texto(query)
 
             try:
                 # interrupt() devuelve un future que se completa cuando la
