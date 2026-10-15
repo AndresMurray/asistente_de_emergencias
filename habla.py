@@ -125,7 +125,10 @@ _QUITAR_911 = [
 # que llegue la ayuda».
 _LLEGA_AYUDA = r"(la ayuda|ayuda|la ambulancia|una ambulancia|los servicios|los bomberos|los médicos)"
 _AYUDA_SIN_DERIVAR: list[tuple[re.Pattern[str], str]] = [(p, "") for p in _QUITAR_911] + [
-    (re.compile(r"\b(y )?esper[aá] (a )?que llegue(n)? " + _LLEGA_AYUDA, re.I), r"\1mantené la calma"),
+    # Se borra, no se reemplaza: antes iba «mantené la calma» y, como el modelo
+    # suele empezar con esa misma frase, quedaba «Mantené la calma y mantené
+    # la calma» (visto en la prueba por voz de la Expo).
+    (re.compile(r"\s*,?\s*(y\s+)?esper[aá] (a )?que llegue(n)? " + _LLEGA_AYUDA, re.I), ""),
     (re.compile(r"\s*hasta que llegue(n)? " + _LLEGA_AYUDA, re.I), ""),
     # La versión corta: en un choque sin heridos dijo «Quedate donde estás y
     # esperá ayuda», como si alguien estuviera en camino.

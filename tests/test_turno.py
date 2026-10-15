@@ -196,7 +196,9 @@ def test_sin_derivacion_no_promete_ayuda():
     st = TriageState()
     procesar_turno_usuario("tuve un roce, nadie lastimado", st)
     texto = "Alejate del tráfico y esperá a que llegue la ayuda."
-    assert aplicar_aviso_911(texto, st) == "Alejate del tráfico y mantené la calma."
+    assert aplicar_aviso_911(texto, st) == "Alejate del tráfico."
+    # Antes el reemplazo era «mantené la calma» y duplicaba la frase.
+    assert aplicar_aviso_911("Mantené la calma y esperá a que llegue la ayuda.", st) == "Mantené la calma."
     assert aplicar_aviso_911("No muevas el auto hasta que lleguen los servicios.", st) == "No muevas el auto."
     assert aplicar_aviso_911("Mantené la cabeza inmóvil hasta que llegue ayuda.", st) == "Mantené la cabeza inmóvil."
     # Versión corta, vista en la prueba por voz del choque sin heridos.
