@@ -22,9 +22,6 @@ import logging
 import re
 from dataclasses import dataclass, field
 
-from livekit.agents import RunContext, function_tool
-from livekit.agents.llm import ToolFlag
-
 from deteccion import buscar, buscar_regex
 from protocolos import fuego_apagado
 
@@ -572,9 +569,30 @@ class TriageState:
         return brief
 
 
-@function_tool(flags=ToolFlag.IGNORE_ON_ENTER)
-async def registrar_datos_escena(
-    context: RunContext[TriageState],
+# Lo que el LLM lee de la tool registrar_datos_escena. Un solo texto para
+# LiveKit (agent.py) y para el orquestador propio (orquestador/herramientas.py).
+DESCRIPCION_REGISTRAR_DATOS = """\
+Guarda datos de la escena a medida que la persona los va diciendo.
+
+Llamala en el mismo turno en que te dan un dato NUEVO, con solo los campos
+que te dijeron. Si en el turno no hay datos nuevos de la escena, no la llames.
+Guardá las palabras de la persona, no tu interpretación.
+
+La ubicación NO se pide ni se guarda aquí porque el sistema ya geolocaliza
+automáticamente a la persona.
+
+que_paso: qué tipo de accidente fue, en palabras de quien llama.
+heridos: cuántas personas lastimadas y cómo se ven.
+riesgos: fuego, humo, olor a combustible, autos que siguen pasando.
+consciente: si el herido está despierto y reacciona.
+respira: si el herido respira.
+caller_seguro: si quien llama está fuera de la calzada, a salvo.
+atrapado: si hay alguna persona atrapada, aprisionada o encerrada en un vehículo."""
+
+
+def registrar_datos(
+    st: TriageState,
+    *,
     que_paso: str | None = None,
     heridos: str | None = None,
     riesgos: str | None = None,
@@ -583,25 +601,9 @@ async def registrar_datos_escena(
     caller_seguro: bool | None = None,
     atrapado: bool | None = None,
 ) -> str:
-    """Guarda datos de la escena a medida que la persona los va diciendo.
-
-    Llamala en el mismo turno en que te dan un dato NUEVO, con solo los campos
-    que te dijeron. Si en el turno no hay datos nuevos de la escena, no la llames.
-    Guardá las palabras de la persona, no tu interpretación.
-
-    La ubicación NO se pide ni se guarda aquí porque el sistema ya geolocaliza
-    automáticamente a la persona.
-
-    que_paso: qué tipo de accidente fue, en palabras de quien llama.
-    heridos: cuántas personas lastimadas y cómo se ven.
-    riesgos: fuego, humo, olor a combustible, autos que siguen pasando.
-    consciente: si el herido está despierto y reacciona.
-    respira: si el herido respira.
-    caller_seguro: si quien llama está fuera de la calzada, a salvo.
-    atrapado: si hay alguna persona atrapada, aprisionada o encerrada en un vehículo.
-    """
-    st = context.userdata
-
+    """Lo que hace la tool registrar_datos_escena: guarda los datos en el estado
+    y devuelve la indicación para el LLM. No depende de quién la llama (la
+    envuelven agent.py para LiveKit y orquestador/herramientas.py)."""
     if atrapado is None:
         if buscar(f"{heridos or ''}. {que_paso or ''}", SENALES_ATRAPAMIENTO):
             atrapado = True
@@ -636,7 +638,7 @@ async def registrar_datos_escena(
             )
         return "No se registraron datos nuevos. Seguí asistiendo a la persona."
 
-    context.userdata.tool_calls.append({
+    st.tool_calls.append({
         "tool": "registrar_datos_escena",
         "args": {
             k: v for k, v in (

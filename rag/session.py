@@ -17,11 +17,12 @@ def cohere_session() -> aiohttp.ClientSession:
     """Session del job si hay, o una propia cacheada si se corre fuera."""
     global _fallback
 
-    from livekit.agents.utils import http_context
-
     try:
+        from livekit.agents.utils import http_context
+
         return http_context.http_session()
-    except RuntimeError:
+    except (ImportError, RuntimeError):
+        # Sin LiveKit instalado (orquestador propio) o fuera de un job.
         if _fallback is None:
             _fallback = aiohttp.ClientSession()
         return _fallback

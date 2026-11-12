@@ -17,6 +17,10 @@ En `agent.py console` LiveKit no reproduce el audio de fondo, así que ahí el
 clic sale directo por los parlantes de la compu (sounddevice, que ya viene con
 livekit-agents). En ensayo.py no hay sala ni audio: iniciar() y detener() no
 hacen nada.
+
+LiveKit se importa adentro de las funciones que lo usan y no arriba: el ritmo
+(clic, bloques) y los pedidos de apagar o prender el sonido también los usa el
+orquestador propio (orquestador/), que no depende de LiveKit.
 """
 
 from __future__ import annotations
@@ -26,11 +30,13 @@ import os
 import re
 import time
 from collections.abc import AsyncIterator, Iterator
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from livekit import rtc
-from livekit.agents import AudioConfig, BackgroundAudioPlayer, PlayHandle, get_job_context
+if TYPE_CHECKING:
+    from livekit import rtc
+    from livekit.agents import BackgroundAudioPlayer, PlayHandle
 
 logger = logging.getLogger("metronomo")
 
@@ -70,6 +76,8 @@ def bloques(bpm: float, sample_rate: int = SAMPLE_RATE, frame_ms: int = _FRAME_M
 async def frames_metronomo(bpm: float, sample_rate: int = SAMPLE_RATE) -> AsyncIterator[rtc.AudioFrame]:
     """Los bloques como AudioFrame. El ritmo en tiempo real lo impone el
     AudioSource del BackgroundAudioPlayer, que frena cuando su cola se llena."""
+    from livekit import rtc
+
     for buf in bloques(bpm, sample_rate):
         yield rtc.AudioFrame(buf.tobytes(), sample_rate, 1, len(buf))
 
@@ -121,6 +129,8 @@ class Metronomo:
         if not self.habilitado:
             logger.info("metrónomo deshabilitado por METRONOMO")
             return
+        from livekit.agents import BackgroundAudioPlayer, get_job_context
+
         try:
             self._consola = get_job_context().is_fake_job()
         except RuntimeError:
@@ -157,6 +167,8 @@ class Metronomo:
             return arranco
         if self._player is None:
             return False
+        from livekit.agents import AudioConfig
+
         self._desde = time.monotonic()
         self._handle = self._player.play(
             AudioConfig(frames_metronomo(self.bpm), volume=self.volumen, fade_in=0.15)

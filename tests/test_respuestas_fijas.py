@@ -12,14 +12,15 @@ import asyncio
 import pytest
 
 import agent
+import nucleo
 import respuestas_fijas as rf
 from triage import TriageState, esta_despierto, procesar_turno_usuario
 
 
 @pytest.fixture(autouse=True)
 def sin_indice(monkeypatch):
-    monkeypatch.setattr(agent, "_retriever", None)
-    monkeypatch.setattr(agent, "_iniciar_carga", lambda: None)
+    monkeypatch.setattr(nucleo, "_retriever", None)
+    monkeypatch.setattr(nucleo, "_iniciar_carga", lambda: None)
 
 
 def _fija(*turnos: tuple[str, str]) -> str | None:

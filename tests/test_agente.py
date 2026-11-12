@@ -7,6 +7,7 @@ import asyncio
 import pytest
 
 import agent
+import nucleo
 from livekit.agents import llm
 from triage import TriageState
 
@@ -14,8 +15,8 @@ from triage import TriageState
 @pytest.fixture
 def sin_indice(monkeypatch):
     """Simula que el índice del manual todavía se está cargando."""
-    monkeypatch.setattr(agent, "_retriever", None)
-    monkeypatch.setattr(agent, "_iniciar_carga", lambda: None)
+    monkeypatch.setattr(nucleo, "_retriever", None)
+    monkeypatch.setattr(nucleo, "_iniciar_carga", lambda: None)
 
 
 def test_get_retriever_no_bloquea_si_no_cargo(sin_indice):

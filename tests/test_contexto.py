@@ -16,14 +16,15 @@ import time
 import pytest
 
 import agent
+import nucleo
 from livekit.agents import llm
 from triage import TriageState
 
 
 @pytest.fixture(autouse=True)
 def sin_indice(monkeypatch):
-    monkeypatch.setattr(agent, "_retriever", None)
-    monkeypatch.setattr(agent, "_iniciar_carga", lambda: None)
+    monkeypatch.setattr(nucleo, "_retriever", None)
+    monkeypatch.setattr(nucleo, "_iniciar_carga", lambda: None)
 
 
 def _conversacion(*mensajes: tuple[str, str]) -> llm.ChatContext:

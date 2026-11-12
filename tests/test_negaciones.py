@@ -16,6 +16,7 @@ import asyncio
 import pytest
 
 import agent
+import nucleo
 from deteccion import buscar, clasificar
 from protocolos import detectar_temas, tema_de_consulta
 from triage import (
@@ -26,8 +27,8 @@ from triage import (
 
 @pytest.fixture
 def sin_indice(monkeypatch):
-    monkeypatch.setattr(agent, "_retriever", None)
-    monkeypatch.setattr(agent, "_iniciar_carga", lambda: None)
+    monkeypatch.setattr(nucleo, "_retriever", None)
+    monkeypatch.setattr(nucleo, "_iniciar_carga", lambda: None)
 
 
 # --- clasificación ----------------------------------------------------------------

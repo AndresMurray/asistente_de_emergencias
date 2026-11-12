@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 import agent
+import nucleo
 from metronomo import SAMPLE_RATE, Metronomo, bloques, clic, pide_apagar, pide_prender
 from triage import TriageState, llego_la_ayuda, procesar_turno_usuario, rcp_en_curso
 
@@ -51,8 +52,8 @@ def test_metronomo_sin_sala_no_falla():
 
 @pytest.fixture
 def sin_indice(monkeypatch):
-    monkeypatch.setattr(agent, "_retriever", None)
-    monkeypatch.setattr(agent, "_iniciar_carga", lambda: None)
+    monkeypatch.setattr(nucleo, "_retriever", None)
+    monkeypatch.setattr(nucleo, "_iniciar_carga", lambda: None)
 
 
 def test_inconsciente_sin_verificar_no_es_rcp(sin_indice):
