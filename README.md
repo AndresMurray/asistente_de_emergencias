@@ -96,6 +96,18 @@ Para iniciar el agente de LiveKit en modo desarrollo:
 python agent.py dev
 ```
 
+### 2 bis. Ejecutar sin LiveKit (orquestador propio)
+El paquete `orquestador/` atiende llamadas sin LiveKit: mismo triage, mismos
+protocolos y mismas tools, con un servidor WebSocket propio en lugar de la sala.
+```bash
+pip install -r requirements-orquestador.txt   # no instala LiveKit
+python -m orquestador                          # ws://127.0.0.1:8787/ws
+python -m orquestador.consola --interactivo    # por texto, en la terminal
+```
+Para usarlo desde la web, definir `ORQUESTADOR_URL=ws://127.0.0.1:8787/ws` en el
+`.env.local` del frontend. Detalle, variables y límites en
+[docs/orquestador.md](docs/orquestador.md).
+
 ### 3. Despliegue en LiveKit Cloud (Producción)
 
 Para desplegar el agente en LiveKit Cloud, se utiliza el CLI oficial de LiveKit (`lk`).

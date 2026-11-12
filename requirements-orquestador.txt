@@ -1,0 +1,18 @@
+# Lo que necesita el orquestador propio (python -m orquestador) y nada más.
+# No incluye LiveKit: con este archivo solo, en un entorno limpio, corren el
+# servidor, la consola de texto y sus tests (tests/test_orquestador.py).
+#
+# requirements.txt sigue siendo el del agente sobre LiveKit (agent.py).
+
+# Servidor WebSocket y conexiones a Deepgram / Cartesia
+aiohttp==3.14.1
+# LLM: cualquier API compatible con la de OpenAI (Groq, Gemini, Ollama)
+openai>=1.60,<3
+httpx>=0.27.0
+
+# RAG (rag/): índice en memoria y base de protocolos
+numpy>=2.0
+psycopg2-binary==2.9.12
+pgvector==0.5.0
+
+python-dotenv==1.2.2
